@@ -1,0 +1,7 @@
+{
+  "name": "FuelMate IndexedDB",
+  "description": "A complete vehicle fuel and maintenance tracking PWA using IndexedDB for storage.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

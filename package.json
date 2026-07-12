@@ -1,0 +1,26 @@
+{
+  "name": "fuelmate-indexeddb",
+  "private": true,
+  "version": "3.0.1",
+  "type": "module",
+  "scripts": {
+    "build:css": "node scripts/generate-tailwind-safelist.mjs && tailwindcss -c tailwind.config.js -i styles/tailwind.css -o public/app.css --minify",
+    "predev": "npm run build:css",
+    "prebuild": "npm run build:css",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@tailwindcss/cli": "^4.1.11",
+    "tailwindcss": "^4.1.11",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
