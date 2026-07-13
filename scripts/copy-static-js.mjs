@@ -12,6 +12,7 @@ const files = [
   'store.js',
   'utils.js',
   'ui.js',
+  'ui/events.js',
   'ui/base.js',
   'ui/pages/dashboard.js',
   'ui/pages/records.js',

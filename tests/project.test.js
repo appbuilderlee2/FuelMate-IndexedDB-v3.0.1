@@ -11,6 +11,7 @@ const runtimeFiles = [
   'store.js',
   'utils.js',
   'ui.js',
+  'ui/events.js',
   'ui/base.js',
   'ui/pages/dashboard.js',
   'ui/pages/records.js',
@@ -96,10 +97,24 @@ test('UI registry delegates implementation to focused page and action modules', 
   assert.match(registry, /const ui = \{\};/);
   assert.ok(registry.split('\n').length < 10, 'UI registry should stay lightweight');
 
-  for (const file of runtimeFiles.filter((file) => file.startsWith('ui/'))) {
+  for (const file of runtimeFiles.filter((file) => file.startsWith('ui/') && file !== 'ui/events.js')) {
     const source = await read(`src/${file}`);
     assert.match(source, /Object\.assign\(ui,/);
     assert.ok(source.split('\n').length < 600, `${file} should remain a focused UI module`);
+  }
+});
+
+test('core UI flows use the delegated event controller instead of inline handlers', async () => {
+  const events = await read('src/ui/events.js');
+  assert.match(events, /dataset\.uiMethod/);
+  assert.match(events, /document\.addEventListener\('click'/);
+  assert.match(events, /document\.addEventListener\('change'/);
+  assert.match(events, /document\.addEventListener\('input'/);
+  assert.match(events, /document\.addEventListener\('focusout'/);
+
+  for (const file of ['index.html', 'src/ui/base.js', 'src/ui/actions/fuel.js', 'src/ui/actions/vehicles.js', 'src/ui/pages/settings.js']) {
+    const source = await read(file);
+    assert.doesNotMatch(source, /\son(?:click|change|input|blur)=/, `${file} should use delegated events`);
   }
 });
 

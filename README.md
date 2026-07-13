@@ -1,8 +1,27 @@
-# FuelMate IndexedDB v3.3.0
+# FuelMate IndexedDB v3.4.0
 
-> v3.3.0 focuses on a maintainable UI architecture and real-browser E2E coverage without changing the IndexedDB schema.
+> v3.4.0 introduces delegated UI events for core user flows while preserving the existing IndexedDB schema and global UI API.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.4.0 更新內容
+
+### 集中 UI Event Architecture
+
+- 新增 `src/ui/events.js` 作為集中delegated event controller，一次監聽document的click、change、input及focusout事件。
+- 核心template改用 `data-action`、`data-ui-method`及安全編碼參數，不再直接執行長段inline JavaScript。
+- 已遷移底部navigation、Modal背景關閉、搜尋／日期篩選、Full／Partial chips、車輛新增／編輯／選擇、入油表單及設定頁操作。
+- 設定寫入集中到具欄位白名單的UI methods，避免template直接任意修改store object。
+- async delegated actions統一捕捉及記錄錯誤，降低未處理Promise rejection。
+- 保留既有 `ui.*` public API，維修、提醒、calendar及圖表的複雜互動會在後續版本逐步遷移。
+
+### 版本、PWA及測試
+
+- App、package、設定頁、About及README同步升級至v3.4.0。
+- Service Worker cache更新至 `fuelmate-cache-v11`，並precache新的event controller。
+- 架構測試會檢查event controller載入次序、production copy、離線precache及核心UI檔案不再包含inline events。
+- Playwright既有車輛、navigation、設定版本、入油計算、儲存及reload流程繼續作為event重構回歸保護。
+- IndexedDB schema及現有資料格式不變，毋須migration。
 
 ## v3.3.0 更新內容
 

@@ -11,7 +11,10 @@ const router = {
         window.utils = utils;
         window.router = router;
 
-        window.addEventListener('DOMContentLoaded', () => ui.init());
+        window.addEventListener('DOMContentLoaded', () => {
+            FuelMateEvents.init();
+            ui.init();
+        });
         document.addEventListener('click', (event) => {
             if (event.target.closest('a')) return;
             const target = event.target.closest('[data-action="edit-log"]');

@@ -52,7 +52,7 @@ renderLoadMore(pageKey, shown, total) {
                 return `
                     <div class="pt-2 pb-6 flex flex-col items-center gap-2">
                         <div class="text-[10px] theme-text-sub">${utils.t('showing')} ${safeShown.toLocaleString()} / ${(total || 0).toLocaleString()}</div>
-                        <button onclick="ui.loadMore('${pageKey}')" class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading border theme-border active:scale-95 transition-transform">
+                        <button data-action="ui" data-ui-method="loadMore" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey]))}" class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading border theme-border active:scale-95 transition-transform">
                             ${utils.t('load_more')}
                         </button>
                     </div>
@@ -99,10 +99,10 @@ renderNoVehicleState() {
                         </div>
                         <h2 class="text-2xl font-bold mb-2 theme-text-heading">${utils.t('welcome')}</h2>
                         <p class="theme-text-sub mb-8">Add your first vehicle to start tracking fuel, costs, and maintenance.</p>
-                        <button data-testid="add-vehicle" onclick="ui.openAddVehicle()" class="grad-teal text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-teal-500/30 active:scale-95 transition-transform flex items-center gap-2">
+                        <button data-testid="add-vehicle" data-action="ui" data-ui-method="openAddVehicle" class="grad-teal text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-teal-500/30 active:scale-95 transition-transform flex items-center gap-2">
                             <span class="material-icons">add</span> ${utils.t('add_vehicle')}
                         </button>
-                        <button data-testid="add-demo-vehicle" onclick="ui.addDemoCar()" class="mt-3 bg-white dark:bg-slate-800 theme-text-heading px-8 py-3 rounded-xl font-bold shadow active:scale-95 transition-transform flex items-center gap-2 border theme-border">
+                        <button data-testid="add-demo-vehicle" data-action="ui" data-ui-method="addDemoCar" class="mt-3 bg-white dark:bg-slate-800 theme-text-heading px-8 py-3 rounded-xl font-bold shadow active:scale-95 transition-transform flex items-center gap-2 border theme-border">
                             <span class="material-icons text-teal-500">auto_awesome</span> ${utils.t('add_demo_car')}
                         </button>
                     </div>
@@ -112,45 +112,44 @@ renderNoVehicleState() {
 renderSearchPanel(opts) {
                 const {
                     searchValue = '',
-                    onSearchInput = '',
-                    onClearSearch = '',
+                    pageKey = '',
+                    searchKey = '',
                     placeholder = 'Search...',
                     fromValue = '',
                     toValue = '',
-                    onFromChange = '',
-                    onToChange = '',
-                    onClearRange = '',
+                    fromKey = '',
+                    toKey = '',
                     chips = []
                 } = opts || {};
 
-                const hasRange = onFromChange || onToChange;
-                const hasSearch = onSearchInput;
+                const hasRange = pageKey && (fromKey || toKey);
+                const hasSearch = pageKey && searchKey;
                 return `
                     <div class="space-y-3 mb-4">
                         ${hasSearch ? `
                             <div class="relative">
                                 <span class="material-icons absolute left-3 top-2.5 text-slate-400 text-lg">search</span>
-                                <input type="text" placeholder="${placeholder}" value="${searchValue || ''}" oninput="${onSearchInput}" class="w-full pl-10 pr-10 py-2 rounded-xl theme-bg-card theme-text-heading shadow-sm border-none focus:ring-2 focus:ring-teal-500 text-sm">
-                                ${searchValue ? `<button onclick="${onClearSearch}" class="absolute right-2 top-2 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><span class="material-icons text-slate-500 text-base">close</span></button>` : ''}
+                                <input type="text" placeholder="${placeholder}" value="${searchValue || ''}" data-input-action="ui" data-ui-method="onSearchInput" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey, searchKey]))}" data-ui-pass-value="true" class="w-full pl-10 pr-10 py-2 rounded-xl theme-bg-card theme-text-heading shadow-sm border-none focus:ring-2 focus:ring-teal-500 text-sm">
+                                ${searchValue ? `<button data-action="ui" data-ui-method="clearSearch" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey, searchKey]))}" class="absolute right-2 top-2 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><span class="material-icons text-slate-500 text-base">close</span></button>` : ''}
                             </div>
                         ` : ''}
 
                         ${hasRange ? `
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="relative">
-                                    <input type="date" value="${fromValue || ''}" onchange="${onFromChange}" class="w-full p-2.5 rounded-xl theme-bg-card theme-text-heading shadow-sm border-none focus:ring-2 focus:ring-teal-500 text-sm">
+                                    <input type="date" value="${fromValue || ''}" data-change-action="ui" data-ui-method="updatePageFilter" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey, fromKey]))}" data-ui-pass-value="true" class="w-full p-2.5 rounded-xl theme-bg-card theme-text-heading shadow-sm border-none focus:ring-2 focus:ring-teal-500 text-sm">
                                 </div>
                                 <div class="relative">
-                                    <input type="date" value="${toValue || ''}" onchange="${onToChange}" class="w-full p-2.5 rounded-xl theme-bg-card theme-text-heading shadow-sm border-none focus:ring-2 focus:ring-teal-500 text-sm">
+                                    <input type="date" value="${toValue || ''}" data-change-action="ui" data-ui-method="updatePageFilter" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey, toKey]))}" data-ui-pass-value="true" class="w-full p-2.5 rounded-xl theme-bg-card theme-text-heading shadow-sm border-none focus:ring-2 focus:ring-teal-500 text-sm">
                                 </div>
                             </div>
-                            ${(fromValue || toValue) ? `<button onclick="${onClearRange}" class="w-full py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">${utils.t('cancel')}</button>` : ''}
+                            ${(fromValue || toValue) ? `<button data-action="ui" data-ui-method="clearPageRange" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey, fromKey, toKey]))}" class="w-full py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">${utils.t('cancel')}</button>` : ''}
                         ` : ''}
 
                         ${chips && chips.length ? `
                             <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                                 ${chips.map(c => `
-                                    <button onclick="${c.onClick}" class="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${c.active ? 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/20' : 'bg-slate-50 dark:bg-slate-800 theme-border theme-text-sub'}">${c.label}</button>
+                                    <button data-action="ui" data-ui-method="${c.method}" data-ui-args="${encodeURIComponent(JSON.stringify(c.args || []))}" class="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${c.active ? 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/20' : 'bg-slate-50 dark:bg-slate-800 theme-border theme-text-sub'}">${c.label}</button>
                                 `).join('')}
                             </div>
                         ` : ''}
@@ -182,18 +181,18 @@ renderFilterHeader(page, filter, isColorBg = false) {
                 return `
                     <div class="flex items-center justify-end gap-2 mb-4 w-full">
                         <div class="flex-1 flex items-center gap-2">
-                             ${isMonth ? `<input type="month" value="${filter.value}" onchange="ui.setFilter('${page}', 'month', this.value)" class="text-sm p-1 rounded font-medium outline-none ${inputClass}">` : ''}
+                             ${isMonth ? `<input type="month" value="${filter.value}" data-change-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'month']))}" data-ui-pass-value="true" class="text-sm p-1 rounded font-medium outline-none ${inputClass}">` : ''}
                              ${isYear ? `
-                                <select onchange="ui.setFilter('${page}', 'year', this.value)" class="text-sm p-1 rounded font-medium outline-none appearance-none pl-2 pr-6 relative ${inputClass}">
+                                <select data-change-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'year']))}" data-ui-pass-value="true" class="text-sm p-1 rounded font-medium outline-none appearance-none pl-2 pr-6 relative ${inputClass}">
                                     ${availableYears.map(y => `<option value="${y}" ${y == filter.value ? 'selected' : ''} class="text-black">${y}</option>`).join('')}
                                 </select>
                             ` : ''}
                         </div>
 
                         <div class="flex rounded-lg p-1 shrink-0 ${containerClass}">
-                            <button onclick="ui.setFilter('${page}', 'month')" class="px-3 py-1 rounded-md text-xs font-medium transition-all ${filter.mode === 'month' ? activeBtnClass : inactiveBtnClass}">${utils.t('range_month')}</button>
-                            <button onclick="ui.setFilter('${page}', 'year')" class="px-3 py-1 rounded-md text-xs font-medium transition-all ${filter.mode === 'year' ? activeBtnClass : inactiveBtnClass}">${utils.t('range_year')}</button>
-                            <button onclick="ui.setFilter('${page}', 'all')" class="px-3 py-1 rounded-md text-xs font-medium transition-all ${filter.mode === 'all' ? activeBtnClass : inactiveBtnClass}">${utils.t('range_all')}</button>
+                            <button data-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'month']))}" class="px-3 py-1 rounded-md text-xs font-medium transition-all ${filter.mode === 'month' ? activeBtnClass : inactiveBtnClass}">${utils.t('range_month')}</button>
+                            <button data-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'year']))}" class="px-3 py-1 rounded-md text-xs font-medium transition-all ${filter.mode === 'year' ? activeBtnClass : inactiveBtnClass}">${utils.t('range_year')}</button>
+                            <button data-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'all']))}" class="px-3 py-1 rounded-md text-xs font-medium transition-all ${filter.mode === 'all' ? activeBtnClass : inactiveBtnClass}">${utils.t('range_all')}</button>
                         </div>
                     </div>
                 `;
@@ -204,6 +203,26 @@ setFilter(page, mode, value) {
                 if (mode === 'year' && !value) value = new Date().getFullYear().toString();
                 store.pageFilters[page] = { mode, value };
                 this.resetPageLimit(page);
+                this.render();
+            },
+
+updatePageFilter(pageKey, filterKey, value) {
+                store.pageFilters[filterKey] = value;
+                this.resetPageLimit(pageKey);
+                this.render();
+            },
+
+clearPageRange(pageKey, fromKey, toKey) {
+                store.pageFilters[fromKey] = '';
+                store.pageFilters[toKey] = '';
+                this.resetPageLimit(pageKey);
+                this.render();
+            },
+
+togglePageFlag(pageKey, objectKey, flagKey) {
+                const current = store.pageFilters[objectKey] || {};
+                store.pageFilters[objectKey] = { ...current, [flagKey]: !current[flagKey] };
+                this.resetPageLimit(pageKey);
                 this.render();
             },
 
@@ -328,7 +347,7 @@ renderLogCard(log) {
 
                 let locHtml = '';
                 if (log.location) {
-                    locHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(log.location)}" target="_blank" rel="noopener noreferrer" class="text-xs text-sky-500 hover:underline flex items-center gap-1 mt-1" onclick="event.stopPropagation()"><span class="material-icons text-[10px]">place</span>${utils.escapeHtml(log.location)}</a>`;
+                    locHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(log.location)}" target="_blank" rel="noopener noreferrer" class="text-xs text-sky-500 hover:underline flex items-center gap-1 mt-1"><span class="material-icons text-[10px]">place</span>${utils.escapeHtml(log.location)}</a>`;
                 }
 
                 let extraInfoHtml = '';
@@ -363,7 +382,7 @@ renderLogCard(log) {
                             </div>
                             <div class="text-right">
                                 <div class="font-bold theme-text-heading">${utils.formatCurrency(log.cost)}</div>
-                                <button type="button" data-action="edit-log" data-log-id="${log.id}" onclick="event.stopPropagation(); ui.openLogEditorById('${log.id}')" class="text-slate-300 hover:text-sky-500 mt-2"><span class="material-icons text-lg">edit</span></button>
+                                <button type="button" data-action="ui" data-ui-method="openLogEditorById" data-ui-args="${encodeURIComponent(JSON.stringify([log.id]))}" class="text-slate-300 hover:text-sky-500 mt-2"><span class="material-icons text-lg">edit</span></button>
                             </div>
                         </div>
                         ${fuelStatsHtml}
@@ -389,7 +408,7 @@ renderBottomNav(active) {
                         <div class="liquid-nav-inner flex justify-around items-center pt-2">
                             <div class="liquid-nav-highlight"></div>
                             ${nav.map(n => `
-                                <button data-testid="nav-${n.id}" onclick="router.navigate('${n.id}')" class="liquid-nav-item flex flex-col items-center p-2 w-full transition-colors ${active === n.id ? 'text-teal-700 is-active' : 'text-slate-500'}">
+                                <button data-testid="nav-${n.id}" data-action="navigate" data-page="${n.id}" class="liquid-nav-item flex flex-col items-center p-2 w-full transition-colors ${active === n.id ? 'text-teal-700 is-active' : 'text-slate-500'}">
                                     <span class="material-icons ${active === n.id ? 'text-2xl' : 'text-xl'}">${n.icon}</span>
                                     <span class="text-[10px] font-semibold mt-1">${n.label}</span>
                                 </button>

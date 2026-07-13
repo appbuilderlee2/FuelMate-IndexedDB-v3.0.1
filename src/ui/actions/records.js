@@ -10,12 +10,12 @@ openAddParking(id = null) {
                         <div class="relative">
                              <label class="text-xs theme-text-sub block mb-1">${utils.t('location')}</label>
                              <input id="p_loc" type="text" value="${utils.escapeAttr(log.location || '')}" class="w-full p-3 rounded-xl pr-10">
-                             <button onclick="utils.detectLocation(l => document.getElementById('p_loc').value=l)" class="absolute right-3 top-8 text-teal-500"><span class="material-icons">my_location</span></button>
+                             <button data-action="ui" data-ui-method="detectLocationFor" data-ui-args="${encodeURIComponent(JSON.stringify(['p_loc']))}" class="absolute right-3 top-8 text-teal-500"><span class="material-icons">my_location</span></button>
                         </div>
                         <div><label class="text-xs theme-text-sub block mb-1">${utils.t('notes')}</label><textarea id="p_notes" class="w-full p-3 rounded-xl h-20">${utils.escapeHtml(log.notes || '')}</textarea></div>
                         <div class="flex gap-3 mt-4">
-                            ${id ? `<button onclick="ui.deleteLog('${id}')" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold">${utils.t('delete')}</button>` : ''}
-                            <button onclick="ui.submitParking('${id || ''}')" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg">${utils.t('save')}</button>
+                            ${id ? `<button data-action="ui" data-ui-method="deleteLog" data-ui-args="${encodeURIComponent(JSON.stringify([id]))}" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold">${utils.t('delete')}</button>` : ''}
+                            <button data-action="ui" data-ui-method="submitParking" data-ui-args="${encodeURIComponent(JSON.stringify([id || '']))}" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg">${utils.t('save')}</button>
                         </div>
                     </div>
                 `);

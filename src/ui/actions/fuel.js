@@ -14,16 +14,16 @@ openAddFuel(id = null) {
                          <div>
                             <div class="flex justify-between items-center mb-1">
                                 <label class="text-xs theme-text-sub">${utils.t('odometer')}</label>
-                                <button id="l_odo_mode" onclick="ui.toggleTripMode(this)" class="text-[10px] bg-slate-200 px-2 py-0.5 rounded font-bold">ODO</button>
+                                <button id="l_odo_mode" data-action="ui" data-ui-method="toggleTripMode" data-ui-pass-element="true" class="text-[10px] bg-slate-200 px-2 py-0.5 rounded font-bold">ODO</button>
                             </div>
-                            <input id="l_odo" type="number" min="0" value="${utils.escapeAttr(log.odometer)}" data-mode="odo" class="w-full p-3 rounded-xl" onblur="ui.normalizeTripOdometer(this)">
+                            <input id="l_odo" type="number" min="0" value="${utils.escapeAttr(log.odometer)}" data-mode="odo" data-blur-action="ui" data-ui-method="normalizeTripOdometer" data-ui-pass-element="true" class="w-full p-3 rounded-xl">
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs theme-text-sub block mb-1">${volLabel}</label><input id="l_liters" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.liters)}" class="w-full p-3 rounded-xl" oninput="ui.calcFuel('vol')"></div>
-                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('price_unit')}</label><input id="l_price" type="number" min="0" step="0.01" class="w-full p-3 rounded-xl bg-slate-50" oninput="ui.calcFuel('price')"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">${volLabel}</label><input id="l_liters" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.liters)}" data-input-action="ui" data-ui-method="calcFuel" data-ui-args="${encodeURIComponent(JSON.stringify(['vol']))}" class="w-full p-3 rounded-xl"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('price_unit')}</label><input id="l_price" type="number" min="0" step="0.01" data-input-action="ui" data-ui-method="calcFuel" data-ui-args="${encodeURIComponent(JSON.stringify(['price']))}" class="w-full p-3 rounded-xl bg-slate-50"></div>
                         </div>
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl" oninput="ui.calcFuel('cost')"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.cost)}" data-input-action="ui" data-ui-method="calcFuel" data-ui-args="${encodeURIComponent(JSON.stringify(['cost']))}" class="w-full p-3 rounded-xl"></div>
 
                         <div class="flex items-center gap-2 bg-amber-50 p-3 rounded-xl">
                             <input type="checkbox" id="l_partial" class="w-5 h-5 text-teal-600 rounded" ${log.isPartial?'checked':''}>
@@ -33,17 +33,24 @@ openAddFuel(id = null) {
                         <div class="relative">
                              <label class="text-xs theme-text-sub block mb-1">${utils.t('location')}</label>
                              <input id="l_loc" type="text" value="${utils.escapeAttr(log.location || '')}" class="w-full p-3 rounded-xl pr-10">
-                             <button onclick="utils.detectLocation(l => document.getElementById('l_loc').value=l)" class="absolute right-3 top-8 text-teal-500"><span class="material-icons">my_location</span></button>
+                             <button data-action="ui" data-ui-method="detectLocationFor" data-ui-args="${encodeURIComponent(JSON.stringify(['l_loc']))}" class="absolute right-3 top-8 text-teal-500"><span class="material-icons">my_location</span></button>
                         </div>
 
                         <div class="flex gap-3 mt-4">
-                            ${id ? `<button onclick="ui.deleteLog('${id}')" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold">${utils.t('delete')}</button>` : ''}
-                            <button data-testid="save-fuel" onclick="ui.submitFuel('${id || ''}')" class="flex-1 grad-teal text-white py-3 rounded-xl font-bold shadow-lg">${utils.t('save')}</button>
+                            ${id ? `<button data-action="ui" data-ui-method="deleteLog" data-ui-args="${encodeURIComponent(JSON.stringify([id]))}" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold">${utils.t('delete')}</button>` : ''}
+                            <button data-testid="save-fuel" data-action="ui" data-ui-method="submitFuel" data-ui-args="${encodeURIComponent(JSON.stringify([id || '']))}" class="flex-1 grad-teal text-white py-3 rounded-xl font-bold shadow-lg">${utils.t('save')}</button>
                         </div>
                     </div>
                 `);
                 // Init calc
                 setTimeout(() => ui.calcFuel('init'), 100);
+            },
+
+detectLocationFor(targetId) {
+                utils.detectLocation((location) => {
+                    const target = document.getElementById(targetId);
+                    if (target) target.value = location;
+                });
             },
 
 toggleTripMode(button) {
