@@ -21,7 +21,7 @@
 - 新增「建立車輛 → 設定頁版本同步」瀏覽器流程。
 - 新增「建立車輛 → 新增入油記錄 → reload後IndexedDB資料仍存在」瀏覽器流程。
 - 關鍵互動加入穩定 `data-testid`，測試不依賴語言文字或Tailwind class。
-- GitHub Actions會在部署前安裝Chromium及執行E2E；瀏覽器流程失敗時不會部署Pages。
+- GitHub Actions會在PR及main部署前安裝Chromium並執行E2E；PR只驗證、不會部署，瀏覽器流程失敗時亦不會更新Pages。
 
 ### 版本、PWA及維護規則
 

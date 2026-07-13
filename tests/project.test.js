@@ -106,10 +106,14 @@ test('UI registry delegates implementation to focused page and action modules', 
 test('Playwright covers desktop and mobile browser flows', async () => {
   const config = await read('playwright.config.js');
   const spec = await read('e2e/fuelmate.spec.js');
+  const workflow = await read('.github/workflows/deploy.yml');
   assert.match(config, /chromium-desktop/);
   assert.match(config, /mobile-safari-layout/);
   assert.match(spec, /save-vehicle/);
   assert.match(spec, /save-fuel/);
   assert.match(spec, /app-version/);
   assert.match(spec, /page\.reload\(\)/);
+  assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /npm run test:e2e/);
+  assert.match(workflow, /github\.event_name == 'push'/);
 });
