@@ -30,18 +30,17 @@ renderFuel(vehicle) {
                         <div class="mb-4">${this.renderFilterHeader('fuel', filter)}</div>
 
                         ${ui.renderSearchPanel({
+                            pageKey: 'fuel',
+                            searchKey: 'fuelSearch',
                             searchValue: store.pageFilters.fuelSearch,
-                            onSearchInput: "ui.onSearchInput('fuel','fuelSearch',this.value)",
-                            onClearSearch: "ui.clearSearch('fuel','fuelSearch')",
                             placeholder: "Search notes/location...",
+                            fromKey: 'fuelFrom',
                             fromValue: store.pageFilters.fuelFrom,
+                            toKey: 'fuelTo',
                             toValue: store.pageFilters.fuelTo,
-                            onFromChange: "store.pageFilters.fuelFrom=this.value;ui.resetPageLimit('fuel');ui.render()",
-                            onToChange: "store.pageFilters.fuelTo=this.value;ui.resetPageLimit('fuel');ui.render()",
-                            onClearRange: "store.pageFilters.fuelFrom='';store.pageFilters.fuelTo='';ui.resetPageLimit('fuel');ui.render()",
                             chips: [
-                                { label: "Full", active: !!fuelFlags.full, onClick: "store.pageFilters.fuelFlags={...store.pageFilters.fuelFlags, full: !store.pageFilters.fuelFlags.full};ui.resetPageLimit('fuel');ui.render()" },
-                                { label: "Partial", active: !!fuelFlags.partial, onClick: "store.pageFilters.fuelFlags={...store.pageFilters.fuelFlags, partial: !store.pageFilters.fuelFlags.partial};ui.resetPageLimit('fuel');ui.render()" }
+                                { label: "Full", active: !!fuelFlags.full, method: 'togglePageFlag', args: ['fuel', 'fuelFlags', 'full'] },
+                                { label: "Partial", active: !!fuelFlags.partial, method: 'togglePageFlag', args: ['fuel', 'fuelFlags', 'partial'] }
                             ]
                         })}
 
@@ -68,7 +67,7 @@ renderFuel(vehicle) {
                             ${visibleLogs.length ? visibleLogs.map(l => this.renderLogCard(l)).join('') : `<div class="text-center theme-text-sub py-12">No records found</div>`}
                             ${filteredLogs.length > visibleLogs.length ? ui.renderLoadMore('fuel', visibleLogs.length, filteredLogs.length) : ''}
                         </div>
-                        <button data-testid="add-fuel" onclick="ui.openAddFuel()" class="fixed bottom-[calc(130px+var(--safe-bottom))] right-6 w-14 h-14 rounded-full grad-teal text-white shadow-xl flex items-center justify-center active:scale-90 transition-transform z-50">
+                        <button data-testid="add-fuel" data-action="ui" data-ui-method="openAddFuel" class="fixed bottom-[calc(130px+var(--safe-bottom))] right-6 w-14 h-14 rounded-full grad-teal text-white shadow-xl flex items-center justify-center active:scale-90 transition-transform z-50">
                             <span class="material-icons">add</span>
                         </button>
                     </div>
@@ -120,15 +119,14 @@ renderMaintenance(vehicle) {
                         <div class="mb-4">${this.renderFilterHeader('maintenance', filter)}</div>
 
                         ${ui.renderSearchPanel({
+                            pageKey: 'maintenance',
+                            searchKey: 'maintenanceSearch',
                             searchValue: store.pageFilters.maintenanceSearch,
-                            onSearchInput: "ui.onSearchInput('maintenance','maintenanceSearch',this.value)",
-                            onClearSearch: "ui.clearSearch('maintenance','maintenanceSearch')",
                             placeholder: "Search notes/location/brand...",
+                            fromKey: 'maintenanceFrom',
                             fromValue: store.pageFilters.maintenanceFrom,
+                            toKey: 'maintenanceTo',
                             toValue: store.pageFilters.maintenanceTo,
-                            onFromChange: "store.pageFilters.maintenanceFrom=this.value;ui.resetPageLimit('maintenance');ui.render()",
-                            onToChange: "store.pageFilters.maintenanceTo=this.value;ui.resetPageLimit('maintenance');ui.render()",
-                            onClearRange: "store.pageFilters.maintenanceFrom='';store.pageFilters.maintenanceTo='';ui.resetPageLimit('maintenance');ui.render()"
                         })}
 
                         <div class="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-3">
@@ -251,18 +249,17 @@ renderParking(vehicle) {
                         <div class="mb-4">${this.renderFilterHeader('parking', filter)}</div>
 
                         ${ui.renderSearchPanel({
+                            pageKey: 'parking',
+                            searchKey: 'parkingSearch',
                             searchValue: store.pageFilters.parkingSearch,
-                            onSearchInput: "ui.onSearchInput('parking','parkingSearch',this.value)",
-                            onClearSearch: "ui.clearSearch('parking','parkingSearch')",
                             placeholder: "Search notes/location...",
+                            fromKey: 'parkingFrom',
                             fromValue: store.pageFilters.parkingFrom,
+                            toKey: 'parkingTo',
                             toValue: store.pageFilters.parkingTo,
-                            onFromChange: "store.pageFilters.parkingFrom=this.value;ui.resetPageLimit('parking');ui.render()",
-                            onToChange: "store.pageFilters.parkingTo=this.value;ui.resetPageLimit('parking');ui.render()",
-                            onClearRange: "store.pageFilters.parkingFrom='';store.pageFilters.parkingTo='';ui.resetPageLimit('parking');ui.render()",
                             chips: [
-                                { label: "Has Location", active: !!parkingFlags.withLocation, onClick: "store.pageFilters.parkingFlags={...store.pageFilters.parkingFlags, withLocation: !store.pageFilters.parkingFlags.withLocation};ui.resetPageLimit('parking');ui.render()" },
-                                { label: "Has Notes", active: !!parkingFlags.withNotes, onClick: "store.pageFilters.parkingFlags={...store.pageFilters.parkingFlags, withNotes: !store.pageFilters.parkingFlags.withNotes};ui.resetPageLimit('parking');ui.render()" }
+                                { label: "Has Location", active: !!parkingFlags.withLocation, method: 'togglePageFlag', args: ['parking', 'parkingFlags', 'withLocation'] },
+                                { label: "Has Notes", active: !!parkingFlags.withNotes, method: 'togglePageFlag', args: ['parking', 'parkingFlags', 'withNotes'] }
                             ]
                         })}
 
@@ -340,15 +337,14 @@ renderAnalytics(vehicle) {
                         <div class="mb-4">${this.renderFilterHeader('analytics', filter)}</div>
 
                         ${ui.renderSearchPanel({
+                            pageKey: 'analytics',
+                            searchKey: 'analyticsSearch',
                             searchValue: store.pageFilters.analyticsSearch,
-                            onSearchInput: "ui.onSearchInput('analytics','analyticsSearch',this.value)",
-                            onClearSearch: "ui.clearSearch('analytics','analyticsSearch')",
                             placeholder: utils.t('search_placeholder'),
+                            fromKey: 'analyticsFrom',
                             fromValue: store.pageFilters.analyticsFrom,
+                            toKey: 'analyticsTo',
                             toValue: store.pageFilters.analyticsTo,
-                            onFromChange: "store.pageFilters.analyticsFrom=this.value;ui.render()",
-                            onToChange: "store.pageFilters.analyticsTo=this.value;ui.render()",
-                            onClearRange: "store.pageFilters.analyticsFrom='';store.pageFilters.analyticsTo='';ui.render()"
                         })}
 
                         <div class="grid grid-cols-2 gap-4 mb-6">
