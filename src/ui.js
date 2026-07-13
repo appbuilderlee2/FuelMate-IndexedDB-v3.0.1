@@ -1267,7 +1267,7 @@
                                 <span class="material-icons text-base mt-0.5">warning</span>
                                 <span class="font-bold">${utils.t('backup_warning')}</span>
                             </div>
-                            <div class="text-[10px] theme-text-sub mt-2 text-center">v4.0 IndexedDB • Built for iOS</div>
+                            <div data-app-version class="text-[10px] theme-text-sub mt-2 text-center">${utils.t('version')} v${utils.escapeHtml(FuelMateVersion.current)} • IndexedDB • PWA</div>
                         </div>
                     </div>
                 `;
@@ -2738,7 +2738,9 @@
                 const lang = store.data.settings.language || 'en';
                 const isZh = lang === 'zh';
                 const title = isZh ? 'FuelMate（本地優先 PWA）' : 'FuelMate (Local-first PWA)';
-                const subtitle = isZh ? 'v3.1.1（IndexedDB 版本）' : 'v3.1.1 (IndexedDB Edition)';
+                const subtitle = isZh
+                    ? `v${FuelMateVersion.current}（IndexedDB 版本）`
+                    : `v${FuelMateVersion.current} (IndexedDB Edition)`;
                 const intro = isZh
                     ? 'FuelMate 將所有用車開支與提醒集中管理：加油、維修、停車、罰單、證件到期與輪胎保養。資料本地優先、可離線使用，並支援備份與匯入。'
                     : 'FuelMate brings all car costs and reminders into one place—fuel, maintenance, parking, fines, document expiry, and tire care. Local-first by default, works offline, with backup and import support.';

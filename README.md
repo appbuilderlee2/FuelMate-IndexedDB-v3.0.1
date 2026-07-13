@@ -1,8 +1,26 @@
-# FuelMate IndexedDB v3.1.1
+# FuelMate IndexedDB v3.2.0
 
-> v3.1.1 unifies fuel analytics, makes imports atomic, and hardens local data and CSV export reliability while preserving the existing IndexedDB schema.
+> v3.2.0 introduces a synchronized runtime version system and carries forward the v3.1.1 analytics, atomic import, and data-reliability improvements without changing the IndexedDB schema.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.2.0 更新內容
+
+### 版本同步及設定頁
+
+- 新增 `src/core/version.js` 作為瀏覽器runtime的單一版本來源，現時版本為v3.2.0。
+- 設定頁底部直接顯示目前版本，修正舊有硬編碼 `v4.0` 與實際package版本不一致。
+- About視窗改為讀取同一runtime版本來源，毋須在UI多處手動修改版本字串。
+- 新增自動測試，強制package、runtime、設定頁、About及README版本保持同步。
+- 更新 `AGENTS.md`：每次程式或release更改都必須同步確認或更新設定頁版本號及所有版本來源。
+- 將version runtime script加入production複製流程及離線App Shell precache。
+- Service Worker cache更新至 `fuelmate-cache-v9`，確保已安裝PWA取得v3.2.0。
+- 目前共31項自動測試。
+
+### 包含的可靠性更新
+
+- 完整包含v3.1.1的Full／Partial油耗趨勢統一、單一里程修正、原子JSON匯入、IndexedDB寫入一致性及CSV公式安全改善。
+- 保留既有IndexedDB schema，毋須資料遷移或重新輸入資料。
 
 ## v3.1.1 更新內容
 
