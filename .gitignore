@@ -25,3 +25,6 @@ dist-ssr
 
 # Generated Tailwind safelist (built from index.html templates)
 src/tailwind-safelist.html
+
+# Classic browser scripts copied into Vite's public output during build
+public/src/
