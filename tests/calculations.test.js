@@ -79,3 +79,31 @@ test('rejects malformed imported values, types, and duplicate IDs', () => {
   assert.ok(invalid.errors.includes('log_invalid_cost'));
   assert.ok(invalid.errors.includes('settings_not_object'));
 });
+
+test('validates reminder dates and directional tire rotations in imports', () => {
+  const safeId = (value) => /^[A-Za-z0-9._:-]+$/.test(value);
+  const valid = validateImportPayload({
+    vehicles: [{ id: 'v1', currentOdometer: 1000 }],
+    logs: [{
+      id: 'r1', vehicleId: 'v1', type: 'tire_rotation', date: '2026-07-14', odometer: 1000,
+      tireMoves: [
+        { from: 'front_left', to: 'rear_left' }, { from: 'front_right', to: 'rear_right' },
+        { from: 'rear_left', to: 'front_right' }, { from: 'rear_right', to: 'front_left' },
+      ],
+    }],
+    settings: { reminderCenter: { snoozedUntil: { 'tire:v1:asset:r1': '2026-07-21T00:00:00.000Z' }, done: {} } },
+  }, safeId);
+  assert.deepEqual(valid.errors, []);
+
+  const invalid = validateImportPayload({
+    vehicles: [{ id: 'v1', currentOdometer: 1000 }],
+    logs: [{
+      id: 'r1', vehicleId: 'v1', type: 'tire_rotation', date: '2026-07-14', odometer: 1000,
+      tireMoves: [{ from: 'front_left', to: 'rear_left' }, { from: 'front_right', to: 'rear_left' }],
+    }],
+    settings: { reminderCenter: { snoozedUntil: { 'tire:v1': 'bad-date' }, done: { 'tire:v1': 'yes' } } },
+  }, safeId);
+  assert.ok(invalid.errors.includes('log_invalid_tire_rotation'));
+  assert.ok(invalid.errors.includes('settings_invalid_snooze'));
+  assert.ok(invalid.errors.includes('settings_invalid_done'));
+});

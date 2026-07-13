@@ -10,6 +10,54 @@
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
   }
 
+  function isValidIsoDateTime(value) {
+    if (typeof value !== 'string' || !value.trim()) return false;
+    const parsed = new Date(value);
+    return !Number.isNaN(parsed.getTime()) && /T/.test(value);
+  }
+
+  const tirePositions = Object.freeze(['front_left', 'front_right', 'rear_left', 'rear_right']);
+
+  function normalizeTireMoves(log) {
+    const positions = new Set(tirePositions);
+    const rawMoves = Array.isArray(log?.tireMoves) && log.tireMoves.length
+      ? log.tireMoves
+      : (Array.isArray(log?.tireSwaps) && log.tireSwaps.length
+        ? log.tireSwaps.flatMap((swap) => [{ from: swap?.a, to: swap?.b }, { from: swap?.b, to: swap?.a }])
+        : (log?.tireSwapA && log?.tireSwapB
+          ? [{ from: log.tireSwapA, to: log.tireSwapB }, { from: log.tireSwapB, to: log.tireSwapA }]
+          : []));
+    const moves = rawMoves.map((move) => ({ from: move?.from, to: move?.to }));
+    const from = new Set();
+    const to = new Set();
+    for (const move of moves) {
+      if (!positions.has(move.from) || !positions.has(move.to) || move.from === move.to) return [];
+      if (from.has(move.from) || to.has(move.to)) return [];
+      from.add(move.from);
+      to.add(move.to);
+    }
+    return moves;
+  }
+
+  function getRecommendedTireMoves(driveType = 'fwd') {
+    const recommended = {
+      fwd: [
+        { from: 'front_left', to: 'rear_left' }, { from: 'front_right', to: 'rear_right' },
+        { from: 'rear_left', to: 'front_right' }, { from: 'rear_right', to: 'front_left' },
+      ],
+      rwd: [
+        { from: 'rear_left', to: 'front_left' }, { from: 'rear_right', to: 'front_right' },
+        { from: 'front_left', to: 'rear_right' }, { from: 'front_right', to: 'rear_left' },
+      ],
+      awd: [
+        { from: 'front_left', to: 'rear_right' }, { from: 'front_right', to: 'rear_left' },
+        { from: 'rear_left', to: 'front_right' }, { from: 'rear_right', to: 'front_left' },
+      ],
+    };
+    const drive = String(driveType || 'fwd').toLowerCase();
+    return (recommended[drive] || recommended.fwd).map((move) => ({ ...move }));
+  }
+
   function isNonNegativeNumber(value, { allowEmpty = false, positive = false } = {}) {
     if (value === '' || value === null || value === undefined) return allowEmpty;
     const normalized = typeof value === 'string' ? value.trim() : value;
@@ -113,6 +161,27 @@
     if (settings !== undefined && (!settings || typeof settings !== 'object' || Array.isArray(settings))) {
       errors.push('settings_not_object');
     }
+    if (settings && typeof settings === 'object' && !Array.isArray(settings)) {
+      const snoozedUntil = settings.reminderCenter?.snoozedUntil;
+      const done = settings.reminderCenter?.done;
+      if (snoozedUntil !== undefined && (!snoozedUntil || typeof snoozedUntil !== 'object' || Array.isArray(snoozedUntil))) {
+        errors.push('settings_invalid_snoozed_map');
+      } else if (snoozedUntil) {
+        for (const [id, until] of Object.entries(snoozedUntil)) {
+          if (!safeId(id) || !isValidIsoDateTime(until)) errors.push('settings_invalid_snooze');
+        }
+      }
+      if (done !== undefined && (!done || typeof done !== 'object' || Array.isArray(done))) {
+        errors.push('settings_invalid_done_map');
+      } else if (done) {
+        for (const [id, value] of Object.entries(done)) {
+          if (!safeId(id) || value !== true) errors.push('settings_invalid_done');
+        }
+      }
+      if (settings.lastBackupDate !== undefined && settings.lastBackupDate !== null && !isValidIsoDateTime(settings.lastBackupDate)) {
+        errors.push('settings_invalid_backup_date');
+      }
+    }
 
     const vehicleIds = new Set();
     if (vehicles) {
@@ -148,6 +217,12 @@
         if (!isNonNegativeNumber(log.cost, { allowEmpty: !['fuel', 'parking'].includes(log.type) })) errors.push('log_invalid_cost');
         if (log.type === 'fuel' && !isNonNegativeNumber(log.liters, { positive: true })) errors.push('log_invalid_fuel_amount');
         if (log.expiryDate && !isValidIsoDate(log.expiryDate)) errors.push('log_invalid_expiry_date');
+        if (log.type === 'tire_rotation') {
+          const hasMoves = Array.isArray(log.tireMoves) && log.tireMoves.length > 0;
+          const hasSwaps = Array.isArray(log.tireSwaps) && log.tireSwaps.length > 0;
+          const expectedMoves = hasMoves ? log.tireMoves.length : (hasSwaps ? log.tireSwaps.length * 2 : (log.tireSwapA && log.tireSwapB ? 2 : 0));
+          if (!expectedMoves || normalizeTireMoves(log).length !== expectedMoves) errors.push('log_invalid_tire_rotation');
+        }
       }
     }
 
@@ -159,8 +234,11 @@
     buildFuelEfficiencySegments,
     calculateFuelEfficiencyFromLogs,
     calcEfficiencyValue,
+    getRecommendedTireMoves,
     isNonNegativeNumber,
     isValidIsoDate,
+    isValidIsoDateTime,
+    normalizeTireMoves,
     pressureFromKpa,
     pressureToKpa,
     supportedLogTypes,

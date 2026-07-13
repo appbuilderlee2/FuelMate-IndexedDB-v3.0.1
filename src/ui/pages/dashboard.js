@@ -70,7 +70,7 @@ renderDashboard(vehicle) {
                                 ${topReminders.length ? topReminders.map(it => {
                                     const tone = getReminderTone(it);
                                     return `
-                                        <div class="p-3 rounded-2xl border theme-border bg-${tone}-50 dark:bg-${tone}-900/20">
+                                        <div data-testid="dashboard-reminder" data-reminder-id="${utils.escapeAttr(it.id)}" class="p-3 rounded-2xl border theme-border bg-${tone}-50 dark:bg-${tone}-900/20">
                                             <div class="flex items-start justify-between gap-3">
                                                 <div class="flex items-start gap-3">
                                                     <div class="w-9 h-9 rounded-xl bg-${tone}-100 text-${tone}-600 flex items-center justify-center">
@@ -212,7 +212,7 @@ getReminderData(vehicle, options = {}) {
                 if (!vehicle) {
                     return { items: [], activeItems: [], snoozedItems: [], doneItems: [], snoozedUntil: {}, done: {} };
                 }
-                const now = new Date();
+                const now = options.now ? new Date(options.now) : new Date();
                 const center = store.data.settings.reminderCenter || { snoozedUntil: {}, done: {} };
                 const snoozedUntil = center.snoozedUntil || {};
                 const done = center.done || {};
@@ -227,57 +227,60 @@ getReminderData(vehicle, options = {}) {
                     return Math.max(500, Math.min(5000, Math.round(dist * 0.1)));
                 })();
                 const tireThresholdDays = 60;
-                let hasTireReminder = false;
                 const tireStatuses = utils.getTireReplacementStatus(vehicle);
-                for (const s of tireStatuses) {
-                    const near =
-                        s.isOverdue ||
-                        (s.remainingKm !== null && s.remainingKm <= tireThresholdKm) ||
-                        (s.remainingDays !== null && s.remainingDays <= tireThresholdDays);
-                    if (!includeAll && !near) continue;
-                    hasTireReminder = true;
-                    const id = `tire:${vehicle.id}:${s.pos}:${s.editLogId || 'none'}`;
+                const addTireReminder = (s) => {
+                    const id = s.isNotSet
+                        ? `tire:${vehicle.id}:unset:${s.pos}`
+                        : `tire:${vehicle.id}:asset:${s.editLogId}`;
+                    const legacyIds = s.isNotSet
+                        ? [`tire:${vehicle.id}:${s.pos}:none`, `tire:${vehicle.id}:next:${s.pos}`]
+                        : [
+                            ...utils.getTirePositions().map(pos => `tire:${vehicle.id}:${pos}:${s.editLogId}`),
+                            ...utils.getTirePositions().map(pos => `tire:${vehicle.id}:next:${pos}`)
+                        ];
                     items.push({
                         id,
+                        legacyIds,
                         icon: 'tire_repair',
                         title: `${utils.t('next_tire_change')} • ${utils.t('tire_' + s.pos)}`,
                         meta: [s.primary, s.secondary].filter(Boolean).join(' • '),
                         dueDateIso: s.dueDateIso,
                         calendarTitle: `${utils.t('next_tire_change')} • ${utils.t('tire_' + s.pos)}: ${vehicleLabel}`,
-                        editAction: s.editLogId
-                            ? `ui.openAddService('${s.editLogId}')`
-                            : `ui.openAddService(null,'tire_replace'); setTimeout(() => { const el=document.getElementById('l_tire_pos'); if (el) el.value='${s.pos}'; }, 60);`
+                        editAction: s.isNotSet
+                            ? `ui.openQuickTireSetup('${s.pos}')`
+                            : (s.editLogId
+                                ? `ui.openAddService('${s.editLogId}')`
+                                : `ui.openAddService(null,'tire_replace'); setTimeout(() => { const el=document.getElementById('l_tire_pos'); if (el) el.value='${s.pos}'; }, 60);`)
                     });
+                };
+                let configuredReminderCount = 0;
+                for (const s of tireStatuses.filter(status => !status.isNotSet)) {
+                    const near =
+                        s.isOverdue ||
+                        (s.remainingKm !== null && s.remainingKm <= tireThresholdKm) ||
+                        (s.remainingDays !== null && s.remainingDays <= tireThresholdDays);
+                    if (!includeAll && !near) continue;
+                    addTireReminder(s);
+                    configuredReminderCount += 1;
                 }
-                if (!hasTireReminder) {
+                const unsetStatuses = tireStatuses.filter(s => s.isNotSet);
+                if (includeAll) {
+                    unsetStatuses.forEach(addTireReminder);
+                } else if (unsetStatuses.length) {
+                    // Always keep one setup action visible until all four positions are configured.
+                    addTireReminder(unsetStatuses[0]);
+                }
+                if (!includeAll && configuredReminderCount === 0 && unsetStatuses.length === 0) {
                     const byDays = tireStatuses.filter(s => !s.isNotSet && s.remainingDays !== null);
                     const byKm = tireStatuses.filter(s => !s.isNotSet && s.remainingKm !== null);
                     const candidate = byDays.length
                         ? byDays.sort((a, b) => (a.remainingDays || 0) - (b.remainingDays || 0))[0]
                         : (byKm.length ? byKm.sort((a, b) => (a.remainingKm || 0) - (b.remainingKm || 0))[0] : null);
-                    const fallbackUnset = tireStatuses.find(s => s.isNotSet);
-                    const picked = candidate || fallbackUnset;
-                    // Only show fallback if tire is within a reasonable upcoming range, or includeAll
                     const candidateIsNear = candidate && (
-                        (includeAll) ||
                         (candidate.remainingDays !== null && candidate.remainingDays <= 180) ||
                         (candidate.remainingKm !== null && candidate.remainingKm <= tireThresholdKm * 3)
                     );
-                    if (picked && (picked.isNotSet || candidateIsNear)) {
-                        const id = `tire:${vehicle.id}:next:${picked.pos || 'unset'}`;
-                        items.push({
-                            id,
-                            icon: 'tire_repair',
-                            title: picked.pos ? `${utils.t('next_tire_change')} • ${utils.t('tire_' + picked.pos)}` : utils.t('next_tire_change'),
-                            meta: [picked.primary, picked.secondary].filter(Boolean).join(' • '),
-                            dueDateIso: picked.dueDateIso,
-                            editAction: picked.isNotSet
-                                ? `ui.openQuickTireSetup('${picked.pos || 'front_left'}')`
-                                : (picked.editLogId
-                                    ? `ui.openAddService('${picked.editLogId}')`
-                                    : `ui.openAddService(null,'tire_replace'); setTimeout(() => { const el=document.getElementById('l_tire_pos'); if (el) el.value='${picked.pos || 'front_left'}'; }, 60);`)
-                        });
-                    }
+                    if (candidateIsNear) addTireReminder(candidate);
                 }
 
                 // Document expiry
@@ -306,9 +309,13 @@ getReminderData(vehicle, options = {}) {
                 const distInt = parseInt(vehicle?.maintenanceDist ?? store.data.settings.maintenanceDist) || 0;
                 const timeInt = parseInt(vehicle?.maintenanceTime ?? store.data.settings.maintenanceTime) || 0;
                 const lastService = store.getVehicleLogs('periodic_maintenance')[0];
-                const lastOdo = lastService ? parseFloat(lastService.odometer) || 0 : 0;
-                const lastDate = lastService ? new Date(lastService.date) : null;
-                if (distInt > 0) {
+                const baselineOdo = Number.isFinite(parseFloat(vehicle.maintenanceBaselineOdometer))
+                    ? parseFloat(vehicle.maintenanceBaselineOdometer)
+                    : null;
+                const lastOdo = lastService ? parseFloat(lastService.odometer) || 0 : baselineOdo;
+                const baselineDate = vehicle.maintenanceBaselineDate ? new Date(vehicle.maintenanceBaselineDate) : null;
+                const lastDate = lastService ? new Date(lastService.date) : baselineDate;
+                if (distInt > 0 && lastOdo !== null) {
                     const nextOdo = lastOdo + distInt;
                     const remaining = nextOdo - (parseFloat(vehicle.currentOdometer) || 0);
                     if (includeAll || remaining <= 500) {
@@ -356,7 +363,7 @@ getReminderData(vehicle, options = {}) {
                                 const timeCloser = timeItem.remainingDays <= 30;
                                 const distCloser = distItem.remainingKm <= 500;
                                 if (timeCloser !== distCloser) return timeCloser;
-                                return timeItem.remainingDays <= distItem.remainingKm;
+                                return (timeItem.remainingDays / 30) <= (distItem.remainingKm / 500);
                             }
                             if (Number.isFinite(timeItem.remainingDays)) return true;
                             if (Number.isFinite(distItem.remainingKm)) return false;
@@ -384,7 +391,11 @@ getReminderData(vehicle, options = {}) {
                     if (daysSince > 30) showBackup = true;
                 }
                 if (showBackup) {
-                    const id = `backup:${vehicle.id}`;
+                    const monthMs = 30 * 86400000;
+                    const backupCycle = store.data.settings.lastBackupDate
+                        ? `${new Date(store.data.settings.lastBackupDate).toISOString().slice(0, 10)}:${Math.max(1, Math.floor((now - new Date(store.data.settings.lastBackupDate)) / monthMs))}`
+                        : `initial:${now.toISOString().slice(0, 7)}`;
+                    const id = `backup:${backupCycle}`;
                     items.push({
                         id,
                         icon: 'cloud_upload',
@@ -395,20 +406,24 @@ getReminderData(vehicle, options = {}) {
                     });
                 }
 
-                const activeItems = items.filter(it => {
-                    if (done[it.id]) return false;
-                    const until = snoozedUntil[it.id];
-                    if (!until) return true;
-                    return new Date(until) <= now;
+                const stateIds = (it) => [it.id, ...(it.legacyIds || [])];
+                const isDone = (it) => stateIds(it).some(id => done[id] === true);
+                const getSnooze = (it) => stateIds(it)
+                    .map(id => snoozedUntil[id])
+                    .filter(value => value && !Number.isNaN(new Date(value).getTime()))
+                    .sort((a, b) => new Date(b) - new Date(a))[0] || null;
+                const activeItems = items.filter(it => !isDone(it) && (!getSnooze(it) || new Date(getSnooze(it)) <= now));
+                const snoozedItems = items.filter(it => !isDone(it) && getSnooze(it) && new Date(getSnooze(it)) > now);
+                const doneItems = items.filter(isDone);
+                const effectiveSnoozedUntil = { ...snoozedUntil };
+                const effectiveDone = { ...done };
+                items.forEach(it => {
+                    const until = getSnooze(it);
+                    if (until) effectiveSnoozedUntil[it.id] = until;
+                    if (isDone(it)) effectiveDone[it.id] = true;
                 });
-                const snoozedItems = items.filter(it => {
-                    if (done[it.id]) return false;
-                    const until = snoozedUntil[it.id];
-                    return until && new Date(until) > now;
-                });
-                const doneItems = items.filter(it => !!done[it.id]);
 
-                return { items, activeItems, snoozedItems, doneItems, snoozedUntil, done };
+                return { items, activeItems, snoozedItems, doneItems, snoozedUntil: effectiveSnoozedUntil, done: effectiveDone };
             },
 
 renderReminders(vehicle) {
@@ -440,7 +455,7 @@ renderReminders(vehicle) {
 
                         <div class="space-y-3">
                             ${visible.length ? visible.map(it => `
-                                <div class="theme-bg-card p-4 rounded-2xl card-shadow border theme-border">
+                                <div data-testid="reminder-card" data-reminder-id="${utils.escapeAttr(it.id)}" class="theme-bg-card p-4 rounded-2xl card-shadow border theme-border">
                                     <div class="flex items-start justify-between gap-3">
                                         <div class="flex items-start gap-3">
                                             <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">

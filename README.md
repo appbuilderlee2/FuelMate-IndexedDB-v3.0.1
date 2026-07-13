@@ -1,8 +1,35 @@
-# FuelMate IndexedDB v3.4.0
+# FuelMate IndexedDB v3.5.0
 
-> v3.4.0 introduces delegated UI events for core user flows while preserving the existing IndexedDB schema and global UI API.
+> v3.5.0 strengthens tire rotation tracking and makes reminder states predictable across rotations, recurring cycles, imports and maintenance baselines.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.5.0 更新內容
+
+### 輪胎換位及壽命追蹤
+
+- 輪胎提醒改用實體輪胎的更換記錄作穩定ID；輪胎換位後原有Snooze／Done狀態不會失效。
+- 保留舊版位置型提醒ID的相容讀取，使用者第一次操作新提醒時會清理相關舊狀態。
+- FWD、RWD及AWD建議換位改用同時執行的方向映射，FWD與RWD不再錯誤產生相同結果。
+- 自訂成對交換仍保留，舊有`tireSwaps`及單組`tireSwapA/B`記錄可繼續讀取；新方向換位使用附加`tireMoves`欄位，毋須IndexedDB migration。
+- 輪胎事件改為先按日期、同日再按里程重播，避免日期與里程不一致時套用錯誤換位次序。
+- 部分輪胎未設定時，Dashboard會持續顯示下一個輪胎設定操作，不再被另一條遠期輪胎遮蓋。
+
+### 提醒週期及資料可靠性
+
+- 備份提醒ID加入30日到期週期；標記Done只會完成當期提醒，下一期會再次出現，並改為全備份共用而非綁定車輛。
+- 輪胎的遠期預告與臨近到期提醒共用同一穩定ID，避免提醒跨門檻後突然解除Snooze。
+- 無效的舊Snooze日期會當作未延後處理，不會令提醒永久消失；JSON匯入會拒絕無效Snooze、Done、備份日期及輪胎換位映射。
+- 提醒中心的「Active／進行中」改稱「Pending／待辦」，準確表示當中亦包含遠期項目。
+- 同時存在里程及時間保養條件時，使用各自提醒門檻的比例判斷較接近的一項，不再直接比較公里與日數。
+
+### 保養基準、版本及測試
+
+- 車輛首次啟用定期保養里程／時間時會保存當下里程及日期作基準；舊車不再由0公里起計而立即誤報逾期。
+- 尚無保養記錄亦無已保存基準的舊資料不會產生錯誤逾期；下一次更新間距會建立基準。
+- 新增輪胎未設定、換位後穩定ID、日期排序、FWD／RWD映射、備份週期、無效Snooze、保養基準及匯入驗證測試。
+- App、package、設定頁、About及README同步升級至v3.5.0；Service Worker cache更新至`fuelmate-cache-v12`。
+- IndexedDB schema維持不變，現有車輛、記錄、提醒及輪胎資料可直接沿用。
 
 ## v3.4.0 更新內容
 
