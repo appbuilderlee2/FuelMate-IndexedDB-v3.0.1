@@ -21,6 +21,7 @@
 - Service Worker cache更新至 `fuelmate-cache-v11`，並precache新的event controller。
 - 架構測試會檢查event controller載入次序、production copy、離線precache及核心UI檔案不再包含inline events。
 - Playwright既有車輛、navigation、設定版本、入油計算、儲存及reload流程繼續作為event重構回歸保護。
+- CI瀏覽器安裝加入10分鐘timeout並避免每次重裝runner系統dependencies，減少PR長時間卡在安裝步驟。
 - IndexedDB schema及現有資料格式不變，毋須migration。
 
 ## v3.3.0 更新內容

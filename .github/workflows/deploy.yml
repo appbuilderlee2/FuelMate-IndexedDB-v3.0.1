@@ -32,7 +32,8 @@ jobs:
         run: npm test
 
       - name: Install browser for E2E
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 10
+        run: npx playwright install chromium
 
       - name: Browser E2E
         run: npm run test:e2e
