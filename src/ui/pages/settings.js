@@ -215,7 +215,15 @@ async updateActiveVehicleSetting(key, valueType, value) {
                 const vehicle = store.getActiveVehicle();
                 if (!vehicle) return;
                 const nextValue = valueType === 'integer' ? (parseInt(value, 10) || 0) : value;
-                await store.updateVehicle({ ...vehicle, [key]: nextValue });
+                const nextVehicle = { ...vehicle, [key]: nextValue };
+                const hasPeriodicService = store.getVehicleLogs('periodic_maintenance').length > 0;
+                if (!hasPeriodicService && key === 'maintenanceDist' && parseInt(nextValue, 10) > 0 && !Number.isFinite(parseFloat(vehicle.maintenanceBaselineOdometer))) {
+                    nextVehicle.maintenanceBaselineOdometer = parseFloat(vehicle.currentOdometer) || 0;
+                }
+                if (!hasPeriodicService && key === 'maintenanceTime' && parseInt(nextValue, 10) > 0 && !vehicle.maintenanceBaselineDate) {
+                    nextVehicle.maintenanceBaselineDate = new Date().toISOString().slice(0, 10);
+                }
+                await store.updateVehicle(nextVehicle);
                 this.render();
             },
 
