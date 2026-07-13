@@ -4,9 +4,10 @@
   "version": "3.0.1",
   "type": "module",
   "scripts": {
+    "prepare:static": "node scripts/copy-static-js.mjs",
     "build:css": "node scripts/generate-tailwind-safelist.mjs && tailwindcss -c tailwind.config.js -i styles/tailwind.css -o public/app.css --minify",
-    "predev": "npm run build:css",
-    "prebuild": "npm run build:css",
+    "predev": "npm run prepare:static && npm run build:css",
+    "prebuild": "npm run prepare:static && npm run build:css",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
