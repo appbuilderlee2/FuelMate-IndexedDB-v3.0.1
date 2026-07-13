@@ -2,8 +2,18 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const root = process.cwd();
-const inputPath = path.join(root, 'index.html');
 const outputPath = path.join(root, 'src', 'tailwind-safelist.html');
+
+async function collectSourceFiles(directory) {
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...await collectSourceFiles(fullPath));
+    else if (entry.isFile() && entry.name.endsWith('.js')) files.push(fullPath);
+  }
+  return files;
+}
 
 function isLikelyTailwindToken(token) {
   if (!token) return false;
@@ -74,8 +84,12 @@ function extractTokensFromClassValue(classValue) {
   return tokens;
 }
 
-const html = await fs.readFile(inputPath, 'utf8');
-const classValues = extractClassValues(html);
+const sourceFiles = [
+  path.join(root, 'index.html'),
+  ...await collectSourceFiles(path.join(root, 'src')),
+];
+const sources = await Promise.all(sourceFiles.map((file) => fs.readFile(file, 'utf8')));
+const classValues = sources.flatMap(extractClassValues);
 const tokens = new Set();
 
 for (const v of classValues) {
@@ -97,4 +111,4 @@ for (let i = 0; i < sorted.length; i += chunkSize) {
 await fs.mkdir(path.dirname(outputPath), { recursive: true });
 await fs.writeFile(outputPath, lines.join('\n') + '\n', 'utf8');
 
-console.log(`Generated ${path.relative(root, outputPath)} with ${sorted.length} class tokens.`);
+console.log(`Generated ${path.relative(root, outputPath)} with ${sorted.length} class tokens from ${sourceFiles.length} source files.`);
