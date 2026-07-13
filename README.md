@@ -142,3 +142,5 @@ flowchart TD
 - `src/main.js` — routing, event bindings, charts, and service-worker registration
 
 Vite does not bundle these ordered classic scripts. `npm run prepare:static` copies them into `public/src` before development and production builds so GitHub Pages receives every runtime file.
+
+Tailwind scans both `index.html` and `src/**/*.js`; the generated safelist preserves classes used inside runtime UI templates.
