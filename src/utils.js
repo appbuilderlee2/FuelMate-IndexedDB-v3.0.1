@@ -111,6 +111,20 @@
                 });
             },
             getTirePositions() { return ['front_left','front_right','rear_left','rear_right']; },
+            getTireRotationMoves(log) {
+                return FuelMateCore.normalizeTireMoves(log);
+            },
+            applyTireRotation(positionMap, log, onMove = null) {
+                const moves = utils.getTireRotationMoves(log);
+                if (!moves.length) return;
+                const before = new Map(positionMap);
+                for (const move of moves) {
+                    const tireId = before.get(move.from);
+                    if (tireId === undefined) continue;
+                    if (typeof onMove === 'function') onMove(tireId, move.from, move.to);
+                    positionMap.set(move.to, tireId);
+                }
+            },
             formatDaysShort(days) {
                 const d = Math.max(0, Math.ceil(days));
                 return (store.data.settings.language === 'zh') ? `${d}天` : `${d}d`;
@@ -127,7 +141,7 @@
                         odo: parseFloat(l.odometer) || 0,
                         dateMs: l.date ? new Date(l.date).getTime() : 0
                     }))
-                    .sort((a, b) => (a.odo - b.odo) || (a.dateMs - b.dateMs));
+                    .sort((a, b) => (a.dateMs - b.dateMs) || (a.odo - b.odo));
 
                 const posToTireId = new Map(utils.getTirePositions().map(p => [p, `init:${vehicle?.id}:${p}`]));
                 const tireLastReplace = new Map(); // tireId -> { odo, dateMs, logId, log }
@@ -140,18 +154,7 @@
                         posToTireId.set(pos, tireId);
                         tireLastReplace.set(tireId, { odo, dateMs, logId: log.id, log });
                     } else if (log.type === 'tire_rotation') {
-                        const swaps = Array.isArray(log.tireSwaps) && log.tireSwaps.length
-                            ? log.tireSwaps
-                            : (log.tireSwapA && log.tireSwapB ? [{ a: log.tireSwapA, b: log.tireSwapB }] : []);
-                        for (const s of swaps) {
-                            const a = s?.a;
-                            const b = s?.b;
-                            if (!a || !b || a === b) continue;
-                            const idA = posToTireId.get(a);
-                            const idB = posToTireId.get(b);
-                            posToTireId.set(a, idB);
-                            posToTireId.set(b, idA);
-                        }
+                        utils.applyTireRotation(posToTireId, log);
                     }
                 }
 
@@ -160,7 +163,7 @@
                     const tireId = posToTireId.get(pos);
                     const latest = tireId ? tireLastReplace.get(tireId) : null;
                     if (!latest) {
-                        return { pos, editLogId: null, isOverdue: false, primary: utils.t('tire_not_set'), secondary: '', remainingKm: null, remainingDays: null, dueDateIso: null, dueOdo: null, isNotSet: true };
+                        return { pos, tireId, editLogId: null, isOverdue: false, primary: utils.t('tire_not_set'), secondary: '', remainingKm: null, remainingDays: null, dueDateIso: null, dueOdo: null, isNotSet: true };
                     }
 
                     const lastOdo = latest.odo;
@@ -200,7 +203,7 @@
                             ? new Date(lastDate.getTime() + remainingDaysSeed * 86400000)
                             : null;
 
-                        return { pos, editLogId: latest.logId || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate ? dueDate.toISOString() : null, dueOdo, isNotSet: false };
+                        return { pos, tireId, editLogId: latest.logId || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate ? dueDate.toISOString() : null, dueOdo, isNotSet: false };
                     }
 
                     const dueOdo = distInt > 0 ? (lastOdo + distInt) : null;
@@ -231,7 +234,7 @@
                     if (!isOverdue && timeText && primaryIsDist) secondaryParts.push(timeText);
                     const secondary = secondaryParts.length ? `${utils.t('due_in')} ${secondaryParts.join(' / ')}` : '';
 
-                    return { pos, editLogId: latest.logId || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate ? dueDate.toISOString() : null, dueOdo, isNotSet: false };
+                    return { pos, tireId, editLogId: latest.logId || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate ? dueDate.toISOString() : null, dueOdo, isNotSet: false };
                 });
             },
 
@@ -243,7 +246,7 @@
                         odo: parseFloat(l.odometer) || 0,
                         dateMs: l.date ? new Date(l.date).getTime() : 0
                     }))
-                    .sort((a, b) => (a.odo - b.odo) || (a.dateMs - b.dateMs));
+                    .sort((a, b) => (a.dateMs - b.dateMs) || (a.odo - b.odo));
 
                 const posToTireId = new Map(utils.getTirePositions().map(p => [p, `init:${vehicle?.id}:${p}`]));
                 const tires = new Map(); // tireId -> { tireId, currentPos, lastReplace, events: [] }
@@ -263,20 +266,9 @@
                         t.lastReplace = { logId: log.id, date: log.date, odometer: odo, brand: log.tireBrand || '' };
                         t.events.push({ kind: 'replace', logId: log.id, date: log.date, odometer: odo, pos, brand: log.tireBrand || '' });
                     } else if (log.type === 'tire_rotation') {
-                        const swaps = Array.isArray(log.tireSwaps) && log.tireSwaps.length
-                            ? log.tireSwaps
-                            : (log.tireSwapA && log.tireSwapB ? [{ a: log.tireSwapA, b: log.tireSwapB }] : []);
-                        for (const s of swaps) {
-                            const a = s?.a;
-                            const b = s?.b;
-                            if (!a || !b || a === b) continue;
-                            const idA = posToTireId.get(a);
-                            const idB = posToTireId.get(b);
-                            if (idA) ensure(idA).events.push({ kind: 'rotate', logId: log.id, date: log.date, odometer: odo, from: a, to: b });
-                            if (idB) ensure(idB).events.push({ kind: 'rotate', logId: log.id, date: log.date, odometer: odo, from: b, to: a });
-                            posToTireId.set(a, idB);
-                            posToTireId.set(b, idA);
-                        }
+                        utils.applyTireRotation(posToTireId, log, (tireId, from, to) => {
+                            ensure(tireId).events.push({ kind: 'rotate', logId: log.id, date: log.date, odometer: odo, from, to });
+                        });
                     }
                 }
 

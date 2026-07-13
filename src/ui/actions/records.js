@@ -51,10 +51,22 @@ deleteLog(id) {
                 }, 50);
             },
 
+getReminderStateIds(id) {
+                const vehicle = store.getActiveVehicle();
+                const item = vehicle
+                    ? this.getReminderData(vehicle, { includeAll: true }).items.find(candidate => candidate.id === id)
+                    : null;
+                return [id, ...(item?.legacyIds || [])];
+            },
+
 snoozeReminder(id, days) {
                 const rc = store.data.settings.reminderCenter || { snoozedUntil: {}, done: {} };
                 rc.snoozedUntil = rc.snoozedUntil || {};
                 rc.done = rc.done || {};
+                this.getReminderStateIds(id).forEach(stateId => {
+                    delete rc.snoozedUntil[stateId];
+                    delete rc.done[stateId];
+                });
                 rc.snoozedUntil[id] = new Date(Date.now() + (days * 86400000)).toISOString();
                 store.data.settings.reminderCenter = rc;
                 store.saveData().then(() => this.render());
@@ -70,6 +82,10 @@ snoozeAllReminders(days) {
                 rc.done = rc.done || {};
                 const until = new Date(Date.now() + (days * 86400000)).toISOString();
                 activeItems.forEach(it => {
+                    [it.id, ...(it.legacyIds || [])].forEach(stateId => {
+                        delete rc.snoozedUntil[stateId];
+                        delete rc.done[stateId];
+                    });
                     rc.snoozedUntil[it.id] = until;
                 });
                 store.data.settings.reminderCenter = rc;
@@ -80,8 +96,11 @@ markReminderDone(id) {
                 const rc = store.data.settings.reminderCenter || { snoozedUntil: {}, done: {} };
                 rc.snoozedUntil = rc.snoozedUntil || {};
                 rc.done = rc.done || {};
+                this.getReminderStateIds(id).forEach(stateId => {
+                    delete rc.snoozedUntil[stateId];
+                    delete rc.done[stateId];
+                });
                 rc.done[id] = true;
-                delete rc.snoozedUntil[id];
                 store.data.settings.reminderCenter = rc;
                 store.saveData().then(() => this.render());
             },
@@ -98,7 +117,7 @@ restoreReminder(id) {
                 const rc = store.data.settings.reminderCenter || { snoozedUntil: {}, done: {} };
                 rc.snoozedUntil = rc.snoozedUntil || {};
                 rc.done = rc.done || {};
-                delete rc.done[id];
+                this.getReminderStateIds(id).forEach(stateId => delete rc.done[stateId]);
                 store.data.settings.reminderCenter = rc;
                 store.saveData().then(() => this.render());
             },
@@ -106,7 +125,7 @@ restoreReminder(id) {
 unsnoozeReminder(id) {
                 const rc = store.data.settings.reminderCenter || { snoozedUntil: {}, done: {} };
                 rc.snoozedUntil = rc.snoozedUntil || {};
-                delete rc.snoozedUntil[id];
+                this.getReminderStateIds(id).forEach(stateId => delete rc.snoozedUntil[stateId]);
                 store.data.settings.reminderCenter = rc;
                 store.saveData().then(() => this.render());
             }

@@ -142,6 +142,8 @@ openAddService(id = null, defaultType = 'service') {
                     log.tireSwapA2 = swaps[1]?.a || 'front_right';
                     log.tireSwapB2 = swaps[1]?.b || 'rear_right';
                     log.tireRotPattern = swaps.length >= 2 ? 'front_rear' : 'single';
+                    log.tireMoves = FuelMateCore.normalizeTireMoves({ tireMoves: log.tireMoves });
+                    log.tireRotationPattern = log.tireRotationPattern || '';
                 }
                 const quickTags = ['oil_change','tire_change','alignment','air_filter','cabin_filter','spark_plugs','brake_fluid','transmission_fluid','coolant','wiper_blades','battery','brake','inspection'];
 
@@ -224,6 +226,7 @@ openAddService(id = null, defaultType = 'service') {
                                 </div>
                             </div>
                             <div id="tire_rotation_fields" class="${log.type === 'tire_rotation' ? '' : 'hidden'} bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border theme-border mb-3">
+                                <input id="l_tire_moves_json" type="hidden" value="${utils.escapeAttr(JSON.stringify(log.tireMoves || []))}">
                                 <div class="flex items-center justify-between mb-2">
                                     <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">${utils.t('tire_swap')}</div>
                                     <select id="l_tire_rot_pattern" onchange="ui.applyTireRotationPattern(this.value)" class="text-xs p-1 rounded bg-white/70 dark:bg-slate-700 border theme-border">
@@ -239,13 +242,13 @@ openAddService(id = null, defaultType = 'service') {
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
                                         <label class="text-xs theme-text-sub block mb-1">${utils.t('tire_swap_a')}</label>
-                                        <select id="l_tire_swap_a1" class="w-full p-3 rounded-xl text-sm">
+                                        <select id="l_tire_swap_a1" onchange="ui.clearRecommendedTireRotation()" class="w-full p-3 rounded-xl text-sm">
                                             ${['front_left','front_right','rear_left','rear_right'].map(p => `<option value="${p}" ${(log.tireSwapA1||'front_left')===p?'selected':''}>${utils.t('tire_'+p)}</option>`).join('')}
                                         </select>
                                     </div>
                                     <div>
                                         <label class="text-xs theme-text-sub block mb-1">${utils.t('tire_swap_b')}</label>
-                                        <select id="l_tire_swap_b1" class="w-full p-3 rounded-xl text-sm">
+                                        <select id="l_tire_swap_b1" onchange="ui.clearRecommendedTireRotation()" class="w-full p-3 rounded-xl text-sm">
                                             ${['front_left','front_right','rear_left','rear_right'].map(p => `<option value="${p}" ${(log.tireSwapB1||'rear_left')===p?'selected':''}>${utils.t('tire_'+p)}</option>`).join('')}
                                         </select>
                                     </div>
@@ -254,13 +257,13 @@ openAddService(id = null, defaultType = 'service') {
                                 <div id="tire_rotation_pair2" class="${log.tireRotPattern==='single' ? 'hidden' : ''} grid grid-cols-2 gap-3 mt-2">
                                     <div>
                                         <label class="text-xs theme-text-sub block mb-1">${utils.t('tire_swap_a')}</label>
-                                        <select id="l_tire_swap_a2" class="w-full p-3 rounded-xl text-sm">
+                                        <select id="l_tire_swap_a2" onchange="ui.clearRecommendedTireRotation()" class="w-full p-3 rounded-xl text-sm">
                                             ${['front_left','front_right','rear_left','rear_right'].map(p => `<option value="${p}" ${(log.tireSwapA2||'front_right')===p?'selected':''}>${utils.t('tire_'+p)}</option>`).join('')}
                                         </select>
                                     </div>
                                     <div>
                                         <label class="text-xs theme-text-sub block mb-1">${utils.t('tire_swap_b')}</label>
-                                        <select id="l_tire_swap_b2" class="w-full p-3 rounded-xl text-sm">
+                                        <select id="l_tire_swap_b2" onchange="ui.clearRecommendedTireRotation()" class="w-full p-3 rounded-xl text-sm">
                                             ${['front_left','front_right','rear_left','rear_right'].map(p => `<option value="${p}" ${(log.tireSwapB2||'rear_right')===p?'selected':''}>${utils.t('tire_'+p)}</option>`).join('')}
                                         </select>
                                     </div>
@@ -271,6 +274,7 @@ openAddService(id = null, defaultType = 'service') {
                                     <button onclick="ui.applyRecommendedTireRotation('rwd')" class="py-2 rounded-xl text-[10px] font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">RWD</button>
                                     <button onclick="ui.applyRecommendedTireRotation('awd')" class="py-2 rounded-xl text-[10px] font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">AWD</button>
                                 </div>
+                                <div id="tire_rotation_move_summary" class="text-[10px] text-teal-700 dark:text-teal-300 mt-2">${log.tireRotationPattern ? `${log.tireRotationPattern.toUpperCase()} ${utils.t('tire_rotation_route')}` : utils.t('tire_custom_swaps')}</div>
                             </div>
                              <div class="relative mb-3">
                                  <label class="text-xs theme-text-sub block mb-1">${utils.t('location')}</label>
@@ -319,6 +323,7 @@ handleTypeChange(type) {
             },
 
 applyTireRotationPattern(pattern) {
+                this.clearRecommendedTireRotation();
                 const pair2 = document.getElementById('tire_rotation_pair2');
                 const set = (id, value) => {
                     const el = document.getElementById(id);
@@ -343,39 +348,22 @@ applyTireRotationPattern(pattern) {
                 }
             },
 
+clearRecommendedTireRotation() {
+                const moves = document.getElementById('l_tire_moves_json');
+                const summary = document.getElementById('tire_rotation_move_summary');
+                if (moves) moves.value = '[]';
+                if (summary) summary.innerText = utils.t('tire_custom_swaps');
+            },
+
 applyRecommendedTireRotation(driveType) {
                 const drive = (driveType || (store.getActiveVehicle()?.driveType) || 'fwd').toLowerCase();
-                // Common default recommendations:
-                // - FWD: cross rear -> front, front -> rear same-side
-                // - RWD: cross front -> rear, rear -> front same-side
-                // - AWD: front <-> rear same-side (safe/simple for mixed tires)
-                if (drive === 'rwd') {
-                    document.getElementById('l_tire_rot_pattern').value = 'cross';
-                    this.applyTireRotationPattern('cross');
-                    // swap direction for RWD (front -> rear cross)
-                    const pair2 = document.getElementById('tire_rotation_pair2');
-                    if (pair2) pair2.classList.remove('hidden');
-                    document.getElementById('l_tire_swap_a1').value = 'front_left';
-                    document.getElementById('l_tire_swap_b1').value = 'rear_right';
-                    document.getElementById('l_tire_swap_a2').value = 'front_right';
-                    document.getElementById('l_tire_swap_b2').value = 'rear_left';
-                    return;
-                }
-                if (drive === 'awd') {
-                    document.getElementById('l_tire_rot_pattern').value = 'front_rear';
-                    this.applyTireRotationPattern('front_rear');
-                    return;
-                }
-                // fwd default
                 document.getElementById('l_tire_rot_pattern').value = 'cross';
                 this.applyTireRotationPattern('cross');
-                // swap direction for FWD (rear -> front cross)
-                const pair2 = document.getElementById('tire_rotation_pair2');
-                if (pair2) pair2.classList.remove('hidden');
-                document.getElementById('l_tire_swap_a1').value = 'rear_left';
-                document.getElementById('l_tire_swap_b1').value = 'front_right';
-                document.getElementById('l_tire_swap_a2').value = 'rear_right';
-                document.getElementById('l_tire_swap_b2').value = 'front_left';
+                const selected = FuelMateCore.getRecommendedTireMoves(drive);
+                const moves = document.getElementById('l_tire_moves_json');
+                const summary = document.getElementById('tire_rotation_move_summary');
+                if (moves) moves.value = JSON.stringify(selected);
+                if (summary) summary.innerText = `${drive.toUpperCase()} ${utils.t('tire_rotation_route')}`;
             },
 
 openLogEditorById(id) {
@@ -416,10 +404,21 @@ async submitService(id) {
                 if (!tireTread.ok || !tirePressure.ok || !tireRemainingDistance.ok || !tireRemainingMonths.ok) return;
 
                 let tireSwaps;
+                let tireMoves;
                 let tireSwapA;
                 let tireSwapB;
                 if (isTireRotation) {
                     const get = (elId) => document.getElementById(elId)?.value;
+                    const movesValue = document.getElementById('l_tire_moves_json')?.value || '[]';
+                    try {
+                        const parsedMoves = JSON.parse(movesValue);
+                        const normalizedMoves = FuelMateCore.normalizeTireMoves({ tireMoves: parsedMoves });
+                        if (Array.isArray(parsedMoves) && parsedMoves.length && normalizedMoves.length === parsedMoves.length) {
+                            tireMoves = normalizedMoves;
+                        }
+                    } catch {
+                        return alert(utils.t('validation_tire_rotation'));
+                    }
                     const swaps = [];
                     const addSwap = (a, b) => {
                         if (!a || !b || a === b) return;
@@ -430,15 +429,17 @@ async submitService(id) {
                     if (pair2 && !pair2.classList.contains('hidden')) {
                         addSwap(get('l_tire_swap_a2'), get('l_tire_swap_b2'));
                     }
-                    if (!swaps.length) return alert('Please select tire swap positions.');
-                    const used = new Set();
-                    for (const s of swaps) {
-                        if (used.has(s.a) || used.has(s.b)) return alert('Each tire position can only appear once per rotation.');
-                        used.add(s.a); used.add(s.b);
+                    if (!tireMoves) {
+                        if (!swaps.length) return alert(utils.t('validation_tire_rotation'));
+                        const used = new Set();
+                        for (const s of swaps) {
+                            if (used.has(s.a) || used.has(s.b)) return alert(utils.t('validation_tire_position_once'));
+                            used.add(s.a); used.add(s.b);
+                        }
+                        tireSwaps = swaps;
+                        tireSwapA = swaps[0].a;
+                        tireSwapB = swaps[0].b;
                     }
-                    tireSwaps = swaps;
-                    tireSwapA = swaps[0].a;
-                    tireSwapB = swaps[0].b;
                 }
 
                 const log = {
@@ -460,9 +461,11 @@ async submitService(id) {
                     tireId: isTireReplace ? (existing?.tireId || utils.newId()) : undefined,
                     tireRemainingDist: isTireReplace ? tireRemainingDistance.number : undefined,
                     tireRemainingDays: isTireReplace ? (tireRemainingMonths.number === null ? null : Math.round(tireRemainingMonths.number * 30)) : undefined,
+                    tireMoves: isTireRotation ? tireMoves : undefined,
                     tireSwaps: isTireRotation ? tireSwaps : undefined,
                     tireSwapA: isTireRotation ? tireSwapA : undefined,
-                    tireSwapB: isTireRotation ? tireSwapB : undefined
+                    tireSwapB: isTireRotation ? tireSwapB : undefined,
+                    tireRotationPattern: isTireRotation && tireMoves ? (document.getElementById('tire_rotation_move_summary')?.innerText.split(' ')[0] || '').toLowerCase() : undefined
                 };
 
                 if (id) await store.updateLog(log);

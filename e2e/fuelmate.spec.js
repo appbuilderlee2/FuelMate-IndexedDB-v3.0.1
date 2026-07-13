@@ -25,7 +25,7 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('nav-settings').click();
 
   await expect(page.getByRole('heading', { name: /Settings|設定/ })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('v3.4.0');
+  await expect(page.getByTestId('app-version')).toContainText('v3.5.0');
   await page.getByTestId('currency-setting').selectOption('€');
   await expect(page.getByTestId('currency-setting')).toHaveValue('€');
   expect(pageErrors).toEqual([]);
@@ -52,5 +52,24 @@ test('adds a fuel record and renders the saved IndexedDB data', async ({ page })
   await page.reload();
   await page.getByTestId('nav-fuel').click();
   await expect(page.locator('[data-testid="log-card"][data-log-type="fuel"]')).toContainText('E2E Station');
+  expect(pageErrors).toEqual([]);
+});
+
+test('keeps an unset-tire reminder visible and supports snoozing it', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
+  await openFreshApp(page);
+  await createVehicle(page);
+  const dashboardReminder = page.locator('[data-testid="dashboard-reminder"][data-reminder-id*="unset:front_left"]');
+  await expect(dashboardReminder).toBeVisible();
+  await dashboardReminder.getByRole('button', { name: /Snooze 7d|延後 7 天/ }).click();
+  await expect(dashboardReminder).toBeHidden();
+
+  await page.getByRole('button', { name: /View All|查看全部/ }).first().click();
+  await page.getByRole('button', { name: /Snoozed|已延後/ }).click();
+  const snoozedReminder = page.locator('[data-testid="reminder-card"][data-reminder-id*="unset:front_left"]');
+  await expect(snoozedReminder).toBeVisible();
+  await expect(snoozedReminder).toContainText('Snoozed until');
   expect(pageErrors).toEqual([]);
 });
