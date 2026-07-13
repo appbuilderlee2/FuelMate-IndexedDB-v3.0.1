@@ -284,8 +284,8 @@
                                                         <span class="material-icons text-base">${it.icon}</span>
                                                     </div>
                                                     <div>
-                                                        <div class="font-bold theme-text-heading text-sm">${it.title}</div>
-                                                        <div class="text-[10px] theme-text-sub mt-0.5">${it.meta || '&nbsp;'}</div>
+                                                        <div class="font-bold theme-text-heading text-sm">${utils.escapeHtml(it.title)}</div>
+                                                        <div class="text-[10px] theme-text-sub mt-0.5">${it.meta ? utils.escapeHtml(it.meta) : '&nbsp;'}</div>
                                                     </div>
                                                 </div>
                                                 ${it.editAction ? `<button onclick="${it.editAction}" class="text-[10px] font-bold text-${tone}-600">${utils.t('reminder_open')}</button>` : ''}
@@ -321,9 +321,9 @@
                              <div class="relative z-10">
                                 <div class="flex justify-between items-start mb-6">
                                     <div>
-                                        <div class="opacity-80 text-xs font-bold tracking-wider mb-1 uppercase">${vehicle.year} ${vehicle.make}</div>
+                                        <div class="opacity-80 text-xs font-bold tracking-wider mb-1 uppercase">${utils.escapeHtml(vehicle.year)} ${utils.escapeHtml(vehicle.make)}</div>
                                         <div onclick="ui.openVehicleSelector()" class="text-3xl font-black flex items-center gap-2 cursor-pointer active:opacity-70">
-                                            ${vehicle.model} 
+                                            ${utils.escapeHtml(vehicle.model)} 
                                             <span class="material-icons text-2xl opacity-70">expand_more</span>
                                         </div>
                                     </div>
@@ -654,8 +654,8 @@
                                                 <span class="material-icons text-slate-500">${it.icon}</span>
                                             </div>
                                             <div>
-                                                <div class="font-bold theme-text-heading">${it.title}</div>
-                                                <div class="text-xs theme-text-sub mt-0.5">${it.meta || '&nbsp;'}</div>
+                                                <div class="font-bold theme-text-heading">${utils.escapeHtml(it.title)}</div>
+                                                <div class="text-xs theme-text-sub mt-0.5">${it.meta ? utils.escapeHtml(it.meta) : '&nbsp;'}</div>
                                                 ${snoozedUntil[it.id] && !done[it.id] ? `<div class="text-[10px] text-slate-400 mt-1">Snoozed until ${utils.formatDate(snoozedUntil[it.id])}</div>` : ''}
                                             </div>
                                         </div>
@@ -671,7 +671,7 @@
                                                 ${tab === 'snoozed' ? `<button onclick="ui.unsnoozeReminder('${it.id}')" class="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">${utils.t('unsnooze')}</button>` : `<button onclick="ui.markReminderDone('${it.id}')" class="flex-1 py-2 rounded-xl text-xs font-bold bg-teal-600 text-white">${utils.t('mark_done')}</button>`}
                                             `}
                                         ${(it.calendarType || it.dueDateIso)
-                                            ? `<button data-action="reminder-calendar" data-title="${encodeURIComponent(it.calendarTitle || it.title || '')}" data-date="${it.dueDateIso || ''}" data-type="${it.calendarType || ''}" class="py-2 px-3 rounded-xl text-xs font-bold bg-blue-50 text-blue-700">${utils.t('export_calendar')}</button>`
+                                            ? `<button data-action="reminder-calendar" data-title="${utils.escapeAttr(encodeURIComponent(it.calendarTitle || it.title || ''))}" data-date="${utils.escapeAttr(it.dueDateIso || '')}" data-type="${utils.escapeAttr(it.calendarType || '')}" class="py-2 px-3 rounded-xl text-xs font-bold bg-blue-50 text-blue-700">${utils.t('export_calendar')}</button>`
                                             : ''
                                         }
                                     </div>
@@ -858,7 +858,7 @@
                                             <div class="flex items-start justify-between gap-3">
                                                 <div>
                                                     <div class="text-xs theme-text-sub font-bold">${t.currentPos ? utils.t('tire_' + t.currentPos) : utils.t('tire_positions')}</div>
-                                                    <div class="text-lg font-black theme-text-heading">${t.lastReplace?.brand || utils.t('tire_not_set')}</div>
+                                                    <div class="text-lg font-black theme-text-heading">${utils.escapeHtml(t.lastReplace?.brand || utils.t('tire_not_set'))}</div>
                                                     <div class="text-xs theme-text-sub mt-0.5">${t.lastReplace ? `${utils.formatDate(t.lastReplace.date)} • ${t.lastReplace.odometer} ${utils.getDistUnit()}` : '&nbsp;'}</div>
                                                 </div>
                                                 <div class="flex gap-2">
@@ -1091,9 +1091,9 @@
                             <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">${utils.t('select_vehicle')}</div>
                             <button onclick="ui.openVehicleSelector()" class="w-full p-4 rounded-2xl ${vehicle ? utils.getCarColorClass(vehicle.color || 'teal') : 'bg-slate-50 dark:bg-slate-700'} text-left ${vehicle ? 'text-white' : 'theme-text-heading'}">
                                 ${vehicle ? `
-                                    <div class="text-[10px] font-bold tracking-wider uppercase text-white/80 mb-1">${vehicle.year} ${vehicle.make}</div>
+                                    <div class="text-[10px] font-bold tracking-wider uppercase text-white/80 mb-1">${utils.escapeHtml(vehicle.year)} ${utils.escapeHtml(vehicle.make)}</div>
                                     <div class="text-2xl font-black flex items-center gap-2">
-                                        ${vehicle.model}
+                                        ${utils.escapeHtml(vehicle.model)}
                                         <span class="material-icons text-xl text-white/80">expand_more</span>
                                     </div>
                                 ` : `
@@ -1114,8 +1114,8 @@
                                             <span class="material-icons text-lg">${utils.getCarIcon(v.type)}</span>
                                         </div>
                                         <div>
-                                            <div class="font-bold theme-text-heading">${v.make} ${v.model}</div>
-                                            <div class="text-xs theme-text-sub">${v.year} • ${v.currentOdometer} ${utils.getDistUnit()}</div>
+                                            <div class="font-bold theme-text-heading">${utils.escapeHtml(v.make)} ${utils.escapeHtml(v.model)}</div>
+                                            <div class="text-xs theme-text-sub">${utils.escapeHtml(v.year)} • ${utils.escapeHtml(v.currentOdometer)} ${utils.getDistUnit()}</div>
                                         </div>
                                     </div>
                                     <button onclick="ui.openAddVehicle('${v.id}')" class="text-teal-500"><span class="material-icons">edit</span></button>
@@ -1390,17 +1390,17 @@
                 
                 let locHtml = '';
                 if (log.location) {
-                    locHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(log.location)}" target="_blank" class="text-xs text-sky-500 hover:underline flex items-center gap-1 mt-1" onclick="event.stopPropagation()"><span class="material-icons text-[10px]">place</span>${log.location}</a>`;
+                    locHtml = `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(log.location)}" target="_blank" rel="noopener noreferrer" class="text-xs text-sky-500 hover:underline flex items-center gap-1 mt-1" onclick="event.stopPropagation()"><span class="material-icons text-[10px]">place</span>${utils.escapeHtml(log.location)}</a>`;
                 }
 
                 let extraInfoHtml = '';
                 if (log.type === 'fuel') {
                     const unit = vehicle ? (vehicle.fuelUnit || 'L') : 'L';
                     const ppu = (parseFloat(log.cost) / parseFloat(log.liters)).toFixed(2);
-                    extraInfoHtml = `<div class="text-xs theme-text-sub mt-0.5"><span class="font-semibold theme-text-main">${log.liters} ${unit}</span> <span class="opacity-75">@ ${store.data.settings.currency}${ppu}/${unit}</span></div>`;
+                    extraInfoHtml = `<div class="text-xs theme-text-sub mt-0.5"><span class="font-semibold theme-text-main">${utils.escapeHtml(log.liters)} ${utils.escapeHtml(unit)}</span> <span class="opacity-75">@ ${utils.escapeHtml(store.data.settings.currency)}${ppu}/${utils.escapeHtml(unit)}</span></div>`;
                 } else if (log.type === 'tire_replace') {
                     const parts = [];
-                    if (log.tireTread) parts.push(`${utils.t('tire_tread')}: ${log.tireTread}`);
+                    if (log.tireTread) parts.push(`${utils.t('tire_tread')}: ${utils.escapeHtml(log.tireTread)}`);
                     const p = utils.formatPressureFromLog(log);
                     if (p) parts.push(`${utils.t('tire_pressure')}: ${p}`);
                     if (log.tireAlignment) parts.push(utils.t('tire_alignment'));
@@ -1417,8 +1417,8 @@
                                 </div>
                                 <div>
                                     <div class="font-bold text-sm theme-text-heading">${date}</div>
-                                    <div class="text-xs theme-text-heading font-semibold mt-0.5">${title} ${log.isPartial ? `<span class="text-amber-500 text-[10px] border border-amber-500 px-1 rounded ml-1">${utils.t('partial')}</span>` : ''}</div>
-                                    <div class="text-xs theme-text-sub mt-0.5">${log.odometer} ${utils.getDistUnit()}</div>
+                                    <div class="text-xs theme-text-heading font-semibold mt-0.5">${utils.escapeHtml(title)} ${log.isPartial ? `<span class="text-amber-500 text-[10px] border border-amber-500 px-1 rounded ml-1">${utils.t('partial')}</span>` : ''}</div>
+                                    <div class="text-xs theme-text-sub mt-0.5">${utils.escapeHtml(log.odometer)} ${utils.getDistUnit()}</div>
                                     ${extraInfoHtml}
                                     ${locHtml}
                                 </div>
@@ -1429,7 +1429,7 @@
                             </div>
                         </div>
                         ${fuelStatsHtml}
-                        ${log.notes && log.type !== 'fine' ? `<div class="mt-2 text-xs theme-text-sub bg-slate-50 dark:bg-slate-800 p-2 rounded-lg italic">${log.notes}</div>` : ''}
+                        ${log.notes && log.type !== 'fine' ? `<div class="mt-2 text-xs theme-text-sub bg-slate-50 dark:bg-slate-800 p-2 rounded-lg italic">${utils.escapeHtml(log.notes)}</div>` : ''}
                     </div>
                 `;
             },
@@ -1501,12 +1501,12 @@
                     <h2 class="text-xl font-bold mb-4 theme-text-heading">${id ? utils.t('edit_vehicle') : utils.t('add_vehicle')}</h2>
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs theme-text-sub block mb-1">Make</label><input id="v_make" type="text" value="${v.make}" class="w-full p-3 rounded-xl" placeholder="Honda"></div>
-                            <div><label class="text-xs theme-text-sub block mb-1">Model</label><input id="v_model" type="text" value="${v.model}" class="w-full p-3 rounded-xl" placeholder="Civic"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">Make</label><input id="v_make" type="text" value="${utils.escapeAttr(v.make)}" class="w-full p-3 rounded-xl" placeholder="Honda"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">Model</label><input id="v_model" type="text" value="${utils.escapeAttr(v.model)}" class="w-full p-3 rounded-xl" placeholder="Civic"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
-                             <div><label class="text-xs theme-text-sub block mb-1">Year</label><input id="v_year" type="number" value="${v.year}" class="w-full p-3 rounded-xl"></div>
-                             <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="v_odo" type="number" value="${v.currentOdometer}" class="w-full p-3 rounded-xl"></div>
+                             <div><label class="text-xs theme-text-sub block mb-1">Year</label><input id="v_year" type="number" value="${utils.escapeAttr(v.year)}" class="w-full p-3 rounded-xl"></div>
+                             <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="v_odo" type="number" value="${utils.escapeAttr(v.currentOdometer)}" class="w-full p-3 rounded-xl"></div>
                         </div>
                         
                         <div>
@@ -1775,21 +1775,21 @@
                 this.openModal(`
                     <h2 class="text-xl font-bold mb-4 theme-text-heading flex items-center gap-2"><span class="material-icons text-teal-600">local_gas_station</span> ${utils.t('add_fuel')}</h2>
                     <div class="space-y-4">
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="l_date" type="date" value="${log.date}" class="w-full p-3 rounded-xl"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="l_date" type="date" value="${utils.escapeAttr(log.date)}" class="w-full p-3 rounded-xl"></div>
                         
                          <div>
                             <div class="flex justify-between items-center mb-1">
                                 <label class="text-xs theme-text-sub">${utils.t('odometer')}</label>
                                 <button onclick="this.innerText = this.innerText==='TRIP' ? 'ODO' : 'TRIP'; document.getElementById('l_odo').placeholder = this.innerText==='TRIP' ? 'Trip Dist (e.g. 400)' : 'Total Odo';" class="text-[10px] bg-slate-200 px-2 py-0.5 rounded font-bold">ODO</button>
                             </div>
-                            <input id="l_odo" type="number" value="${log.odometer}" class="w-full p-3 rounded-xl" onblur="if(this.placeholder.includes('Trip')){ this.value = ${store.getActiveVehicle()?.currentOdometer || 0} + parseInt(this.value||0); }">
+                            <input id="l_odo" type="number" value="${utils.escapeAttr(log.odometer)}" class="w-full p-3 rounded-xl" onblur="if(this.placeholder.includes('Trip')){ this.value = ${Number.parseFloat(store.getActiveVehicle()?.currentOdometer) || 0} + parseInt(this.value||0); }">
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs theme-text-sub block mb-1">${volLabel}</label><input id="l_liters" type="number" step="0.01" value="${log.liters}" class="w-full p-3 rounded-xl" oninput="ui.calcFuel('vol')"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">${volLabel}</label><input id="l_liters" type="number" step="0.01" value="${utils.escapeAttr(log.liters)}" class="w-full p-3 rounded-xl" oninput="ui.calcFuel('vol')"></div>
                             <div><label class="text-xs theme-text-sub block mb-1">${utils.t('price_unit')}</label><input id="l_price" type="number" step="0.01" class="w-full p-3 rounded-xl bg-slate-50" oninput="ui.calcFuel('price')"></div>
                         </div>
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" step="0.01" value="${log.cost}" class="w-full p-3 rounded-xl" oninput="ui.calcFuel('cost')"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl" oninput="ui.calcFuel('cost')"></div>
                         
                         <div class="flex items-center gap-2 bg-amber-50 p-3 rounded-xl">
                             <input type="checkbox" id="l_partial" class="w-5 h-5 text-teal-600 rounded" ${log.isPartial?'checked':''}>
@@ -1798,7 +1798,7 @@
 
                         <div class="relative">
                              <label class="text-xs theme-text-sub block mb-1">${utils.t('location')}</label>
-                             <input id="l_loc" type="text" value="${log.location || ''}" class="w-full p-3 rounded-xl pr-10">
+                             <input id="l_loc" type="text" value="${utils.escapeAttr(log.location || '')}" class="w-full p-3 rounded-xl pr-10">
                              <button onclick="utils.detectLocation(l => document.getElementById('l_loc').value=l)" class="absolute right-3 top-8 text-teal-500"><span class="material-icons">my_location</span></button>
                         </div>
 
@@ -2040,10 +2040,10 @@
                         </select>
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 service-odo-grid">
-                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="l_date" type="date" value="${log.date}" class="w-full p-3 rounded-xl"></div>
-                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="l_odo" type="number" value="${log.odometer}" class="w-full p-3 rounded-xl"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="l_date" type="date" value="${utils.escapeAttr(log.date)}" class="w-full p-3 rounded-xl"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="l_odo" type="number" value="${utils.escapeAttr(log.odometer)}" class="w-full p-3 rounded-xl"></div>
                         </div>
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" step="0.01" value="${log.cost}" class="w-full p-3 rounded-xl"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl"></div>
                         
                         <!-- Dynamic Fields -->
                         <div id="expiry_field" class="${['license','insurance','registration'].includes(log.type) ? '' : 'hidden'}">
@@ -2150,7 +2150,7 @@
                             </div>
                              <div class="relative mb-3">
                                  <label class="text-xs theme-text-sub block mb-1">${utils.t('location')}</label>
-                                 <input id="l_loc" type="text" value="${log.location || ''}" class="w-full p-3 rounded-xl pr-10">
+                                 <input id="l_loc" type="text" value="${utils.escapeAttr(log.location || '')}" class="w-full p-3 rounded-xl pr-10">
                                  <button onclick="utils.detectLocation(l => document.getElementById('l_loc').value=l)" class="absolute right-3 top-8 text-teal-500"><span class="material-icons">my_location</span></button>
                             </div>
                             
@@ -2163,7 +2163,7 @@
                             
                             <div>
                                 <label class="text-xs theme-text-sub block mb-1">${utils.t('notes')}</label>
-                                <textarea id="l_notes" class="w-full p-3 rounded-xl h-20">${log.notes || ''}</textarea>
+                                <textarea id="l_notes" class="w-full p-3 rounded-xl h-20">${utils.escapeHtml(log.notes || '')}</textarea>
                             </div>
                         </div>
 
@@ -2330,14 +2330,14 @@
                 this.openModal(`
                     <h2 class="text-xl font-bold mb-4 theme-text-heading flex items-center gap-2"><span class="material-icons text-blue-600">local_parking</span> ${utils.t('add_parking')}</h2>
                     <div class="space-y-4">
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="p_date" type="date" value="${log.date}" class="w-full p-3 rounded-xl"></div>
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="p_cost" type="number" step="0.01" value="${log.cost}" class="w-full p-3 rounded-xl"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="p_date" type="date" value="${utils.escapeAttr(log.date)}" class="w-full p-3 rounded-xl"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="p_cost" type="number" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl"></div>
                         <div class="relative">
                              <label class="text-xs theme-text-sub block mb-1">${utils.t('location')}</label>
-                             <input id="p_loc" type="text" value="${log.location || ''}" class="w-full p-3 rounded-xl pr-10">
+                             <input id="p_loc" type="text" value="${utils.escapeAttr(log.location || '')}" class="w-full p-3 rounded-xl pr-10">
                              <button onclick="utils.detectLocation(l => document.getElementById('p_loc').value=l)" class="absolute right-3 top-8 text-teal-500"><span class="material-icons">my_location</span></button>
                         </div>
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('notes')}</label><textarea id="p_notes" class="w-full p-3 rounded-xl h-20">${log.notes || ''}</textarea></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('notes')}</label><textarea id="p_notes" class="w-full p-3 rounded-xl h-20">${utils.escapeHtml(log.notes || '')}</textarea></div>
                         <div class="flex gap-3 mt-4">
                             ${id ? `<button onclick="ui.deleteLog('${id}')" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold">${utils.t('delete')}</button>` : ''}
                             <button onclick="ui.submitParking('${id || ''}')" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg">${utils.t('save')}</button>
@@ -2569,8 +2569,8 @@
                                     <span class="material-icons">${utils.getCarIcon(v.type)}</span>
                                 </div>
                                 <div class="text-left">
-                                    <div class="font-bold theme-text-heading">${v.make} ${v.model}</div>
-                                    <div class="text-xs theme-text-sub">${v.year} • ${utils.t('type_' + (v.type || 'sedan'))}</div>
+                                    <div class="font-bold theme-text-heading">${utils.escapeHtml(v.make)} ${utils.escapeHtml(v.model)}</div>
+                                    <div class="text-xs theme-text-sub">${utils.escapeHtml(v.year)} • ${utils.t('type_' + (v.type || 'sedan'))}</div>
                                 </div>
                                 ${store.data.settings.activeVehicleId === v.id ? '<span class="material-icons ml-auto text-teal-600">check_circle</span>' : ''}
                             </button>
@@ -2619,7 +2619,7 @@
                 const typeEnc = encodeURIComponent(type || '');
                 this.openModal(`
                     <h2 class="text-xl font-bold mb-2 theme-text-heading">${utils.t('export_calendar')}</h2>
-                    <p class="text-sm theme-text-sub mb-4">${type ? utils.t(type) : (title || '')}</p>
+                    <p class="text-sm theme-text-sub mb-4">${utils.escapeHtml(type ? utils.t(type) : (title || ''))}</p>
                     <label class="text-xs font-bold uppercase tracking-wider mb-2 block theme-text-sub">${utils.t('reminder_time')}</label>
                     <div class="grid grid-cols-2 gap-3">
                         <button onclick="ui.applyReminderCalendar('${typeEnc}','${dateEnc}','${titleEnc}', null)" class="p-3 rounded-xl border theme-border font-medium text-sm hover:bg-slate-50">${utils.t('rem_none')}</button>
@@ -2643,7 +2643,7 @@
                 const lang = store.data.settings.language || 'en';
                 const isZh = lang === 'zh';
                 const title = isZh ? 'FuelMate（本地優先 PWA）' : 'FuelMate (Local-first PWA)';
-                const subtitle = isZh ? 'v4.0（IndexedDB 版本）' : 'v4.0 (IndexedDB Edition)';
+                const subtitle = isZh ? 'v3.1.0（IndexedDB 版本）' : 'v3.1.0 (IndexedDB Edition)';
                 const intro = isZh
                     ? 'FuelMate 將所有用車開支與提醒集中管理：加油、維修、停車、罰單、證件到期與輪胎保養。資料本地優先、可離線使用，並支援備份與匯入。'
                     : 'FuelMate brings all car costs and reminders into one place—fuel, maintenance, parking, fines, document expiry, and tire care. Local-first by default, works offline, with backup and import support.';
