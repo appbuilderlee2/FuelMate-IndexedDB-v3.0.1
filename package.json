@@ -1,7 +1,7 @@
 {
   "name": "fuelmate-indexeddb",
   "private": true,
-  "version": "3.2.0",
+  "version": "3.3.0",
   "type": "module",
   "scripts": {
     "prepare:static": "node scripts/copy-static-js.mjs",
@@ -12,14 +12,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    
-  },
   "devDependencies": {
-    "@types/node": "^22.14.0",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/cli": "^4.1.11",
+    "@types/node": "^22.14.0",
     "tailwindcss": "^4.1.11",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
