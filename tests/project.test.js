@@ -20,6 +20,16 @@ test('application is split into ordered source files', async () => {
   }
 });
 
+test('static build copies every classic application script', async () => {
+  const copyScript = await read('scripts/copy-static-js.mjs');
+  const html = await read('index.html');
+  const files = ['core/calculations.js', 'translations.js', 'store.js', 'utils.js', 'ui.js', 'main.js'];
+  for (const file of files) {
+    assert.match(copyScript, new RegExp(file.replace('.', '\\.')));
+    assert.match(html, new RegExp(`src/${file.replace('.', '\\.')}`));
+  }
+});
+
 test('service worker uses its GitHub Pages scope for index caching', async () => {
   const worker = await read('public/sw.js');
   assert.match(worker, /fetch\(urlFor\('index\.html'\)/);
