@@ -361,7 +361,7 @@
                                 </div>
                                 <div class="theme-bg-card p-4 rounded-2xl card-shadow">
                                     <div class="theme-text-sub text-[10px] font-bold uppercase tracking-wider mb-1">${utils.t('total_dist')}</div>
-                                    <div class="text-xl font-black theme-text-heading">${(filter.mode !== 'all' && stats.totalDistCount < 2) ? '--' : (Number.isFinite(stats.totalDist) ? stats.totalDist.toLocaleString() : '--')}</div>
+                                    <div class="text-xl font-black theme-text-heading">${stats.totalDistCount < 2 ? '--' : (Number.isFinite(stats.totalDist) ? stats.totalDist.toLocaleString() : '--')}</div>
                                     <div class="text-[10px] theme-text-sub">${utils.getDistUnit()}</div>
                                 </div>
                             </div>
@@ -742,7 +742,7 @@
                             </div>
                              <div class="theme-bg-card p-3 rounded-xl card-shadow">
                                 <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t('total_dist')}</div>
-                                <div class="text-lg font-bold theme-text-heading">${(filter.mode !== 'all' && stats.totalDistCount < 2) ? '--' : (Number.isFinite(stats.totalDist) ? stats.totalDist : '--')} <span class="text-[10px] font-normal">${utils.getDistUnit()}</span></div>
+                                <div class="text-lg font-bold theme-text-heading">${stats.totalDistCount < 2 ? '--' : (Number.isFinite(stats.totalDist) ? stats.totalDist : '--')} <span class="text-[10px] font-normal">${utils.getDistUnit()}</span></div>
                             </div>
                         </div>
 
@@ -2738,7 +2738,7 @@
                 const lang = store.data.settings.language || 'en';
                 const isZh = lang === 'zh';
                 const title = isZh ? 'FuelMate（本地優先 PWA）' : 'FuelMate (Local-first PWA)';
-                const subtitle = isZh ? 'v3.1.0（IndexedDB 版本）' : 'v3.1.0 (IndexedDB Edition)';
+                const subtitle = isZh ? 'v3.1.1（IndexedDB 版本）' : 'v3.1.1 (IndexedDB Edition)';
                 const intro = isZh
                     ? 'FuelMate 將所有用車開支與提醒集中管理：加油、維修、停車、罰單、證件到期與輪胎保養。資料本地優先、可離線使用，並支援備份與匯入。'
                     : 'FuelMate brings all car costs and reminders into one place—fuel, maintenance, parking, fines, document expiry, and tire care. Local-first by default, works offline, with backup and import support.';

@@ -32,7 +32,7 @@
                 this._debounceTimers.delete(key);
             },
             csvEscape(value) {
-                const s = value === undefined || value === null ? '' : String(value);
+                const s = FuelMateSecurity.neutralizeSpreadsheetFormula(value);
                 if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
                 return s;
             },
@@ -332,8 +332,8 @@
                 const odoLogs = logs.filter(l => Number.isFinite(parseFloat(l.odometer)));
                 const sorted = odoLogs.sort((a, b) => parseFloat(a.odometer) - parseFloat(b.odometer));
                 const totalDist = sorted.length > 1
-                    ? (parseFloat(sorted[sorted.length-1].odometer) - parseFloat(sorted[0].odometer))
-                    : (sorted.length === 1 ? (parseFloat(sorted[0].odometer) || 0) : 0);
+                    ? Math.max(0, parseFloat(sorted[sorted.length-1].odometer) - parseFloat(sorted[0].odometer))
+                    : 0;
 
                 // 3. Fuel Efficiency (Always calc if fuel data exists)
                 let efficiency = '--';
@@ -377,24 +377,20 @@
             },
 
             generateTrendChart(logs) {
-                const fuelLogs = logs.filter(l => l.type === 'fuel' && !l.isPartial).sort((a,b) => new Date(a.date) - new Date(b.date));
-                if (fuelLogs.length < 2) return '';
                 const v = store.getActiveVehicle();
                 const isImperial = store.data.settings.units === 'imperial';
                 const distUnit = utils.getDistUnit();
                 const fuelUnit = v && v.fuelUnit ? v.fuelUnit : (isImperial ? 'Gal' : 'L');
-                
+                const segments = FuelMateCore.buildFuelEfficiencySegments(logs);
+                if (!segments.length) return '';
+
                 const monthly = new Map();
-                for (let i = 0; i < fuelLogs.length - 1; i++) {
-                    const dist = fuelLogs[i+1].odometer - fuelLogs[i].odometer;
-                    if (dist <= 0) continue;
-                    const fuel = parseFloat(fuelLogs[i+1].liters) || 0;
-                    if (fuel <= 0) continue;
-                    const ym = fuelLogs[i+1].date ? fuelLogs[i+1].date.slice(0, 7) : '';
+                for (const segment of segments) {
+                    const ym = segment.date ? segment.date.slice(0, 7) : '';
                     if (!ym) continue;
                     const cur = monthly.get(ym) || { fuel: 0, dist: 0 };
-                    cur.fuel += fuel;
-                    cur.dist += dist;
+                    cur.fuel += segment.fuel;
+                    cur.dist += segment.distance;
                     monthly.set(ym, cur);
                 }
                 const recentPoints = Array.from(monthly.entries())
@@ -415,7 +411,7 @@
                 const avgY = h - ((avg - min) / range) * h;
                 
                 const points = recentPoints.map((p, i) => {
-                    const x = (i / (recentPoints.length - 1)) * w;
+                    const x = recentPoints.length === 1 ? w / 2 : (i / (recentPoints.length - 1)) * w;
                     const y = h - ((p.val - min) / range) * h;
                     return {x, y, val: p.val, month: p.month};
                 });

@@ -1,8 +1,33 @@
-# FuelMate IndexedDB v3.1.0
+# FuelMate IndexedDB v3.1.1
 
-> v3.1.0 strengthens imported-data safety and makes the complete application shell reliably available offline while preserving the existing IndexedDB data format.
+> v3.1.1 unifies fuel analytics, makes imports atomic, and hardens local data and CSV export reliability while preserving the existing IndexedDB schema.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.1.1 更新內容
+
+### 統計一致性
+
+- Dashboard、加油記錄詳情及 Analytics 趨勢圖共用同一套 Full／Partial Tank 區間算法。
+- Analytics 趨勢圖會把兩次 Full 之間的 Partial 油量合併到區間，避免油耗偏低。
+- 修正只有一個有效里程點時，系統錯把 odometer 當成已行駛距離；距離及每公里成本現在會顯示未能計算。
+- 修正趨勢圖只有一個月份資料點時可能產生 `NaN` SVG座標。
+
+### IndexedDB 資料可靠性
+
+- JSON匯入改用涵蓋 vehicles、logs及settings的單一IndexedDB transaction。
+- 匯入中途失敗會自動rollback，原有記憶體資料保持不變，bulk import狀態亦會在 `finally` 重設。
+- 新增、更新及刪除車輛／記錄改為IndexedDB成功後才更新記憶體狀態。
+- 清除車輛記錄會等待IndexedDB cursor transaction完成後才更新畫面。
+- 非覆蓋式匯入按ID合併資料，避免記憶體出現重複vehicle/log項目。
+- 保留既有IndexedDB schema，毋須資料遷移。
+
+### 匯出安全、PWA及測試
+
+- CSV匯出會中和以 `=`, `+`, `-`, `@` 開頭的試算表公式內容，降低formula injection風險。
+- Service Worker cache更新至 `fuelmate-cache-v8`，確保已安裝PWA取得v3.1.1。
+- 新增Partial趨勢、單筆里程、原子匯入成功／rollback及CSV公式安全測試。
+- 目前共30項自動測試。
 
 ## v3.1.0 更新內容
 

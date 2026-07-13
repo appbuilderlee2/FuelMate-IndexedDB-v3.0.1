@@ -22,5 +22,15 @@
       && /^[A-Za-z0-9][A-Za-z0-9:._-]*$/.test(value);
   }
 
-  global.FuelMateSecurity = Object.freeze({ escapeAttribute, escapeHtml, isSafeId });
+  function neutralizeSpreadsheetFormula(value) {
+    const text = String(value ?? '');
+    return /^[\t\r\n ]*[=+\-@]/.test(text) ? `'${text}` : text;
+  }
+
+  global.FuelMateSecurity = Object.freeze({
+    escapeAttribute,
+    escapeHtml,
+    isSafeId,
+    neutralizeSpreadsheetFormula,
+  });
 })(globalThis);
