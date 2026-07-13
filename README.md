@@ -140,3 +140,5 @@ flowchart TD
 - `src/ui.js` — screens, forms, modals, and rendering
 - `src/translations.js` — English and Traditional Chinese strings
 - `src/main.js` — routing, event bindings, charts, and service-worker registration
+
+Vite does not bundle these ordered classic scripts. `npm run prepare:static` copies them into `public/src` before development and production builds so GitHub Pages receives every runtime file.
