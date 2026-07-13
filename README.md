@@ -4,6 +4,55 @@
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
 
+## v3.0.1 更新內容
+
+### 架構與維護性
+
+- 將原本約 4,500 行、集中於單一 `index.html` 的程式拆分成獨立模組：
+  - `src/store.js`：IndexedDB、資料狀態及儲存邏輯
+  - `src/utils.js`：格式化、篩選、分析、提醒及匯入/匯出
+  - `src/ui.js`：畫面、表單及 Modal
+  - `src/translations.js`：英文及繁體中文翻譯
+  - `src/main.js`：Router、事件、圖表及 Service Worker註冊
+  - `src/core/calculations.js`：油耗及輪胎氣壓計算
+- 移除未使用的空白 `index.tsx`。
+- 保留原有 IndexedDB schema及資料格式，避免升級後遺失舊資料。
+
+### PWA及離線使用
+
+- 修正 GitHub Pages子目錄下 Service Worker錯誤讀取 `/index.html` 的問題。
+- Service Worker改用目前安裝 scope定位 App Shell。
+- 更新 cache版本，確保使用者取得最新資源。
+- 將應用程式JavaScript正確複製到 production build，修正 Pages空白畫面。
+- 移除Google Fonts及Tailwind runtime CDN依賴，核心介面資源改為本地載入。
+
+### 介面及CSS
+
+- 更新 Tailwind 4 build入口及source設定。
+- Tailwind會掃描拆分後的 `src/**/*.js` UI templates。
+- 修正production build遺漏大量CSS，導致版面、圓角、顏色及陰影消失的問題。
+- 加入自動safelist生成，保留runtime templates使用的動態class。
+
+### 安全性
+
+- 移除將 `GEMINI_API_KEY`注入瀏覽器bundle的設定，避免日後API key外洩。
+- 精簡GitHub Actions權限，移除未使用的 `pages: write`權限。
+
+### 測試及部署
+
+- 新增油耗計算測試，包括 L/100 km及MPG。
+- 新增輪胎氣壓 kPa、psi及bar轉換測試。
+- 新增PWA路徑、CDN依賴、API key及模組載入順序測試。
+- 新增production scripts及Tailwind source完整性測試。
+- GitHub Actions改用 `npm ci`，並於部署前執行test、typecheck及build。
+- Vite base path更新為 `/FuelMate-IndexedDB-v3.0.1/`。
+
+### 驗證結果
+
+- 10項自動測試全部通過。
+- 所有拆分後JavaScript通過語法檢查。
+- GitHub Pages production build已確認包含runtime scripts及完整Tailwind CSS。
+
 ## 1) 核心功能與價值
 - 車輛管理：多車切換、里程（odometer）維護、基本車輛資料（含驅動方式）
 - 加油記錄：單價/金額/升數互算、Full/Partial（影響油耗計算）、地點/備註
