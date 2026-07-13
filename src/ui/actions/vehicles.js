@@ -98,10 +98,10 @@ openAddVehicle(id = null) {
                         </div>
 
                         <div class="flex gap-3 mt-6">
-                            ${id ? `<button onclick="ui.deleteVehicle('${id}')" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold">${utils.t('delete')}</button>` : ''}
-                            <button data-testid="save-vehicle" onclick="ui.saveVehicle('${id || ''}')" class="flex-1 grad-teal text-white py-3 rounded-xl font-bold shadow-lg">${utils.t('save')}</button>
+                            ${id ? `<button data-action="ui" data-ui-method="deleteVehicle" data-ui-args="${encodeURIComponent(JSON.stringify([id]))}" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold">${utils.t('delete')}</button>` : ''}
+                            <button data-testid="save-vehicle" data-action="ui" data-ui-method="saveVehicle" data-ui-args="${encodeURIComponent(JSON.stringify([id || '']))}" class="flex-1 grad-teal text-white py-3 rounded-xl font-bold shadow-lg">${utils.t('save')}</button>
                         </div>
-                        ${id ? `<button onclick="ui.clearVehicleData('${id}')" class="w-full mt-2 text-xs text-red-400 py-2 border border-red-100 rounded-xl hover:bg-red-50">${utils.t('clear_history')}</button>` : ''}
+                        ${id ? `<button data-action="ui" data-ui-method="clearVehicleData" data-ui-args="${encodeURIComponent(JSON.stringify([id]))}" class="w-full mt-2 text-xs text-red-400 py-2 border border-red-100 rounded-xl hover:bg-red-50">${utils.t('clear_history')}</button>` : ''}
                     </div>
                 `);
             },
@@ -292,12 +292,19 @@ async addDemoCar() {
                 this.render();
             },
 
+async selectVehicle(id) {
+                store.data.settings.activeVehicleId = id;
+                await store.saveData();
+                this.closeModal();
+                this.render();
+            },
+
 openVehicleSelector() {
                  this.openModal(`
                     <h2 class="text-xl font-bold mb-4 theme-text-heading">${utils.t('select_vehicle')}</h2>
                     <div class="space-y-2">
                         ${store.data.vehicles.map(v => `
-                            <button onclick="store.data.settings.activeVehicleId='${v.id}'; store.saveData(); ui.closeModal(); ui.render();" class="w-full p-4 rounded-xl flex items-center gap-3 ${store.data.settings.activeVehicleId === v.id ? 'bg-teal-50 border-teal-500 border' : 'bg-slate-50 border theme-border'}">
+                            <button data-action="ui" data-ui-method="selectVehicle" data-ui-args="${encodeURIComponent(JSON.stringify([v.id]))}" class="w-full p-4 rounded-xl flex items-center gap-3 ${store.data.settings.activeVehicleId === v.id ? 'bg-teal-50 border-teal-500 border' : 'bg-slate-50 border theme-border'}">
                                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-white ${utils.getCarColorClass(v.color)}">
                                     <span class="material-icons">${utils.getCarIcon(v.type)}</span>
                                 </div>

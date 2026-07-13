@@ -205,8 +205,8 @@
     <div id="app" class="pb-safe min-h-screen"></div>
 
     <!-- Modals Overlay -->
-    <div id="modal-overlay" data-testid="modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 transition-opacity duration-200" onclick="ui.closeModal()">
-        <div id="modal-content" class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-6 transform translate-y-full sm:translate-y-0 transition-transform duration-300 shadow-2xl max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+    <div id="modal-overlay" data-testid="modal-overlay" data-action="close-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 transition-opacity duration-200">
+        <div id="modal-content" class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-6 transform translate-y-full sm:translate-y-0 transition-transform duration-300 shadow-2xl max-h-[90vh] overflow-y-auto">
             <!-- Dynamic Content -->
         </div>
     </div>
@@ -218,6 +218,7 @@
     <script src="./src/store.js"></script>
     <script src="./src/utils.js"></script>
     <script src="./src/ui.js"></script>
+    <script src="./src/ui/events.js"></script>
     <script src="./src/ui/base.js"></script>
     <script src="./src/ui/pages/dashboard.js"></script>
     <script src="./src/ui/pages/records.js"></script>

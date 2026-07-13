@@ -25,7 +25,9 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('nav-settings').click();
 
   await expect(page.getByRole('heading', { name: /Settings|設定/ })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('v3.3.0');
+  await expect(page.getByTestId('app-version')).toContainText('v3.4.0');
+  await page.getByTestId('currency-setting').selectOption('€');
+  await expect(page.getByTestId('currency-setting')).toHaveValue('€');
   expect(pageErrors).toEqual([]);
 });
 
@@ -39,7 +41,8 @@ test('adds a fuel record and renders the saved IndexedDB data', async ({ page })
   await page.getByTestId('add-fuel').click();
 
   await page.locator('#l_liters').fill('40');
-  await page.locator('#l_cost').fill('80');
+  await page.locator('#l_price').fill('2');
+  await expect(page.locator('#l_cost')).toHaveValue('80.00');
   await page.locator('#l_loc').fill('E2E Station');
   await page.getByTestId('save-fuel').click();
 
