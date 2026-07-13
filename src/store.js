@@ -205,53 +205,65 @@
             },
 
             async addVehicle(vehicle) {
+                const shouldActivate = !this.data.settings.activeVehicleId;
+                const nextSettings = shouldActivate ? { ...this.data.settings, activeVehicleId: vehicle.id } : this.data.settings;
+                await new Promise((resolve, reject) => {
+                    const tx = this.db.transaction(['vehicles', 'settings'], 'readwrite');
+                    tx.objectStore('vehicles').put(vehicle);
+                    if (shouldActivate) tx.objectStore('settings').put({ id: 'global', ...nextSettings });
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error || new Error('Add vehicle failed'));
+                    tx.onabort = () => reject(tx.error || new Error('Add vehicle aborted'));
+                });
                 this.data.vehicles.push(vehicle);
-                if (!this.data.settings.activeVehicleId) {
-                    this.data.settings.activeVehicleId = vehicle.id;
-                    await this.saveData();
-                }
-                await this.runTransaction('vehicles', 'readwrite', s => s.put(vehicle));
+                if (shouldActivate) this.data.settings = nextSettings;
             },
 
             async updateVehicle(vehicle) {
                 const idx = this.data.vehicles.findIndex(v => v.id === vehicle.id);
                 if (idx !== -1) {
-                    this.data.vehicles[idx] = vehicle;
                     await this.runTransaction('vehicles', 'readwrite', s => s.put(vehicle));
+                    this.data.vehicles[idx] = vehicle;
                 }
             },
 
             async deleteVehicle(id) {
-                this.data.vehicles = this.data.vehicles.filter(v => v.id !== id);
-                this.data.logs = this.data.logs.filter(l => l.vehicleId !== id);
-                if (this.data.settings.activeVehicleId === id) {
-                    this.data.settings.activeVehicleId = this.data.vehicles.length ? this.data.vehicles[0].id : null;
-                    await this.saveData();
-                }
+                const nextVehicles = this.data.vehicles.filter(v => v.id !== id);
+                const nextLogs = this.data.logs.filter(l => l.vehicleId !== id);
+                const nextSettings = this.data.settings.activeVehicleId === id
+                    ? { ...this.data.settings, activeVehicleId: nextVehicles[0]?.id || null }
+                    : this.data.settings;
+                await new Promise((resolve, reject) => {
+                    const tx = this.db.transaction(['vehicles', 'logs', 'settings'], 'readwrite');
+                    tx.objectStore('vehicles').delete(id);
+                    tx.objectStore('settings').put({ id: 'global', ...nextSettings });
+                    const idx = tx.objectStore('logs').index('vehicleId');
+                    const req = idx.openCursor(IDBKeyRange.only(id));
+                    req.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor) { cursor.delete(); cursor.continue(); }
+                    };
+                    req.onerror = () => reject(req.error || new Error('Delete vehicle logs failed'));
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error || new Error('Delete vehicle failed'));
+                    tx.onabort = () => reject(tx.error || new Error('Delete vehicle aborted'));
+                });
+                this.data.vehicles = nextVehicles;
+                this.data.logs = nextLogs;
+                this.data.settings = nextSettings;
                 this._invalidateLogsCache();
-                await this.runTransaction('vehicles', 'readwrite', s => s.delete(id));
-                const tx = this.db.transaction('logs', 'readwrite');
-                const logStore = tx.objectStore('logs');
-                const idx = logStore.index('vehicleId');
-                const keyRange = IDBKeyRange.only(id);
-                const req = idx.openCursor(keyRange);
-                req.onsuccess = (e) => {
-                    const cursor = e.target.result;
-                    if (cursor) { cursor.delete(); cursor.continue(); }
-                };
             },
 
             async addLog(log) {
-                this.data.logs.push(log);
                 await this.runTransaction('logs', 'readwrite', s => s.put(log));
+                this.data.logs.push(log);
                 
                 // Auto-update vehicle odometer
                 const vehicle = this.data.vehicles.find(v => v.id === log.vehicleId);
                 const odo = parseFloat(log.odometer) || 0;
                 const current = parseFloat(vehicle?.currentOdometer) || 0;
                 if (vehicle && odo > current) {
-                    vehicle.currentOdometer = odo;
-                    await this.updateVehicle(vehicle);
+                    await this.updateVehicle({ ...vehicle, currentOdometer: odo });
                 }
                 if (!this._bulkImporting) this._invalidateLogsCache();
             },
@@ -272,8 +284,7 @@
                 const shouldIncrease = nextMax > current;
                 const shouldCorrectDerivedMaximum = Number.isFinite(previousMax) && current === previousMax && nextMax < current;
                 if (shouldIncrease || shouldCorrectDerivedMaximum) {
-                    vehicle.currentOdometer = nextMax;
-                    await this.updateVehicle(vehicle);
+                    await this.updateVehicle({ ...vehicle, currentOdometer: nextMax });
                 }
             },
 
@@ -283,8 +294,8 @@
                     const previous = this.data.logs[idx];
                     const previousVehicleId = previous.vehicleId;
                     const previousMax = this.getVehicleMaxLogOdometer(previousVehicleId);
-                    this.data.logs[idx] = log;
                     await this.runTransaction('logs', 'readwrite', s => s.put(log));
+                    this.data.logs[idx] = log;
                     if (!this._bulkImporting) this._invalidateLogsCache();
                     await this.reconcileVehicleOdometer(previousVehicleId, previousMax);
                     if (log.vehicleId !== previousVehicleId) await this.reconcileVehicleOdometer(log.vehicleId, null);
@@ -294,50 +305,74 @@
             async deleteLog(id) {
                 const previous = this.data.logs.find(l => l.id === id);
                 const previousMax = previous ? this.getVehicleMaxLogOdometer(previous.vehicleId) : null;
-                this.data.logs = this.data.logs.filter(l => l.id !== id);
                 await this.runTransaction('logs', 'readwrite', s => s.delete(id));
+                this.data.logs = this.data.logs.filter(l => l.id !== id);
                 if (!this._bulkImporting) this._invalidateLogsCache();
                 if (previous) await this.reconcileVehicleOdometer(previous.vehicleId, previousMax);
             },
 
             async clearVehicleLogs(vehicleId) {
+                await new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('logs', 'readwrite');
+                    const idx = tx.objectStore('logs').index('vehicleId');
+                    const req = idx.openCursor(IDBKeyRange.only(vehicleId));
+                    req.onsuccess = (e) => {
+                        const cursor = e.target.result;
+                        if (cursor) { cursor.delete(); cursor.continue(); }
+                    };
+                    req.onerror = () => reject(req.error || new Error('Clear vehicle logs failed'));
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error || new Error('Clear vehicle logs failed'));
+                    tx.onabort = () => reject(tx.error || new Error('Clear vehicle logs aborted'));
+                });
                 this.data.logs = this.data.logs.filter(l => l.vehicleId !== vehicleId);
                 if (!this._bulkImporting) this._invalidateLogsCache();
-                const tx = this.db.transaction('logs', 'readwrite');
-                const idx = tx.objectStore('logs').index('vehicleId');
-                const req = idx.openCursor(IDBKeyRange.only(vehicleId));
-                req.onsuccess = (e) => {
-                    const cursor = e.target.result;
-                    if (cursor) { cursor.delete(); cursor.continue(); }
-                };
             },
 
             async importData(importedData, options = {}) {
                 const { overwrite = false } = options;
                 this._bulkImporting = true;
-                if (overwrite) {
-                    this.data.vehicles = [];
-                    this.data.logs = [];
-                    this.data.settings = { ...this.defaultSettings };
-                    await this.clearAllData();
-                }
-                if (importedData.vehicles) {
-                    for (const v of importedData.vehicles) await this.addVehicle(v);
-                }
-                if (importedData.logs) {
-                    for (const l of importedData.logs) await this.addLog(l);
-                }
-                if (importedData.settings) {
-                    this.data.settings = { ...this.data.settings, ...importedData.settings };
-                    await this.saveData();
-                }
+                try {
+                    const incomingVehicles = Array.isArray(importedData.vehicles) ? importedData.vehicles : [];
+                    const incomingLogs = Array.isArray(importedData.logs) ? importedData.logs : [];
+                    const mergeById = (current, incoming) => {
+                        const merged = new Map(current.map(item => [item.id, item]));
+                        for (const item of incoming) merged.set(item.id, item);
+                        return Array.from(merged.values());
+                    };
+                    const nextVehicles = overwrite ? [...incomingVehicles] : mergeById(this.data.vehicles, incomingVehicles);
+                    const nextLogs = overwrite ? [...incomingLogs] : mergeById(this.data.logs, incomingLogs);
+                    const settingsBase = overwrite ? this.defaultSettings : this.data.settings;
+                    const nextSettings = { ...settingsBase, ...(importedData.settings || {}) };
+                    if (!nextVehicles.some(v => v.id === nextSettings.activeVehicleId)) {
+                        nextSettings.activeVehicleId = nextVehicles[0]?.id || null;
+                    }
 
-                if (!this.data.settings.activeVehicleId && this.data.vehicles.length > 0) {
-                    this.data.settings.activeVehicleId = this.data.vehicles[0].id;
-                    await this.saveData();
+                    await new Promise((resolve, reject) => {
+                        const tx = this.db.transaction(['vehicles', 'logs', 'settings'], 'readwrite');
+                        const vehicleStore = tx.objectStore('vehicles');
+                        const logStore = tx.objectStore('logs');
+                        const settingsStore = tx.objectStore('settings');
+                        if (overwrite) {
+                            vehicleStore.clear();
+                            logStore.clear();
+                            settingsStore.clear();
+                        }
+                        for (const vehicle of incomingVehicles) vehicleStore.put(vehicle);
+                        for (const log of incomingLogs) logStore.put(log);
+                        settingsStore.put({ id: 'global', ...nextSettings });
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => reject(tx.error || new Error('Import transaction failed'));
+                        tx.onabort = () => reject(tx.error || new Error('Import transaction aborted'));
+                    });
+
+                    this.data.vehicles = nextVehicles;
+                    this.data.logs = nextLogs;
+                    this.data.settings = nextSettings;
+                    this._invalidateLogsCache();
+                } finally {
+                    this._bulkImporting = false;
                 }
-                this._bulkImporting = false;
-                this._invalidateLogsCache();
             },
 
             getActiveVehicle() {

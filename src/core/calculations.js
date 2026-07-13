@@ -43,7 +43,7 @@
     return (fuel / distance) * 100;
   }
 
-  function calculateFuelEfficiencyFromLogs(logs, fuelUnit, distanceUnit) {
+  function buildFuelEfficiencySegments(logs) {
     const fuelLogs = (Array.isArray(logs) ? logs : [])
       .filter((log) => log && log.type === 'fuel' && isNonNegativeNumber(log.odometer))
       .slice()
@@ -51,8 +51,7 @@
 
     let previousFullOdometer = null;
     let intervalFuel = 0;
-    let totalFuel = 0;
-    let totalDistance = 0;
+    const segments = [];
 
     for (const log of fuelLogs) {
       const odometer = toFiniteNumber(log.odometer);
@@ -68,14 +67,26 @@
 
       const distance = odometer - previousFullOdometer;
       if (distance > 0 && intervalFuel > 0) {
-        totalDistance += distance;
-        totalFuel += intervalFuel;
+        segments.push({
+          date: isValidIsoDate(log.date) ? log.date : '',
+          distance,
+          fuel: intervalFuel,
+          endOdometer: odometer,
+        });
       }
       previousFullOdometer = odometer;
       intervalFuel = 0;
     }
 
-    return calcEfficiencyValue(totalFuel, totalDistance, fuelUnit, distanceUnit);
+    return segments;
+  }
+
+  function calculateFuelEfficiencyFromLogs(logs, fuelUnit, distanceUnit) {
+    const totals = buildFuelEfficiencySegments(logs).reduce((acc, segment) => ({
+      distance: acc.distance + segment.distance,
+      fuel: acc.fuel + segment.fuel,
+    }), { distance: 0, fuel: 0 });
+    return calcEfficiencyValue(totals.fuel, totals.distance, fuelUnit, distanceUnit);
   }
 
   const supportedLogTypes = Object.freeze([
@@ -145,6 +156,7 @@
   }
 
   global.FuelMateCore = Object.freeze({
+    buildFuelEfficiencySegments,
     calculateFuelEfficiencyFromLogs,
     calcEfficiencyValue,
     isNonNegativeNumber,
