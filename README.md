@@ -1,8 +1,34 @@
-# FuelMate IndexedDB v3.2.0
+# FuelMate IndexedDB v3.3.0
 
-> v3.2.0 introduces a synchronized runtime version system and carries forward the v3.1.1 analytics, atomic import, and data-reliability improvements without changing the IndexedDB schema.
+> v3.3.0 focuses on a maintainable UI architecture and real-browser E2E coverage without changing the IndexedDB schema.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.3.0 更新內容
+
+### UI 架構拆分
+
+- 將原本約2,800行、包含67個方法的 `src/ui.js` 拆成輕量registry及10個聚焦模組。
+- `src/ui/base.js` 負責生命週期、共用renderer、navigation、Modal及驗證。
+- `src/ui/pages/` 分開Dashboard／提醒、記錄頁及設定頁rendering。
+- `src/ui/actions/` 分開車輛、入油、維修、記錄、匯入匯出及dialog操作。
+- 保留原有 `ui.*` public API及inline event handlers，避免影響現有功能或IndexedDB資料。
+- Production複製流程、HTML載入次序及Service Worker App Shell已同步包含全部UI模組。
+
+### 瀏覽器 E2E 測試
+
+- 新增Playwright設定，以Chromium測試桌面及iPhone 13 mobile layout。
+- 新增「建立車輛 → 設定頁版本同步」瀏覽器流程。
+- 新增「建立車輛 → 新增入油記錄 → reload後IndexedDB資料仍存在」瀏覽器流程。
+- 關鍵互動加入穩定 `data-testid`，測試不依賴語言文字或Tailwind class。
+- GitHub Actions會在部署前安裝Chromium及執行E2E；瀏覽器流程失敗時不會部署Pages。
+
+### 版本、PWA及維護規則
+
+- App、package、設定頁、About及README版本同步升級至v3.3.0。
+- Service Worker cache更新至 `fuelmate-cache-v10`，確保已安裝PWA取得拆分後的UI模組。
+- 新增架構守護測試，限制UI registry保持輕量，個別UI模組維持少於600行。
+- 保留v3.2.0版本同步規則；往後每次更改仍須同步更新設定頁版本號。
 
 ## v3.2.0 更新內容
 

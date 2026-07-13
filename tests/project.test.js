@@ -3,6 +3,26 @@ import fs from 'node:fs/promises';
 import test from 'node:test';
 
 const read = (path) => fs.readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+const runtimeFiles = [
+  'core/security.js',
+  'core/version.js',
+  'core/calculations.js',
+  'translations.js',
+  'store.js',
+  'utils.js',
+  'ui.js',
+  'ui/base.js',
+  'ui/pages/dashboard.js',
+  'ui/pages/records.js',
+  'ui/pages/settings.js',
+  'ui/actions/vehicles.js',
+  'ui/actions/fuel.js',
+  'ui/actions/maintenance.js',
+  'ui/actions/records.js',
+  'ui/actions/data.js',
+  'ui/actions/dialogs.js',
+  'main.js',
+];
 
 test('production shell has no runtime CDN dependencies', async () => {
   const html = await read('index.html');
@@ -11,7 +31,7 @@ test('production shell has no runtime CDN dependencies', async () => {
 
 test('application is split into ordered source files', async () => {
   const html = await read('index.html');
-  const files = ['security.js', 'version.js', 'calculations.js', 'translations.js', 'store.js', 'utils.js', 'ui.js', 'main.js'];
+  const files = runtimeFiles;
   let previous = -1;
   for (const file of files) {
     const index = html.indexOf(file);
@@ -23,8 +43,7 @@ test('application is split into ordered source files', async () => {
 test('static build copies every classic application script', async () => {
   const copyScript = await read('scripts/copy-static-js.mjs');
   const html = await read('index.html');
-  const files = ['core/security.js', 'core/version.js', 'core/calculations.js', 'translations.js', 'store.js', 'utils.js', 'ui.js', 'main.js'];
-  for (const file of files) {
+  for (const file of runtimeFiles) {
     assert.match(copyScript, new RegExp(file.replace('.', '\\.')));
     assert.match(html, new RegExp(`src/${file.replace('.', '\\.')}`));
   }
@@ -49,8 +68,7 @@ test('service worker uses its GitHub Pages scope for index caching', async () =>
 
 test('service worker precaches every runtime application script', async () => {
   const worker = await read('public/sw.js');
-  const files = ['core/security.js', 'core/version.js', 'core/calculations.js', 'translations.js', 'store.js', 'utils.js', 'ui.js', 'main.js'];
-  for (const file of files) assert.match(worker, new RegExp(`src/${file.replace('.', '\\.')}`));
+  for (const file of runtimeFiles) assert.match(worker, new RegExp(`src/${file.replace('.', '\\.')}`));
 });
 
 test('Vite config does not expose a Gemini key to the browser', async () => {
@@ -61,12 +79,37 @@ test('Vite config does not expose a Gemini key to the browser', async () => {
 test('package, runtime, settings page, and README versions stay synchronized', async () => {
   const packageJson = JSON.parse(await read('package.json'));
   const versionSource = await read('src/core/version.js');
-  const uiSource = await read('src/ui.js');
+  const settingsSource = await read('src/ui/pages/settings.js');
+  const dialogsSource = await read('src/ui/actions/dialogs.js');
   const readme = await read('README.md');
   const versionMatch = versionSource.match(/current:\s*'([^']+)'/);
   assert.ok(versionMatch, 'runtime version should be declared');
   assert.equal(versionMatch[1], packageJson.version);
-  assert.match(uiSource, /data-app-version/);
-  assert.match(uiSource, /FuelMateVersion\.current/);
+  assert.match(settingsSource, /data-app-version/);
+  assert.match(settingsSource, /FuelMateVersion\.current/);
+  assert.match(dialogsSource, /FuelMateVersion\.current/);
   assert.match(readme, new RegExp(`^# FuelMate IndexedDB v${packageJson.version.replaceAll('.', '\\.')}`, 'm'));
+});
+
+test('UI registry delegates implementation to focused page and action modules', async () => {
+  const registry = await read('src/ui.js');
+  assert.match(registry, /const ui = \{\};/);
+  assert.ok(registry.split('\n').length < 10, 'UI registry should stay lightweight');
+
+  for (const file of runtimeFiles.filter((file) => file.startsWith('ui/'))) {
+    const source = await read(`src/${file}`);
+    assert.match(source, /Object\.assign\(ui,/);
+    assert.ok(source.split('\n').length < 600, `${file} should remain a focused UI module`);
+  }
+});
+
+test('Playwright covers desktop and mobile browser flows', async () => {
+  const config = await read('playwright.config.js');
+  const spec = await read('e2e/fuelmate.spec.js');
+  assert.match(config, /chromium-desktop/);
+  assert.match(config, /mobile-safari-layout/);
+  assert.match(spec, /save-vehicle/);
+  assert.match(spec, /save-fuel/);
+  assert.match(spec, /app-version/);
+  assert.match(spec, /page\.reload\(\)/);
 });

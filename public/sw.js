@@ -1,5 +1,5 @@
 /* FuelMate Service Worker - app-shell cache for offline install */
-const CACHE_NAME = 'fuelmate-cache-v9';
+const CACHE_NAME = 'fuelmate-cache-v10';
 
 function urlFor(path) {
   return new URL(path, self.registration.scope).toString();
@@ -19,6 +19,16 @@ const CORE_ASSETS = [
   urlFor('src/store.js'),
   urlFor('src/utils.js'),
   urlFor('src/ui.js'),
+  urlFor('src/ui/base.js'),
+  urlFor('src/ui/pages/dashboard.js'),
+  urlFor('src/ui/pages/records.js'),
+  urlFor('src/ui/pages/settings.js'),
+  urlFor('src/ui/actions/vehicles.js'),
+  urlFor('src/ui/actions/fuel.js'),
+  urlFor('src/ui/actions/maintenance.js'),
+  urlFor('src/ui/actions/records.js'),
+  urlFor('src/ui/actions/data.js'),
+  urlFor('src/ui/actions/dialogs.js'),
   urlFor('src/main.js'),
   urlFor('material-icons/material-icons.css'),
   urlFor('material-icons/material-icons.woff2'),

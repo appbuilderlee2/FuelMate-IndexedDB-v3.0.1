@@ -36,9 +36,18 @@ async function createUiHarness() {
     clearTimeout,
   });
   const calculations = await fs.readFile(new URL('../src/core/calculations.js', import.meta.url), 'utf8');
-  const uiSource = await fs.readFile(new URL('../src/ui.js', import.meta.url), 'utf8');
   vm.runInContext(calculations, context);
-  vm.runInContext(`${uiSource}\nglobalThis.__ui = ui;`, context);
+  for (const file of [
+    'src/ui.js',
+    'src/ui/base.js',
+    'src/ui/actions/fuel.js',
+    'src/ui/actions/maintenance.js',
+    'src/ui/actions/records.js',
+  ]) {
+    const source = await fs.readFile(new URL(`../${file}`, import.meta.url), 'utf8');
+    vm.runInContext(source, context);
+  }
+  vm.runInContext('globalThis.__ui = ui;', context);
   context.__ui.closeModal = () => {};
   context.__ui.render = () => {};
   return { ui: context.__ui, getElement, saved, alerts };

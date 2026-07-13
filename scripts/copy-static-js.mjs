@@ -12,6 +12,16 @@ const files = [
   'store.js',
   'utils.js',
   'ui.js',
+  'ui/base.js',
+  'ui/pages/dashboard.js',
+  'ui/pages/records.js',
+  'ui/pages/settings.js',
+  'ui/actions/vehicles.js',
+  'ui/actions/fuel.js',
+  'ui/actions/maintenance.js',
+  'ui/actions/records.js',
+  'ui/actions/data.js',
+  'ui/actions/dialogs.js',
   'main.js',
 ];
 

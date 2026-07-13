@@ -28,6 +28,12 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Install browser for E2E
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser E2E
+        run: npm run test:e2e
+
       - name: Type check
         run: npm run typecheck
 
