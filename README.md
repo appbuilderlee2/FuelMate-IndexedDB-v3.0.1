@@ -6,6 +6,16 @@
 
 ## v3.1.0 更新內容
 
+### 數據輸入邏輯修正
+
+- 加油、維修、泊車、車輛及輪胎表單新增日期、必填值及非負數驗證，錯誤內容不再寫入 IndexedDB。
+- 油量／電量必須大於零；里程、金額、胎紋、胎壓及剩餘壽命會按欄位用途驗證。
+- 修正 `Full → Partial → Full` 情況下總覽油耗顯示 `--`；現在會把兩次 Full 之間的 Partial 油量合併計算。
+- 修正 TRIP 模式失焦後可能重複累加里程；轉換一次後會自動返回 ODO 模式。
+- 編輯或刪除最高里程記錄時，如車輛目前里程原本由該記錄推導，會同步修正；手動設定的較新里程則保留。
+- JSON 匯入新增日期、負數、記錄類型、重複 vehicle/log ID、設定格式及必要 fuel/parking 欄位驗證。
+- 保留既有 IndexedDB schema及記錄欄位格式，毋須資料遷移。
+
 ### 輸入及匯入安全
 
 - 新增共用 `src/core/security.js`安全模組。
@@ -17,7 +27,7 @@
 
 ### PWA及離線可靠性
 
-- Service Worker cache更新至 `fuelmate-cache-v6`。
+- Service Worker cache更新至 `fuelmate-cache-v7`，確保已安裝 PWA 取得本次輸入邏輯修正。
 - 將security、calculations、translations、store、utils、UI及main全部runtime scripts加入App Shell預先cache。
 - 修正首次正常載入後立即離線時，部分JavaScript可能尚未進入cache的問題。
 
@@ -33,7 +43,8 @@
 - 新增attribute及backtick escape測試。
 - 新增安全ID接受／拒絕測試。
 - 新增Service Worker完整runtime scripts precache測試。
-- 目前共14項自動測試。
+- 新增 Partial Tank、表單邊界值、TRIP 單次轉換、匯入驗證及里程同步回歸測試。
+- 目前共25項自動測試。
 
 ### README更新規則
 

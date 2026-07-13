@@ -256,27 +256,48 @@
                 if (!this._bulkImporting) this._invalidateLogsCache();
             },
 
+            getVehicleMaxLogOdometer(vehicleId) {
+                const values = this.data.logs
+                    .filter(l => l.vehicleId === vehicleId)
+                    .map(l => parseFloat(l.odometer))
+                    .filter(Number.isFinite);
+                return values.length ? Math.max(0, ...values) : 0;
+            },
+
+            async reconcileVehicleOdometer(vehicleId, previousMax) {
+                const vehicle = this.data.vehicles.find(v => v.id === vehicleId);
+                if (!vehicle) return;
+                const current = parseFloat(vehicle.currentOdometer) || 0;
+                const nextMax = this.getVehicleMaxLogOdometer(vehicleId);
+                const shouldIncrease = nextMax > current;
+                const shouldCorrectDerivedMaximum = Number.isFinite(previousMax) && current === previousMax && nextMax < current;
+                if (shouldIncrease || shouldCorrectDerivedMaximum) {
+                    vehicle.currentOdometer = nextMax;
+                    await this.updateVehicle(vehicle);
+                }
+            },
+
             async updateLog(log) {
                 const idx = this.data.logs.findIndex(l => l.id === log.id);
                 if (idx !== -1) {
+                    const previous = this.data.logs[idx];
+                    const previousVehicleId = previous.vehicleId;
+                    const previousMax = this.getVehicleMaxLogOdometer(previousVehicleId);
                     this.data.logs[idx] = log;
                     await this.runTransaction('logs', 'readwrite', s => s.put(log));
                     if (!this._bulkImporting) this._invalidateLogsCache();
-                    
-                    const vehicle = this.data.vehicles.find(v => v.id === log.vehicleId);
-                    const maxOdo = Math.max(...this.data.logs.filter(l => l.vehicleId === log.vehicleId).map(l => parseFloat(l.odometer) || 0));
-                    const current = parseFloat(vehicle?.currentOdometer) || 0;
-                    if (vehicle && maxOdo > current) {
-                        vehicle.currentOdometer = maxOdo;
-                        await this.updateVehicle(vehicle);
-                    }
+                    await this.reconcileVehicleOdometer(previousVehicleId, previousMax);
+                    if (log.vehicleId !== previousVehicleId) await this.reconcileVehicleOdometer(log.vehicleId, null);
                 }
             },
 
             async deleteLog(id) {
+                const previous = this.data.logs.find(l => l.id === id);
+                const previousMax = previous ? this.getVehicleMaxLogOdometer(previous.vehicleId) : null;
                 this.data.logs = this.data.logs.filter(l => l.id !== id);
                 await this.runTransaction('logs', 'readwrite', s => s.delete(id));
                 if (!this._bulkImporting) this._invalidateLogsCache();
+                if (previous) await this.reconcileVehicleOdometer(previous.vehicleId, previousMax);
             },
 
             async clearVehicleLogs(vehicleId) {
