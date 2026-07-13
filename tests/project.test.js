@@ -33,9 +33,12 @@ test('static build copies every classic application script', async () => {
 test('Tailwind scans styles used by split JavaScript UI templates', async () => {
   const config = await read('tailwind.config.js');
   const generator = await read('scripts/generate-tailwind-safelist.mjs');
+  const stylesheet = await read('styles/tailwind.css');
   assert.match(config, /\.\/src\/\*\*\/\*\.js/);
   assert.match(generator, /collectSourceFiles/);
   assert.match(generator, /entry\.name\.endsWith\('\.js'\)/);
+  assert.match(stylesheet, /@import "tailwindcss"/);
+  assert.match(stylesheet, /@source "\.\.\/src\/\*\*\/\*\.js"/);
 });
 
 test('service worker uses its GitHub Pages scope for index caching', async () => {
