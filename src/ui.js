@@ -1348,8 +1348,10 @@
                          for (let i = idx + 1; i < allFuel.length; i++) {
                              const p = allFuel[i];
                              if (p.isPartial) {
-                                 accumulatedLiters += parseFloat(p.liters);
-                                 accumulatedCost += parseFloat(p.cost);
+                                 const partialFuel = parseFloat(p.liters);
+                                 const partialCost = parseFloat(p.cost);
+                                 if (Number.isFinite(partialFuel) && partialFuel > 0) accumulatedLiters += partialFuel;
+                                 if (Number.isFinite(partialCost) && partialCost >= 0) accumulatedCost += partialCost;
                              } else {
                                  foundPrevFull = true;
                                  prevLog = p;
@@ -1361,8 +1363,10 @@
                              // Current log liters + accumulated partials
                              // Distance is from Prev Full to Current Full
                              const dist = log.odometer - prevLog.odometer;
-                             const totalFuel = parseFloat(log.liters) + accumulatedLiters;
-                             const totalCost = parseFloat(log.cost) + accumulatedCost;
+                             const currentFuel = parseFloat(log.liters);
+                             const currentCost = parseFloat(log.cost);
+                             const totalFuel = (Number.isFinite(currentFuel) ? currentFuel : 0) + accumulatedLiters;
+                             const totalCost = (Number.isFinite(currentCost) ? currentCost : 0) + accumulatedCost;
                              
                              if (dist > 0) {
                                  if (totalFuel > 0) {
@@ -1480,6 +1484,31 @@
                 setTimeout(() => overlay.classList.add('hidden'), 300);
             },
 
+            validateDateField(id, messageKey = 'validation_date') {
+                const value = document.getElementById(id)?.value || '';
+                if (!FuelMateCore.isValidIsoDate(value)) {
+                    alert(utils.t(messageKey));
+                    return null;
+                }
+                return value;
+            },
+
+            validateNumberField(id, { required = true, positive = false, integer = false, messageKey = 'validation_nonnegative' } = {}) {
+                const element = document.getElementById(id);
+                const raw = element?.value?.trim?.() ?? String(element?.value ?? '').trim();
+                if (!required && raw === '') return { ok: true, value: '', number: null };
+                if (!FuelMateCore.isNonNegativeNumber(raw, { positive })) {
+                    alert(utils.t(messageKey));
+                    return { ok: false, value: '', number: null };
+                }
+                const number = Number(raw);
+                if (integer && !Number.isInteger(number)) {
+                    alert(utils.t(messageKey));
+                    return { ok: false, value: '', number: null };
+                }
+                return { ok: true, value: raw, number };
+            },
+
             openAddVehicle(id = null) {
                 const v = id ? store.data.vehicles.find(v => v.id === id) : {
                     make: '',
@@ -1505,8 +1534,8 @@
                             <div><label class="text-xs theme-text-sub block mb-1">Model</label><input id="v_model" type="text" value="${utils.escapeAttr(v.model)}" class="w-full p-3 rounded-xl" placeholder="Civic"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
-                             <div><label class="text-xs theme-text-sub block mb-1">Year</label><input id="v_year" type="number" value="${utils.escapeAttr(v.year)}" class="w-full p-3 rounded-xl"></div>
-                             <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="v_odo" type="number" value="${utils.escapeAttr(v.currentOdometer)}" class="w-full p-3 rounded-xl"></div>
+                             <div><label class="text-xs theme-text-sub block mb-1">Year</label><input id="v_year" type="number" min="1886" max="${new Date().getFullYear() + 1}" value="${utils.escapeAttr(v.year)}" class="w-full p-3 rounded-xl"></div>
+                             <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="v_odo" type="number" min="0" value="${utils.escapeAttr(v.currentOdometer)}" class="w-full p-3 rounded-xl"></div>
                         </div>
                         
                         <div>
@@ -1587,23 +1616,28 @@
             },
             
             async saveVehicle(id) {
-                const make = document.getElementById('v_make').value;
-                const model = document.getElementById('v_model').value;
+                const make = document.getElementById('v_make').value.trim();
+                const model = document.getElementById('v_model').value.trim();
                 if (!make || !model) return alert('Make and Model are required');
+                const year = this.validateNumberField('v_year', { positive: true, integer: true, messageKey: 'validation_year' });
+                const odometer = this.validateNumberField('v_odo', { required: false, messageKey: 'validation_odometer' });
+                const tireDistance = this.validateNumberField('v_tire_dist', { required: false, messageKey: 'validation_nonnegative' });
+                if (!year.ok || !odometer.ok || !tireDistance.ok) return;
+                if (year.number < 1886 || year.number > new Date().getFullYear() + 1) return alert(utils.t('validation_year'));
                 const existing = id ? store.data.vehicles.find(v => v.id === id) : null;
                 
                 const vehicle = {
                     id: id || utils.newId(),
                     make, model,
-                    year: document.getElementById('v_year').value,
-                    currentOdometer: parseInt(document.getElementById('v_odo').value) || 0,
+                    year: String(year.number),
+                    currentOdometer: odometer.number ?? 0,
                     color: document.querySelector('input[name="v_color"]:checked').value,
                     type: document.getElementById('v_type').value,
                     fuelUnit: document.getElementById('v_unit').value,
                     driveType: document.getElementById('v_drive').value,
                     maintenanceDist: document.getElementById('v_maint_dist').value,
                     maintenanceTime: document.getElementById('v_maint_time').value,
-                    tireReplaceDist: parseInt(document.getElementById('v_tire_dist').value) || 0,
+                    tireReplaceDist: tireDistance.number ?? 0,
                     tireReplaceYears: parseInt(document.getElementById('v_tire_years').value) || 0
                 };
                 
@@ -1769,6 +1803,7 @@
 
             openAddFuel(id = null) {
                 const log = id ? store.data.logs.find(l => String(l.id) === String(id)) : { date: new Date().toISOString().slice(0, 10), odometer: store.getActiveVehicle()?.currentOdometer || '', liters: '', cost: '', location: '', notes: '', isPartial: false };
+                this._fuelCalcLast = [];
                 const fuelUnit = utils.getFuelUnit();
                 const volLabel = fuelUnit === 'kWh' ? utils.t('kwh') : (fuelUnit === 'Gal' ? utils.t('gallons') : utils.t('liters'));
                 
@@ -1780,16 +1815,16 @@
                          <div>
                             <div class="flex justify-between items-center mb-1">
                                 <label class="text-xs theme-text-sub">${utils.t('odometer')}</label>
-                                <button onclick="this.innerText = this.innerText==='TRIP' ? 'ODO' : 'TRIP'; document.getElementById('l_odo').placeholder = this.innerText==='TRIP' ? 'Trip Dist (e.g. 400)' : 'Total Odo';" class="text-[10px] bg-slate-200 px-2 py-0.5 rounded font-bold">ODO</button>
+                                <button id="l_odo_mode" onclick="ui.toggleTripMode(this)" class="text-[10px] bg-slate-200 px-2 py-0.5 rounded font-bold">ODO</button>
                             </div>
-                            <input id="l_odo" type="number" value="${utils.escapeAttr(log.odometer)}" class="w-full p-3 rounded-xl" onblur="if(this.placeholder.includes('Trip')){ this.value = ${Number.parseFloat(store.getActiveVehicle()?.currentOdometer) || 0} + parseInt(this.value||0); }">
+                            <input id="l_odo" type="number" min="0" value="${utils.escapeAttr(log.odometer)}" data-mode="odo" class="w-full p-3 rounded-xl" onblur="ui.normalizeTripOdometer(this)">
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs theme-text-sub block mb-1">${volLabel}</label><input id="l_liters" type="number" step="0.01" value="${utils.escapeAttr(log.liters)}" class="w-full p-3 rounded-xl" oninput="ui.calcFuel('vol')"></div>
-                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('price_unit')}</label><input id="l_price" type="number" step="0.01" class="w-full p-3 rounded-xl bg-slate-50" oninput="ui.calcFuel('price')"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">${volLabel}</label><input id="l_liters" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.liters)}" class="w-full p-3 rounded-xl" oninput="ui.calcFuel('vol')"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('price_unit')}</label><input id="l_price" type="number" min="0" step="0.01" class="w-full p-3 rounded-xl bg-slate-50" oninput="ui.calcFuel('price')"></div>
                         </div>
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl" oninput="ui.calcFuel('cost')"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl" oninput="ui.calcFuel('cost')"></div>
                         
                         <div class="flex items-center gap-2 bg-amber-50 p-3 rounded-xl">
                             <input type="checkbox" id="l_partial" class="w-5 h-5 text-teal-600 rounded" ${log.isPartial?'checked':''}>
@@ -1810,6 +1845,34 @@
                 `);
                 // Init calc
                 setTimeout(() => ui.calcFuel('init'), 100);
+            },
+
+            toggleTripMode(button) {
+                const input = document.getElementById('l_odo');
+                if (!input) return;
+                const enteringTrip = input.dataset.mode !== 'trip';
+                input.dataset.mode = enteringTrip ? 'trip' : 'odo';
+                button.innerText = enteringTrip ? 'TRIP' : 'ODO';
+                input.placeholder = enteringTrip ? 'Trip Dist (e.g. 400)' : 'Total Odo';
+                if (enteringTrip) {
+                    input.dataset.previousOdometer = input.value;
+                    input.value = '';
+                    input.focus();
+                } else if (!input.value) {
+                    input.value = input.dataset.previousOdometer || store.getActiveVehicle()?.currentOdometer || '';
+                }
+            },
+
+            normalizeTripOdometer(input) {
+                if (input?.dataset?.mode !== 'trip' || input.value === '') return;
+                const trip = Number(input.value);
+                if (!Number.isFinite(trip) || trip < 0) return;
+                const current = Number(store.getActiveVehicle()?.currentOdometer) || 0;
+                input.value = String(current + trip);
+                input.dataset.mode = 'odo';
+                input.placeholder = 'Total Odo';
+                const button = document.getElementById('l_odo_mode');
+                if (button) button.innerText = 'ODO';
             },
 
             calcFuel(trigger) {
@@ -1855,18 +1918,24 @@
             },
 
             async submitFuel(id) {
-                const odo = parseInt(document.getElementById('l_odo').value);
-                if (!odo) return alert('Odometer is required');
+                const date = this.validateDateField('l_date');
+                if (!date) return;
+                const odometer = this.validateNumberField('l_odo', { messageKey: 'validation_odometer' });
+                if (!odometer.ok) return;
+                const fuel = this.validateNumberField('l_liters', { positive: true, messageKey: 'validation_fuel' });
+                if (!fuel.ok) return;
+                const cost = this.validateNumberField('l_cost', { messageKey: 'validation_cost' });
+                if (!cost.ok) return;
                 
                 const log = {
                     id: id || utils.newId(),
                     vehicleId: store.data.settings.activeVehicleId,
                     type: 'fuel',
-                    date: document.getElementById('l_date').value,
-                    odometer: odo,
-                    liters: document.getElementById('l_liters').value,
-                    cost: document.getElementById('l_cost').value,
-                    location: document.getElementById('l_loc').value,
+                    date,
+                    odometer: odometer.number,
+                    liters: fuel.value,
+                    cost: cost.value,
+                    location: document.getElementById('l_loc').value.trim(),
                     isPartial: document.getElementById('l_partial').checked,
                     notes: ''
                 };
@@ -1927,12 +1996,13 @@
                 const applyAll = !!document.getElementById('qs_apply_all')?.checked;
                 const applyMode = document.getElementById('qs_apply_mode_value')?.value || 'unset';
                 const pos = document.getElementById('qs_tire_pos').value;
-                const remainingDistRaw = document.getElementById('qs_remaining_dist').value;
-                const remainingMonthsRaw = document.getElementById('qs_remaining_months').value;
-                const treadRaw = document.getElementById('qs_tire_tread').value;
-                const remainingDist = Number.isFinite(parseFloat(remainingDistRaw)) ? parseFloat(remainingDistRaw) : null;
-                const remainingMonths = Number.isFinite(parseFloat(remainingMonthsRaw)) ? parseFloat(remainingMonthsRaw) : null;
-                const tread = Number.isFinite(parseFloat(treadRaw)) ? parseFloat(treadRaw) : null;
+                const remainingDistanceResult = this.validateNumberField('qs_remaining_dist', { required: false });
+                const remainingMonthsResult = this.validateNumberField('qs_remaining_months', { required: false });
+                const treadResult = this.validateNumberField('qs_tire_tread', { required: false });
+                if (!remainingDistanceResult.ok || !remainingMonthsResult.ok || !treadResult.ok) return;
+                const remainingDist = remainingDistanceResult.number;
+                const remainingMonths = remainingMonthsResult.number;
+                const tread = treadResult.number;
 
                 if (remainingDist === null && remainingMonths === null) {
                     return alert(utils.t('quick_tire_setup_error'));
@@ -1964,8 +2034,8 @@
                         tirePosition: p,
                         tireBrand: '',
                         tireTread: tread === null ? '' : tread,
-                        tireRemainingDist: remainingDist === null ? null : Math.max(0, remainingDist),
-                        tireRemainingDays: remainingMonths === null ? null : Math.max(0, Math.round(remainingMonths * 30))
+                        tireRemainingDist: remainingDist,
+                        tireRemainingDays: remainingMonths === null ? null : Math.round(remainingMonths * 30)
                     };
                     await store.addLog(log);
                 }
@@ -2041,9 +2111,9 @@
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 service-odo-grid">
                             <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="l_date" type="date" value="${utils.escapeAttr(log.date)}" class="w-full p-3 rounded-xl"></div>
-                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="l_odo" type="number" value="${utils.escapeAttr(log.odometer)}" class="w-full p-3 rounded-xl"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="l_odo" type="number" min="0" value="${utils.escapeAttr(log.odometer)}" class="w-full p-3 rounded-xl"></div>
                         </div>
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl"></div>
                         
                         <!-- Dynamic Fields -->
                         <div id="expiry_field" class="${['license','insurance','registration'].includes(log.type) ? '' : 'hidden'}">
@@ -2268,6 +2338,28 @@
                 const isTireReplace = type === 'tire_replace';
                 const isTireRotation = type === 'tire_rotation';
                 const existing = id ? store.data.logs.find(l => String(l.id) === String(id)) : null;
+                const date = this.validateDateField('l_date');
+                if (!date) return;
+                const odometer = this.validateNumberField('l_odo', { messageKey: 'validation_odometer' });
+                if (!odometer.ok) return;
+                const cost = this.validateNumberField('l_cost', { required: false, messageKey: 'validation_cost' });
+                if (!cost.ok) return;
+                const expiryDate = isDoc ? this.validateDateField('l_expiry', 'validation_expiry') : '';
+                if (isDoc && !expiryDate) return;
+
+                const tireTread = isTireReplace
+                    ? this.validateNumberField('l_tire_tread', { required: false, messageKey: 'validation_nonnegative' })
+                    : { ok: true, value: '' };
+                const tirePressure = isTireReplace
+                    ? this.validateNumberField('l_tire_pressure', { required: false, positive: true, messageKey: 'validation_pressure' })
+                    : { ok: true, value: '' };
+                const tireRemainingDistance = isTireReplace
+                    ? this.validateNumberField('l_tire_remaining_dist', { required: false, messageKey: 'validation_nonnegative' })
+                    : { ok: true, number: null };
+                const tireRemainingMonths = isTireReplace
+                    ? this.validateNumberField('l_tire_remaining_months', { required: false, messageKey: 'validation_nonnegative' })
+                    : { ok: true, number: null };
+                if (!tireTread.ok || !tirePressure.ok || !tireRemainingDistance.ok || !tireRemainingMonths.ok) return;
 
                 let tireSwaps;
                 let tireSwapA;
@@ -2299,21 +2391,21 @@
                     id: id || utils.newId(),
                     vehicleId: store.data.settings.activeVehicleId,
                     type,
-                    date: document.getElementById('l_date').value,
-                    odometer: parseInt(document.getElementById('l_odo').value) || 0,
-                    cost: document.getElementById('l_cost').value,
-                    location: isDoc ? '' : document.getElementById('l_loc').value,
-                    notes: isDoc ? '' : document.getElementById('l_notes').value,
-                    expiryDate: isDoc ? document.getElementById('l_expiry').value : '',
+                    date,
+                    odometer: odometer.number,
+                    cost: cost.value,
+                    location: isDoc ? '' : document.getElementById('l_loc').value.trim(),
+                    notes: isDoc ? '' : document.getElementById('l_notes').value.trim(),
+                    expiryDate,
                     tirePosition: isTireReplace ? document.getElementById('l_tire_pos')?.value : undefined,
-                    tireBrand: isTireReplace ? document.getElementById('l_tire_brand')?.value : undefined,
-                    tireTread: isTireReplace ? document.getElementById('l_tire_tread')?.value : undefined,
-                    tirePressureKpa: isTireReplace ? (utils.pressureToKpa(document.getElementById('l_tire_pressure')?.value, utils.getPressureUnit())?.toFixed(1) || '') : undefined,
+                    tireBrand: isTireReplace ? document.getElementById('l_tire_brand')?.value.trim() : undefined,
+                    tireTread: isTireReplace ? tireTread.value : undefined,
+                    tirePressureKpa: isTireReplace ? (utils.pressureToKpa(tirePressure.value, utils.getPressureUnit())?.toFixed(1) || '') : undefined,
                     tireAlignment: isTireReplace ? !!document.getElementById('l_tire_alignment')?.checked : undefined,
                     tireBalancing: isTireReplace ? !!document.getElementById('l_tire_balancing')?.checked : undefined,
                     tireId: isTireReplace ? (existing?.tireId || utils.newId()) : undefined,
-                    tireRemainingDist: isTireReplace ? (Number.isFinite(parseFloat(document.getElementById('l_tire_remaining_dist')?.value)) ? Math.max(0, parseFloat(document.getElementById('l_tire_remaining_dist').value)) : null) : undefined,
-                    tireRemainingDays: isTireReplace ? (Number.isFinite(parseFloat(document.getElementById('l_tire_remaining_months')?.value)) ? Math.max(0, Math.round(parseFloat(document.getElementById('l_tire_remaining_months').value) * 30)) : null) : undefined,
+                    tireRemainingDist: isTireReplace ? tireRemainingDistance.number : undefined,
+                    tireRemainingDays: isTireReplace ? (tireRemainingMonths.number === null ? null : Math.round(tireRemainingMonths.number * 30)) : undefined,
                     tireSwaps: isTireRotation ? tireSwaps : undefined,
                     tireSwapA: isTireRotation ? tireSwapA : undefined,
                     tireSwapB: isTireRotation ? tireSwapB : undefined
@@ -2331,7 +2423,7 @@
                     <h2 class="text-xl font-bold mb-4 theme-text-heading flex items-center gap-2"><span class="material-icons text-blue-600">local_parking</span> ${utils.t('add_parking')}</h2>
                     <div class="space-y-4">
                         <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="p_date" type="date" value="${utils.escapeAttr(log.date)}" class="w-full p-3 rounded-xl"></div>
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="p_cost" type="number" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="p_cost" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl"></div>
                         <div class="relative">
                              <label class="text-xs theme-text-sub block mb-1">${utils.t('location')}</label>
                              <input id="p_loc" type="text" value="${utils.escapeAttr(log.location || '')}" class="w-full p-3 rounded-xl pr-10">
@@ -2347,14 +2439,17 @@
             },
             
             async submitParking(id) {
+                const date = this.validateDateField('p_date');
+                const cost = this.validateNumberField('p_cost', { messageKey: 'validation_cost' });
+                if (!date || !cost.ok) return;
                 const log = {
                     id: id || utils.newId(),
                     vehicleId: store.data.settings.activeVehicleId,
                     type: 'parking',
-                    date: document.getElementById('p_date').value,
-                    cost: document.getElementById('p_cost').value,
-                    location: document.getElementById('p_loc').value,
-                    notes: document.getElementById('p_notes').value
+                    date,
+                    cost: cost.value,
+                    location: document.getElementById('p_loc').value.trim(),
+                    notes: document.getElementById('p_notes').value.trim()
                 };
                 if (id) await store.updateLog(log);
                 else await store.addLog(log);

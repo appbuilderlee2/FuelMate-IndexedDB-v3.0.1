@@ -349,27 +349,8 @@
                     const fuelUnit = v && v.fuelUnit ? v.fuelUnit : (isImperial ? 'Gal' : 'L');
                     
                     if (fuelLogs.length > 1) {
-                        let totalFuel = 0;
-                        let validDist = 0;
-                        
-                        for (let i = 0; i < fuelLogs.length - 1; i++) {
-                            const curr = fuelLogs[i];
-                            const next = fuelLogs[i+1];
-                            
-                            // Simple efficiency calculation: if segments are consecutive full tanks
-                            if (!curr.isPartial && !next.isPartial) {
-                                const dist = next.odometer - curr.odometer;
-                                if (dist > 0) {
-                                    validDist += dist;
-                                    totalFuel += parseFloat(next.liters) || 0; 
-                                }
-                            }
-                        }
-                        
-                        if (validDist > 0 && totalFuel > 0) {
-                            const eff = utils.calcEfficiencyValue(totalFuel, validDist, fuelUnit, distUnit);
-                            if (eff !== null) efficiency = eff.toFixed(1);
-                        }
+                        const eff = FuelMateCore.calculateFuelEfficiencyFromLogs(fuelLogs, fuelUnit, distUnit);
+                        if (eff !== null) efficiency = eff.toFixed(1);
                     }
                 }
                 
@@ -647,37 +628,7 @@ END:VCALENDAR`;
                 };
             },
             validateImportData(data) {
-                const errors = [];
-                const warnings = [];
-                if (!data || typeof data !== 'object') errors.push('root_not_object');
-
-                const vehicles = Array.isArray(data?.vehicles) ? data.vehicles : null;
-                const logs = Array.isArray(data?.logs) ? data.logs : null;
-                const settings = data?.settings;
-
-                if (!vehicles) errors.push('vehicles_not_array');
-                if (!logs) errors.push('logs_not_array');
-                if (settings !== undefined && (settings === null || typeof settings !== 'object')) errors.push('settings_not_object');
-
-                if (vehicles) {
-                    const ids = new Set();
-                    for (const v of vehicles) {
-                        if (!v || typeof v !== 'object') { errors.push('vehicle_not_object'); break; }
-                        if (!v.id) { errors.push('vehicle_missing_id'); break; }
-                        if (!FuelMateSecurity.isSafeId(String(v.id))) { errors.push('vehicle_invalid_id'); break; }
-                        ids.add(String(v.id));
-                    }
-                    if (logs) {
-                        let orphan = 0;
-                        for (const l of logs) {
-                            if (!l || typeof l !== 'object') { errors.push('log_not_object'); break; }
-                            if (!l.id || !l.vehicleId || !l.type || !l.date) { errors.push('log_missing_fields'); break; }
-                            if (!FuelMateSecurity.isSafeId(String(l.id)) || !FuelMateSecurity.isSafeId(String(l.vehicleId))) { errors.push('log_invalid_id'); break; }
-                            if (!ids.has(String(l.vehicleId))) orphan++;
-                        }
-                        if (orphan > 0) warnings.push({ code: 'orphan_logs', count: orphan });
-                    }
-                }
+                const { errors, warnings } = FuelMateCore.validateImportPayload(data, FuelMateSecurity.isSafeId);
 
                 return {
                     ok: errors.length === 0,
