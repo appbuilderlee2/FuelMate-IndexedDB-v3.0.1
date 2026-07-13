@@ -11,7 +11,7 @@ test('production shell has no runtime CDN dependencies', async () => {
 
 test('application is split into ordered source files', async () => {
   const html = await read('index.html');
-  const files = ['calculations.js', 'translations.js', 'store.js', 'utils.js', 'ui.js', 'main.js'];
+  const files = ['security.js', 'calculations.js', 'translations.js', 'store.js', 'utils.js', 'ui.js', 'main.js'];
   let previous = -1;
   for (const file of files) {
     const index = html.indexOf(file);
@@ -23,7 +23,7 @@ test('application is split into ordered source files', async () => {
 test('static build copies every classic application script', async () => {
   const copyScript = await read('scripts/copy-static-js.mjs');
   const html = await read('index.html');
-  const files = ['core/calculations.js', 'translations.js', 'store.js', 'utils.js', 'ui.js', 'main.js'];
+  const files = ['core/security.js', 'core/calculations.js', 'translations.js', 'store.js', 'utils.js', 'ui.js', 'main.js'];
   for (const file of files) {
     assert.match(copyScript, new RegExp(file.replace('.', '\\.')));
     assert.match(html, new RegExp(`src/${file.replace('.', '\\.')}`));
@@ -45,6 +45,12 @@ test('service worker uses its GitHub Pages scope for index caching', async () =>
   const worker = await read('public/sw.js');
   assert.match(worker, /fetch\(urlFor\('index\.html'\)/);
   assert.doesNotMatch(worker, /fetch\('\/index\.html'/);
+});
+
+test('service worker precaches every runtime application script', async () => {
+  const worker = await read('public/sw.js');
+  const files = ['core/security.js', 'core/calculations.js', 'translations.js', 'store.js', 'utils.js', 'ui.js', 'main.js'];
+  for (const file of files) assert.match(worker, new RegExp(`src/${file.replace('.', '\\.')}`));
 });
 
 test('Vite config does not expose a Gemini key to the browser', async () => {

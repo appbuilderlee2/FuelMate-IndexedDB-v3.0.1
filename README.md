@@ -1,8 +1,44 @@
-# FuelMate IndexedDB v3.0.1
+# FuelMate IndexedDB v3.1.0
 
-> v3.0.1 keeps the existing IndexedDB data format while moving the application into maintainable source modules, removing runtime CDN dependencies, and hardening the PWA build and deployment flow.
+> v3.1.0 strengthens imported-data safety and makes the complete application shell reliably available offline while preserving the existing IndexedDB data format.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.1.0 更新內容
+
+### 輸入及匯入安全
+
+- 新增共用 `src/core/security.js`安全模組。
+- 車款、型號、年份、地點、備註、輪胎品牌及提醒文字顯示前統一HTML escape。
+- 表單value及其他HTML attributes統一attribute escape。
+- 外部Google Maps連結加入 `noopener noreferrer`保護。
+- JSON匯入會拒絕包含不安全vehicle/log ID的資料，降低inline event及attribute injection風險。
+- 保留使用者原始文字於IndexedDB；escape只在畫面輸出時套用，避免破壞備份內容。
+
+### PWA及離線可靠性
+
+- Service Worker cache更新至 `fuelmate-cache-v6`。
+- 將security、calculations、translations、store、utils、UI及main全部runtime scripts加入App Shell預先cache。
+- 修正首次正常載入後立即離線時，部分JavaScript可能尚未進入cache的問題。
+
+### 版本及介面
+
+- Package版本由3.0.1升級至3.1.0。
+- App內「關於 FuelMate」版本同步更新至3.1.0。
+- 保留原有IndexedDB schema及所有現有功能，無需重新輸入或轉換資料。
+
+### 測試
+
+- 新增HTML內容escape測試。
+- 新增attribute及backtick escape測試。
+- 新增安全ID接受／拒絕測試。
+- 新增Service Worker完整runtime scripts precache測試。
+- 目前共14項自動測試。
+
+### README更新規則
+
+- 新增 `AGENTS.md` repository規則。
+- 由3.1.0開始，每次功能修改、bug fix、重構或部署變更，都必須同步更新README changelog。
 
 ## v3.0.1 更新內容
 

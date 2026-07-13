@@ -1,5 +1,11 @@
 // --- UTILS ---
         const utils = {
+            escapeHtml(value) {
+                return FuelMateSecurity.escapeHtml(value);
+            },
+            escapeAttr(value) {
+                return FuelMateSecurity.escapeAttribute(value);
+            },
             t(key) {
                 const lang = store.data.settings.language || 'en';
                 return translations[lang][key] || key;
@@ -658,6 +664,7 @@ END:VCALENDAR`;
                     for (const v of vehicles) {
                         if (!v || typeof v !== 'object') { errors.push('vehicle_not_object'); break; }
                         if (!v.id) { errors.push('vehicle_missing_id'); break; }
+                        if (!FuelMateSecurity.isSafeId(String(v.id))) { errors.push('vehicle_invalid_id'); break; }
                         ids.add(String(v.id));
                     }
                     if (logs) {
@@ -665,6 +672,7 @@ END:VCALENDAR`;
                         for (const l of logs) {
                             if (!l || typeof l !== 'object') { errors.push('log_not_object'); break; }
                             if (!l.id || !l.vehicleId || !l.type || !l.date) { errors.push('log_missing_fields'); break; }
+                            if (!FuelMateSecurity.isSafeId(String(l.id)) || !FuelMateSecurity.isSafeId(String(l.vehicleId))) { errors.push('log_invalid_id'); break; }
                             if (!ids.has(String(l.vehicleId))) orphan++;
                         }
                         if (orphan > 0) warnings.push({ code: 'orphan_logs', count: orphan });

@@ -5,6 +5,7 @@ const root = process.cwd();
 const sourceRoot = path.join(root, 'src');
 const outputRoot = path.join(root, 'public', 'src');
 const files = [
+  'core/security.js',
   'core/calculations.js',
   'translations.js',
   'store.js',
