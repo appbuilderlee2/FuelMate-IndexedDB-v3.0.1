@@ -115,3 +115,24 @@ test('maintenance reminder needs a saved baseline when no service exists', async
   data = ui.getReminderData(vehicle, { includeAll: true, now: '2026-07-14T00:00:00.000Z' });
   assert.equal(data.items.some(item => item.id === 'svc:v1:dist:100000'), true);
 });
+
+test('reminders expose category and urgency for the upgraded center', async () => {
+  const { ui, vehicle } = await createHarness();
+  const data = ui.getReminderData(vehicle, { includeAll: true, now: '2026-07-14T00:00:00.000Z' });
+  assert.ok(data.items.length > 0);
+  assert.ok(data.items.every(item => ['tire', 'service', 'docs', 'backup'].includes(item.category)));
+  assert.ok(data.items.every(item => ['overdue', 'due', 'upcoming'].includes(item.urgency)));
+});
+
+test('legacy position-based done state still completes the stable tire reminder', async () => {
+  const { store, ui, vehicle } = await createHarness();
+  vehicle.currentOdometer = 48800;
+  store.data.logs = [{
+    id: 'rep1', vehicleId: 'v1', type: 'tire_replace', date: '2026-01-01',
+    odometer: 9000, tirePosition: 'front_left', tireId: 't1',
+  }];
+  store.data.settings.reminderCenter.done['tire:v1:front_left:rep1'] = true;
+  const data = ui.getReminderData(vehicle, { includeAll: true, now: '2026-07-14T00:00:00.000Z' });
+  assert.equal(data.doneItems.some(item => item.id === 'tire:v1:asset:rep1'), true);
+  assert.equal(data.activeItems.some(item => item.id === 'tire:v1:asset:rep1'), false);
+});
