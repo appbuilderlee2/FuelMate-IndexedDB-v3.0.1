@@ -260,14 +260,15 @@ const router = {
             if (!monthIndex) return;
             setMonthlyMonthActive(monthIndex);
         });
-        
+
         const showPwaStatus = (message, options = {}) => {
             let banner = document.getElementById('pwa-status-banner');
             if (!banner) {
                 banner = document.createElement('div');
                 banner.id = 'pwa-status-banner';
                 banner.setAttribute('role', 'status');
-                banner.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-[100] max-w-[calc(100%-2rem)] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold shadow-xl flex items-center gap-3';
+                banner.className = 'fixed left-1/2 -translate-x-1/2 z-[100] max-w-[calc(100%-1.5rem)] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold shadow-xl flex items-center gap-3 pointer-events-auto';
+                banner.style.top = 'calc(env(safe-area-inset-top, 0px) + 0.75rem)';
                 document.body.appendChild(banner);
             }
             banner.replaceChildren();
