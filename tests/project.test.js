@@ -67,6 +67,15 @@ test('service worker uses its GitHub Pages scope for index caching', async () =>
   assert.doesNotMatch(worker, /fetch\('\/index\.html'/);
 });
 
+test('service worker serves navigation cache before background refresh', async () => {
+  const worker = await read('public/sw.js');
+  const cacheLookup = worker.indexOf('const cached = await caches.match(indexUrl)');
+  const cachedReturn = worker.indexOf('return cached', cacheLookup);
+  assert.ok(cacheLookup !== -1 && cachedReturn > cacheLookup);
+  assert.match(worker, /event\.waitUntil\(refresh/);
+  assert.match(worker, /APP_SHELL_UPDATED/);
+});
+
 test('service worker precaches every runtime application script', async () => {
   const worker = await read('public/sw.js');
   for (const file of runtimeFiles) assert.match(worker, new RegExp(`src/${file.replace('.', '\\.')}`));

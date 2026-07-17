@@ -1,8 +1,24 @@
-# FuelMate IndexedDB v3.5.0
+# FuelMate IndexedDB v3.5.1
 
-> v3.5.0 strengthens tire rotation tracking and makes reminder states predictable across rotations, recurring cycles, imports and maintenance baselines.
+> v3.5.1 makes offline startup immediate by serving the cached app shell before checking the network.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.5.1 更新內容
+
+### 即時離線啟動
+
+- 頁面navigation由Network First改為Cache First＋背景更新；沒有網絡時直接顯示已快取App Shell，不再等待連線逾時。
+- 有網絡時會在背景以`no-store`取得最新首頁並更新cache，不阻塞目前畫面。
+- 背景偵測到App Shell已更新時，畫面會顯示「新版本已準備好」及重新載入按鈕。
+- 新增離線模式及網絡恢復提示，清楚表示目前正在使用本機IndexedDB資料。
+- Service Worker cache更新至`fuelmate-cache-v13`，App、package、設定頁、About及README同步升級至v3.5.1。
+
+### 測試
+
+- 新增Service Worker隔離測試，以永不回應的network promise驗證離線navigation仍可立即返回cache。
+- 新增Playwright離線reload流程，驗證車輛資料、App Shell及離線狀態提示在斷網後仍正常顯示。
+- IndexedDB schema及現有資料格式維持不變，毋須migration。
 
 ## v3.5.0 更新內容
 
