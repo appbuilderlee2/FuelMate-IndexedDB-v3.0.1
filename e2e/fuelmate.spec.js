@@ -25,7 +25,7 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('nav-settings').click();
 
   await expect(page.getByRole('heading', { name: /Settings|設定/ })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('v3.6.0');
+  await expect(page.getByTestId('app-version')).toContainText('v3.6.1');
   await page.getByTestId('currency-setting').selectOption('€');
   await expect(page.getByTestId('currency-setting')).toHaveValue('€');
   expect(pageErrors).toEqual([]);
