@@ -77,6 +77,13 @@ test('service worker serves navigation cache before background refresh', async (
   assert.match(worker, /APP_SHELL_UPDATED/);
 });
 
+test('PWA status banner stays below the iOS safe area and remains interactive', async () => {
+  const main = await read('src/main.js');
+  assert.match(main, /safe-area-inset-top/);
+  assert.match(main, /pointer-events-auto/);
+  assert.doesNotMatch(main, /className = 'fixed top-3/);
+});
+
 test('service worker precaches every runtime application script', async () => {
   const worker = await read('public/sw.js');
   for (const file of runtimeFiles) assert.match(worker, new RegExp(`src/${file.replace('.', '\\.')}`));
