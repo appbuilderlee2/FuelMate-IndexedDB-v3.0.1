@@ -1,8 +1,17 @@
-# FuelMate IndexedDB v3.6.3
+# FuelMate IndexedDB v3.7.0
 
-> v3.6.3 positions update and offline notices below the iPhone safe area so they stay visible and tappable.
+> v3.7.0 upgrades Reminder Center with combined multi-vehicle and focused single-vehicle views.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.7.0 更新內容
+
+- 提醒中心新增「所有車輛」檢視，集中顯示全部車輛的輪胎、保養、證件及備份提醒，並在每張提醒卡清楚標示所屬車輛。
+- 新增橫向車輛選擇器，可切換至單一車輛檢視；摘要、待辦／已延後／已完成、分類及緊急程度篩選會同步套用至所選範圍。
+- 修正證件及定期保養提醒暗中使用目前車輛記錄的問題；每項提醒現會以自己的`vehicleId`查詢，避免多車資料互相混合。
+- 從多車提醒開啟來源記錄或設定時，App會先安全切換至該提醒所屬車輛，確保編輯結果寫入正確車輛。
+- 備份提醒維持全資料共用並在多車檢視自動去重；原有Snooze／Done ID、`settings.reminderCenter`及IndexedDB schema完全保留，毋須migration。
+- 新增多車聚合、單車隔離、跨車證件查詢及車輛選擇器測試；App、package、設定頁、About及README同步升級至v3.7.0，Service Worker cache更新至`fuelmate-cache-v18`。
 
 ## v3.6.3 更新內容
 

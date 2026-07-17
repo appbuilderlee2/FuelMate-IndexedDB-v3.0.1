@@ -12,6 +12,7 @@ async function createHarness() {
     'src/store.js',
     'src/utils.js',
     'src/ui/pages/dashboard.js',
+    'src/ui/pages/reminders.js',
   ]) {
     vm.runInContext(await fs.readFile(new URL(`../${file}`, import.meta.url), 'utf8'), context);
   }
@@ -135,4 +136,39 @@ test('legacy position-based done state still completes the stable tire reminder'
   const data = ui.getReminderData(vehicle, { includeAll: true, now: '2026-07-14T00:00:00.000Z' });
   assert.equal(data.doneItems.some(item => item.id === 'tire:v1:asset:rep1'), true);
   assert.equal(data.activeItems.some(item => item.id === 'tire:v1:asset:rep1'), false);
+});
+
+test('reminder center can combine all vehicles or isolate one vehicle', async () => {
+  const { store, ui, vehicle } = await createHarness();
+  const second = {
+    ...vehicle, id: 'v2', year: 2022, make: 'Second', model: 'Car',
+    maintenanceDist: '10000', maintenanceBaselineOdometer: 10000, currentOdometer: 19500,
+  };
+  store.data.vehicles.push(second);
+  store.data.logs = [{
+    id: 'v2-license', vehicleId: 'v2', type: 'license', date: '2026-01-01', expiryDate: '2026-08-01', odometer: 19000,
+  }];
+  store._invalidateLogsCache();
+
+  const all = ui.getReminderCenterData('all', { now: '2026-07-14T00:00:00.000Z' });
+  assert.ok(all.items.some(item => item.vehicleId === 'v1'));
+  assert.ok(all.items.some(item => item.vehicleId === 'v2'));
+  assert.ok(all.items.some(item => item.id.startsWith('doc:v2:license:')));
+  assert.equal(all.items.filter(item => item.id.startsWith('backup:')).length <= 1, true);
+
+  const onlySecond = ui.getReminderCenterData('v2', { now: '2026-07-14T00:00:00.000Z' });
+  assert.ok(onlySecond.items.length > 0);
+  assert.ok(onlySecond.items.every(item => item.vehicleId === 'v2'));
+});
+
+test('multi-vehicle reminder selector renders all and individual vehicle choices', async () => {
+  const { context, store, ui, vehicle } = await createHarness();
+  store.data.vehicles.push({ ...vehicle, id: 'v2', make: 'Second', model: 'Car' });
+  context.__utils.escapeHtml = value => String(value);
+  context.__utils.escapeAttr = value => String(value);
+  const html = ui.renderReminders(vehicle);
+  assert.match(html, /data-testid="reminder-vehicle-all"/);
+  assert.match(html, /data-testid="reminder-vehicle-v1"/);
+  assert.match(html, /data-testid="reminder-vehicle-v2"/);
+  assert.match(html, /Second Car/);
 });

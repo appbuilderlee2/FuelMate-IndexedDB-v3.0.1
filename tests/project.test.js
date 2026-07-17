@@ -111,6 +111,17 @@ test('package, runtime, settings page, and README versions stay synchronized', a
   assert.match(readme, new RegExp(`^# FuelMate IndexedDB v${packageJson.version.replaceAll('.', '\\.')}`, 'm'));
 });
 
+test('reminder center supports all-vehicle and per-vehicle views', async () => {
+  const reminders = await read('src/ui/pages/reminders.js');
+  const dashboard = await read('src/ui/pages/dashboard.js');
+  const store = await read('src/store.js');
+  assert.match(reminders, /getReminderCenterData/);
+  assert.match(reminders, /reminder-vehicle-all/);
+  assert.match(reminders, /setReminderVehicleScope/);
+  assert.match(dashboard, /vehicleId = vehicle\.id/);
+  assert.match(store, /getVehicleLogs\(type = null, vehicleId =/);
+});
+
 test('UI registry delegates implementation to focused page and action modules', async () => {
   const registry = await read('src/ui.js');
   assert.match(registry, /const ui = \{\};/);
