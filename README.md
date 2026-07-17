@@ -1,8 +1,16 @@
-# FuelMate IndexedDB v3.6.2
+# FuelMate IndexedDB v3.6.3
 
-> v3.6.2 fixes the mobile Reminder Center E2E selector so verified releases can deploy to GitHub Pages.
+> v3.6.3 positions update and offline notices below the iPhone safe area so they stay visible and tappable.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.6.3 更新內容
+
+- 新版本及離線提示改為按`safe-area-inset-top`定位，避開iPhone狀態列、Dynamic Island及瀏海範圍。
+- 提示層保留最高顯示層級及`pointer-events`，確保「重新載入」按鈕可正常點擊。
+- 提示最大闊度按手機畫面縮窄，避免左右貼邊或小屏幕內容被裁切。
+- 新增安全區及互動狀態測試；App、package、設定頁、About及README同步升級至v3.6.3，Service Worker cache更新至`fuelmate-cache-v17`。
+- IndexedDB schema及現有資料格式維持不變，毋須migration。
 
 ## v3.6.2 更新內容
 
