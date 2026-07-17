@@ -292,7 +292,7 @@ getReminderData(vehicle, options = {}) {
                 ['license', 'insurance', 'registration'].forEach(type => {
                     const setting = store.data.settings.reminders?.[type];
                     if (setting && !setting.enabled) return;
-                    const latest = store.getVehicleLogs(type)[0];
+                    const latest = store.getVehicleLogs(type, vehicle.id)[0];
                     if (!latest || !latest.expiryDate) return;
                     const days = Math.ceil((new Date(latest.expiryDate) - now) / 86400000);
                     if (!includeAll && days > (setting?.days || 30)) return;
@@ -316,7 +316,7 @@ getReminderData(vehicle, options = {}) {
                 // Periodic maintenance
                 const distInt = parseInt(vehicle?.maintenanceDist ?? store.data.settings.maintenanceDist) || 0;
                 const timeInt = parseInt(vehicle?.maintenanceTime ?? store.data.settings.maintenanceTime) || 0;
-                const lastService = store.getVehicleLogs('periodic_maintenance')[0];
+                const lastService = store.getVehicleLogs('periodic_maintenance', vehicle.id)[0];
                 const baselineOdo = Number.isFinite(parseFloat(vehicle.maintenanceBaselineOdometer))
                     ? parseFloat(vehicle.maintenanceBaselineOdometer)
                     : null;
@@ -395,7 +395,7 @@ getReminderData(vehicle, options = {}) {
                 }
 
                 // Backup reminder (existing logic)
-                const logs = store.getVehicleLogs();
+                const logs = store.data.logs;
                 let showBackup = false;
                 if (!store.data.settings.lastBackupDate) {
                     if (logs.length > 5) showBackup = true;
@@ -434,7 +434,8 @@ getReminderData(vehicle, options = {}) {
                         || (Number.isFinite(it.remainingKm) && it.remainingKm <= 500)
                         || it.category === 'backup';
                     it.urgency = overdue ? 'overdue' : (dueSoon ? 'due' : 'upcoming');
-                    it.vehicleLabel = vehicleLabel;
+                    it.vehicleLabel = it.category === 'backup' ? utils.t('all_vehicles') : vehicleLabel;
+                    it.vehicleId = it.category === 'backup' ? null : vehicle.id;
                 });
 
                 const stateIds = (it) => [it.id, ...(it.legacyIds || [])];
