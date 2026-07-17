@@ -182,6 +182,9 @@ renderSettings(vehicle) {
                         </div>
 
                         <div class="mt-4 flex flex-col items-center">
+                            <button data-testid="settings-reload" data-action="ui" data-ui-method="reloadApp" class="w-full mb-4 min-h-12 rounded-xl bg-teal-700 text-white text-sm font-bold inline-flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+                                <span class="material-icons">refresh</span>${utils.t('reload_now')}
+                            </button>
                             <div class="inline-flex items-start gap-2 px-3 py-2 rounded-xl bg-red-50 text-red-700 border border-red-200">
                                 <span class="material-icons text-base mt-0.5">warning</span>
                                 <span class="font-bold">${utils.t('backup_warning')}</span>
@@ -237,5 +240,9 @@ async updateGlobalSetting(key, value) {
 
 openImportPicker() {
                 document.getElementById('importFile')?.click();
+            },
+
+reloadApp() {
+                window.location.reload();
             }
 });

@@ -5,11 +5,11 @@
             currentSchemaVersion: 2,
             defaultSettings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, lastBackupDate: null, activeVehicleId: null },
             data: { vehicles: [], logs: [], settings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, lastBackupDate: null, activeVehicleId: null } },
-            pageFilters: { 
-                dashboard: { mode: 'month', value: new Date().toISOString().slice(0, 7) }, 
-                fuel: { mode: 'year', value: new Date().getFullYear().toString() }, 
-                maintenance: { mode: 'year', value: new Date().getFullYear().toString() }, 
-                parking: { mode: 'year', value: new Date().getFullYear().toString() }, 
+            pageFilters: {
+                dashboard: { mode: 'month', value: new Date().toISOString().slice(0, 7) },
+                fuel: { mode: 'year', value: new Date().getFullYear().toString() },
+                maintenance: { mode: 'year', value: new Date().getFullYear().toString() },
+                parking: { mode: 'year', value: new Date().getFullYear().toString() },
                 analytics: { mode: 'year', value: new Date().getFullYear().toString() },
                 maintenanceSearch: '',
                 maintenanceTypes: [],
@@ -27,7 +27,11 @@
                 analyticsTo: '',
                 fuelFlags: { full: false, partial: false },
                 parkingFlags: { withLocation: false, withNotes: false },
-                remindersTab: 'active'
+                remindersTab: 'active',
+                remindersCategory: 'all',
+                remindersUrgency: 'all',
+                reminderSelectionMode: false,
+                reminderSelection: []
             },
             pageLimits: { fuel: 100, maintenance: 100, parking: 100 },
             _logsVersion: 0,
@@ -78,7 +82,7 @@
                     };
                     request.onsuccess = async (event) => {
                         this.db = event.target.result;
-                        await this.migrateFromLocalStorage(); 
+                        await this.migrateFromLocalStorage();
                         await this.loadAllData();
                         resolve();
                     };
@@ -126,7 +130,7 @@
                     try {
                         const parsed = JSON.parse(oldData);
                         await this.importData(parsed);
-                        localStorage.removeItem('fuelmate_data'); 
+                        localStorage.removeItem('fuelmate_data');
                         console.log('Migrated from LocalStorage to IndexedDB');
                     } catch(e) { console.error('Migration failed', e); }
                 }
@@ -137,7 +141,7 @@
                 this.data.logs = await this.runTransaction('logs', 'readonly', s => s.getAll());
                 const settings = await this.runTransaction('settings', 'readonly', s => s.get('global'));
                 if (settings) this.data.settings = { ...this.data.settings, ...settings };
-                
+
                 // Ensure default settings
                 if (!this.data.settings.activeVehicleId && this.data.vehicles.length > 0) {
                     this.data.settings.activeVehicleId = this.data.vehicles[0].id;
@@ -257,7 +261,7 @@
             async addLog(log) {
                 await this.runTransaction('logs', 'readwrite', s => s.put(log));
                 this.data.logs.push(log);
-                
+
                 // Auto-update vehicle odometer
                 const vehicle = this.data.vehicles.find(v => v.id === log.vehicleId);
                 const odo = parseFloat(log.odometer) || 0;
@@ -378,7 +382,7 @@
             getActiveVehicle() {
                 return this.data.vehicles.find(v => v.id === this.data.settings.activeVehicleId);
             },
-            
+
             getVehicleLogs(type = null) {
                 const vehicleId = this.data.settings.activeVehicleId;
                 const key = `${vehicleId || 'none'}|${type || '*'}|${this._logsVersion}`;
