@@ -1,8 +1,15 @@
-# FuelMate IndexedDB v3.6.0
+# FuelMate IndexedDB v3.6.1
 
-> v3.6.0 upgrades the Reminder Center with urgency, filters, details and bulk actions while preserving existing local data.
+> v3.6.1 keeps a manual reload control permanently available at the bottom of Settings.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.6.1 更新內容
+
+- 設定頁最底部長期顯示「重新載入」按鈕，無需等待系統偵測到新版本亦可手動重新載入App。
+- 按鈕使用集中delegated UI event，直接呼叫瀏覽器reload，不改動或清除任何IndexedDB資料。
+- 新增架構測試，確保設定頁保留重新載入按鈕及其UI action。
+- App、package、設定頁、About及README同步升級至v3.6.1；Service Worker cache更新至`fuelmate-cache-v15`。
 
 ## v3.6.0 更新內容
 

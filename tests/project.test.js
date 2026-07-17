@@ -97,6 +97,8 @@ test('package, runtime, settings page, and README versions stay synchronized', a
   assert.ok(versionMatch, 'runtime version should be declared');
   assert.equal(versionMatch[1], packageJson.version);
   assert.match(settingsSource, /data-app-version/);
+  assert.match(settingsSource, /data-testid="settings-reload"/);
+  assert.match(settingsSource, /data-ui-method="reloadApp"/);
   assert.match(settingsSource, /FuelMateVersion\.current/);
   assert.match(dialogsSource, /FuelMateVersion\.current/);
   assert.match(readme, new RegExp(`^# FuelMate IndexedDB v${packageJson.version.replaceAll('.', '\\.')}`, 'm'));
