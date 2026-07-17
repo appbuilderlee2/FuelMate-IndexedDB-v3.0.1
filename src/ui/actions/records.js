@@ -52,16 +52,12 @@ deleteLog(id) {
             },
 
 getReminderStateIds(id) {
-                const vehicle = store.getActiveVehicle();
-                const item = vehicle
-                    ? this.getReminderData(vehicle, { includeAll: true }).items.find(candidate => candidate.id === id)
-                    : null;
+                const item = this.getReminderById(id);
                 return [id, ...(item?.legacyIds || [])];
             },
 
 getReminderById(id) {
-                const vehicle = store.getActiveVehicle();
-                return vehicle ? this.getReminderData(vehicle, { includeAll: true }).items.find(item => item.id === id) : null;
+                return this.getReminderCenterData('all').items.find(item => item.id === id) || null;
             },
 
 setReminderTab(tab) {
@@ -134,7 +130,7 @@ bulkCompleteSelectedReminders() {
 openReminderDetails(id) {
                 const item = this.getReminderById(id);
                 if (!item) return;
-                const data = this.getReminderData(store.getActiveVehicle(), { includeAll: true });
+                const data = this.getReminderCenterData('all');
                 const isDone = data.doneItems.some(candidate => candidate.id === id);
                 const isSnoozed = data.snoozedItems.some(candidate => candidate.id === id);
                 const tone = item.urgency === 'overdue' ? 'red' : (item.urgency === 'due' ? 'amber' : 'blue');
@@ -175,11 +171,15 @@ openReminderDetails(id) {
                 `);
             },
 
-openReminderSource(id) {
+async openReminderSource(id) {
                 const item = this.getReminderById(id);
                 if (!item) return;
                 this.closeModal();
                 if (item.category === 'backup') return this.exportData();
+                if (item.vehicleId && store.data.settings.activeVehicleId !== item.vehicleId) {
+                    store.data.settings.activeVehicleId = item.vehicleId;
+                    await store.saveData();
+                }
                 if (item.sourceLogId) return this.openLogEditorById(item.sourceLogId);
                 if (item.category === 'tire') return this.openQuickTireSetup(item.tirePosition);
                 return this.openAddService(null, item.category === 'service' ? 'periodic_maintenance' : 'service');

@@ -1,7 +1,35 @@
 // FuelMate UI module: pages/reminders
 Object.assign(ui, {
+getReminderCenterData(scope = store.pageFilters.remindersVehicleScope || 'all', options = {}) {
+                const vehicles = scope === 'all'
+                    ? store.data.vehicles
+                    : store.data.vehicles.filter(vehicle => vehicle.id === scope);
+                const results = vehicles.map(vehicle => this.getReminderData(vehicle, { includeAll: true, ...options }));
+                const unique = (items) => Array.from(new Map(items.map(item => [item.id, item])).values());
+                return {
+                    items: unique(results.flatMap(result => result.items)),
+                    activeItems: unique(results.flatMap(result => result.activeItems)),
+                    snoozedItems: unique(results.flatMap(result => result.snoozedItems)),
+                    doneItems: unique(results.flatMap(result => result.doneItems)),
+                    snoozedUntil: Object.assign({}, ...results.map(result => result.snoozedUntil)),
+                    done: Object.assign({}, ...results.map(result => result.done))
+                };
+            },
+
+setReminderVehicleScope(scope) {
+                if (scope !== 'all' && !store.data.vehicles.some(vehicle => vehicle.id === scope)) return;
+                store.pageFilters.remindersVehicleScope = scope;
+                store.pageFilters.reminderSelectionMode = false;
+                store.pageFilters.reminderSelection = [];
+                this.render();
+            },
+
 renderReminders(vehicle) {
-                const data = this.getReminderData(vehicle, { includeAll: true });
+                const requestedScope = store.pageFilters.remindersVehicleScope || 'all';
+                const scope = requestedScope === 'all' || store.data.vehicles.some(item => item.id === requestedScope)
+                    ? requestedScope
+                    : (vehicle?.id || 'all');
+                const data = this.getReminderCenterData(scope);
                 const tab = store.pageFilters.remindersTab || 'active';
                 const category = store.pageFilters.remindersCategory || 'all';
                 const urgency = store.pageFilters.remindersUrgency || 'all';
@@ -41,6 +69,16 @@ renderReminders(vehicle) {
                                 <span class="material-icons text-lg">check_box</span>${selectionMode ? utils.t('cancel') : utils.t('select')}
                             </button>
                         </header>
+
+                        <section data-testid="reminder-vehicle-filter" class="mb-3">
+                            <div class="text-[11px] font-black uppercase tracking-wider theme-text-sub px-1 mb-2">${utils.t('reminder_vehicle_view')}</div>
+                            <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                                <button data-testid="reminder-vehicle-all" data-action="ui" data-ui-method="setReminderVehicleScope" data-ui-args="${args('all')}" class="min-h-11 whitespace-nowrap px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 ${scope === 'all' ? 'bg-teal-700 text-white border-teal-700' : 'theme-bg-card theme-text-heading theme-border'}">
+                                    <span class="material-icons text-lg">directions_car</span>${utils.t('all_vehicles')} <span class="opacity-75">${store.data.vehicles.length}</span>
+                                </button>
+                                ${store.data.vehicles.map(item => `<button data-testid="reminder-vehicle-${utils.escapeAttr(item.id)}" data-action="ui" data-ui-method="setReminderVehicleScope" data-ui-args="${args(item.id)}" class="min-h-11 whitespace-nowrap px-3 rounded-xl border text-xs font-bold inline-flex items-center gap-1.5 ${scope === item.id ? 'bg-teal-700 text-white border-teal-700' : 'theme-bg-card theme-text-heading theme-border'}"><span class="material-icons text-lg">directions_car</span>${utils.escapeHtml(`${item.year} ${item.make} ${item.model}`)}</button>`).join('')}
+                            </div>
+                        </section>
 
                         <section data-testid="reminder-summary" class="theme-bg-card rounded-2xl border theme-border p-4 mb-3">
                             <div class="text-sm font-black theme-text-heading mb-3">${utils.t('reminder_need_action').replace('{n}', activeCounts.overdue + activeCounts.due)}</div>
@@ -98,7 +136,7 @@ renderReminderCenterCard(item, options = {}) {
                 const tone = item.urgency === 'overdue' ? 'red' : (item.urgency === 'due' ? 'amber' : 'blue');
                 const args = utils.escapeAttr(encodeURIComponent(JSON.stringify([item.id])));
                 const status = item.urgency === 'overdue' ? utils.t('reminder_overdue') : (item.urgency === 'due' ? utils.t('reminder_due_soon') : utils.t('reminder_later'));
-                return `<article data-testid="reminder-card" data-reminder-id="${utils.escapeAttr(item.id)}" class="theme-bg-card rounded-2xl border theme-border border-l-4 border-l-${tone}-500 p-3.5">
+                return `<article data-testid="reminder-card" data-reminder-id="${utils.escapeAttr(item.id)}" data-vehicle-id="${utils.escapeAttr(item.vehicleId || '')}" class="theme-bg-card rounded-2xl border theme-border border-l-4 border-l-${tone}-500 p-3.5">
                     <div class="flex items-center gap-3">
                         ${options.selectionMode ? `<button data-action="ui" data-ui-method="toggleReminderSelection" data-ui-args="${args}" class="w-8 h-8 shrink-0 rounded-full border-2 ${options.selected?'bg-teal-700 border-teal-700 text-white':'border-slate-300 text-transparent'}"><span class="material-icons text-lg">done</span></button>` : ''}
                         <div class="w-11 h-11 shrink-0 rounded-full bg-${tone}-50 dark:bg-${tone}-900/30 text-${tone}-600 flex items-center justify-center"><span class="material-icons">${item.icon}</span></div>

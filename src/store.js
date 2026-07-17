@@ -28,6 +28,7 @@
                 fuelFlags: { full: false, partial: false },
                 parkingFlags: { withLocation: false, withNotes: false },
                 remindersTab: 'active',
+                remindersVehicleScope: 'all',
                 remindersCategory: 'all',
                 remindersUrgency: 'all',
                 reminderSelectionMode: false,
@@ -383,8 +384,7 @@
                 return this.data.vehicles.find(v => v.id === this.data.settings.activeVehicleId);
             },
 
-            getVehicleLogs(type = null) {
-                const vehicleId = this.data.settings.activeVehicleId;
+            getVehicleLogs(type = null, vehicleId = this.data.settings.activeVehicleId) {
                 const key = `${vehicleId || 'none'}|${type || '*'}|${this._logsVersion}`;
                 const cached = this._cache.logsSorted.get(key);
                 if (cached) return cached;
