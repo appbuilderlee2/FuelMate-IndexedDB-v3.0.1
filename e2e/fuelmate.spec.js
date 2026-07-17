@@ -25,7 +25,7 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('nav-settings').click();
 
   await expect(page.getByRole('heading', { name: /Settings|設定/ })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('v3.6.1');
+  await expect(page.getByTestId('app-version')).toContainText('v3.6.2');
   await page.getByTestId('currency-setting').selectOption('€');
   await expect(page.getByTestId('currency-setting')).toHaveValue('€');
   expect(pageErrors).toEqual([]);
@@ -90,7 +90,7 @@ test('filters reminder categories, opens details, and completes a selection in b
   await page.getByTestId('reminder-select-mode').click();
   await page.locator('[data-testid="reminder-card"]').first().getByRole('button').first().click();
   await page.getByTestId('reminder-bulk-done').click();
-  await page.getByRole('button', { name: /Done|已完成/ }).click();
+  await page.getByTestId('reminder-tab-done').click();
   await expect(page.locator('[data-testid="reminder-card"]')).not.toHaveCount(0);
 });
 
