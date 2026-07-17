@@ -434,8 +434,8 @@ getReminderData(vehicle, options = {}) {
                         || (Number.isFinite(it.remainingKm) && it.remainingKm <= 500)
                         || it.category === 'backup';
                     it.urgency = overdue ? 'overdue' : (dueSoon ? 'due' : 'upcoming');
-                    it.vehicleLabel = vehicleLabel;
-                    it.vehicleId = vehicle.id;
+                    it.vehicleLabel = it.category === 'backup' ? utils.t('all_vehicles') : vehicleLabel;
+                    it.vehicleId = it.category === 'backup' ? null : vehicle.id;
                 });
 
                 const stateIds = (it) => [it.id, ...(it.legacyIds || [])];

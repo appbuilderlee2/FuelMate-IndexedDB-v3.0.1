@@ -118,7 +118,7 @@ test('reminder center supports all-vehicle and per-vehicle views', async () => {
   assert.match(reminders, /getReminderCenterData/);
   assert.match(reminders, /reminder-vehicle-all/);
   assert.match(reminders, /setReminderVehicleScope/);
-  assert.match(dashboard, /vehicleId = vehicle\.id/);
+  assert.match(dashboard, /vehicleId = it\.category === 'backup' \? null : vehicle\.id/);
   assert.match(store, /getVehicleLogs\(type = null, vehicleId =/);
 });
 

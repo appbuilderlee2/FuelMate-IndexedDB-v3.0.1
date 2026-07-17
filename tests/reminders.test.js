@@ -158,7 +158,8 @@ test('reminder center can combine all vehicles or isolate one vehicle', async ()
 
   const onlySecond = ui.getReminderCenterData('v2', { now: '2026-07-14T00:00:00.000Z' });
   assert.ok(onlySecond.items.length > 0);
-  assert.ok(onlySecond.items.every(item => item.vehicleId === 'v2'));
+  assert.ok(onlySecond.items.filter(item => item.category !== 'backup').every(item => item.vehicleId === 'v2'));
+  assert.ok(onlySecond.items.filter(item => item.category === 'backup').every(item => item.vehicleLabel === 'All vehicles'));
 });
 
 test('multi-vehicle reminder selector renders all and individual vehicle choices', async () => {
