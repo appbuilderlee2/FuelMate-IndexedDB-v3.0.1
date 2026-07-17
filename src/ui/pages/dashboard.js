@@ -245,6 +245,11 @@ getReminderData(vehicle, options = {}) {
                         title: `${utils.t('next_tire_change')} • ${utils.t('tire_' + s.pos)}`,
                         meta: [s.primary, s.secondary].filter(Boolean).join(' • '),
                         dueDateIso: s.dueDateIso,
+                        remainingKm: s.remainingKm,
+                        remainingDays: s.remainingDays,
+                        tirePosition: s.pos,
+                        sourceLogId: s.editLogId,
+                        repeatLabel: `${vehicle?.tireReplaceDist ?? store.data.settings.tireReplaceDist ?? 0} ${utils.getDistUnit()} / ${vehicle?.tireReplaceYears ?? store.data.settings.tireReplaceYears ?? 0} ${utils.t('years')}`,
                         calendarTitle: `${utils.t('next_tire_change')} • ${utils.t('tire_' + s.pos)}: ${vehicleLabel}`,
                         editAction: s.isNotSet
                             ? `ui.openQuickTireSetup('${s.pos}')`
@@ -298,6 +303,9 @@ getReminderData(vehicle, options = {}) {
                         title: utils.t(type),
                         meta: days <= 0 ? utils.t('overdue') : `${utils.t('due_in')} ${utils.formatDaysShort(days)}`,
                         dueDateIso: new Date(latest.expiryDate).toISOString(),
+                        remainingDays: days,
+                        sourceLogId: latest.id,
+                        repeatLabel: `${setting?.days || 30} ${utils.t('days_before')}`,
                         calendarType: type,
                         calendarTitle: `${utils.t(type)}: ${vehicleLabel}`,
                         editAction: `ui.openAddService('${latest.id}')`,
@@ -327,6 +335,8 @@ getReminderData(vehicle, options = {}) {
                             meta: remaining <= 0 ? utils.t('overdue') : `${utils.t('due_in')} ${Math.max(0, Math.round(remaining)).toLocaleString()} ${utils.getDistUnit()}`,
                             dueDateIso: null,
                             remainingKm: remaining,
+                            sourceLogId: lastService?.id || null,
+                            repeatLabel: `${distInt.toLocaleString()} ${utils.getDistUnit()}`,
                             editAction: `ui.openAddService(null,'periodic_maintenance')`
                         });
                     }
@@ -344,6 +354,8 @@ getReminderData(vehicle, options = {}) {
                             meta: remainingDays <= 0 ? utils.t('overdue') : `${utils.t('due_in')} ${utils.formatDaysShort(remainingDays)}`,
                             dueDateIso: nextDate.toISOString(),
                             remainingDays,
+                            sourceLogId: lastService?.id || null,
+                            repeatLabel: `${timeInt} ${utils.t('months')}`,
                             calendarTitle: `${utils.t('due_service')}: ${vehicleLabel}`,
                             editAction: `ui.openAddService(null,'periodic_maintenance')`,
                             calendarAction: `utils.exportDateCalendar('${utils.t('due_service')}: ${vehicleLabel}', '${nextDate.toISOString()}', 0)`
@@ -374,6 +386,7 @@ getReminderData(vehicle, options = {}) {
                             ...distItem,
                             meta: mergedMeta,
                             dueDateIso: mergedDue,
+                            remainingDays: timeItem.remainingDays,
                             calendarTitle: timeItem.calendarTitle || distItem.calendarTitle,
                             calendarAction: timeItem.calendarAction || distItem.calendarAction
                         };
@@ -402,9 +415,27 @@ getReminderData(vehicle, options = {}) {
                         title: utils.t('backup_needed'),
                         meta: utils.t('backup_desc'),
                         dueDateIso: null,
+                        remainingDays: store.data.settings.lastBackupDate
+                            ? -Math.floor((now - new Date(store.data.settings.lastBackupDate)) / 86400000 - 30)
+                            : 0,
+                        repeatLabel: `30 ${utils.t('days')}`,
                         editAction: `ui.exportData(); ui.render();`
                     });
                 }
+
+                items.forEach(it => {
+                    it.category = it.id.startsWith('tire:') ? 'tire'
+                        : it.id.startsWith('svc:') ? 'service'
+                            : it.id.startsWith('doc:') ? 'docs' : 'backup';
+                    const overdue = (Number.isFinite(it.remainingDays) && it.remainingDays <= 0)
+                        || (Number.isFinite(it.remainingKm) && it.remainingKm <= 0)
+                        || (it.meta || '').toLowerCase().includes(utils.t('overdue').toLowerCase());
+                    const dueSoon = (Number.isFinite(it.remainingDays) && it.remainingDays <= 30)
+                        || (Number.isFinite(it.remainingKm) && it.remainingKm <= 500)
+                        || it.category === 'backup';
+                    it.urgency = overdue ? 'overdue' : (dueSoon ? 'due' : 'upcoming');
+                    it.vehicleLabel = vehicleLabel;
+                });
 
                 const stateIds = (it) => [it.id, ...(it.legacyIds || [])];
                 const isDone = (it) => stateIds(it).some(id => done[id] === true);
@@ -424,69 +455,5 @@ getReminderData(vehicle, options = {}) {
                 });
 
                 return { items, activeItems, snoozedItems, doneItems, snoozedUntil: effectiveSnoozedUntil, done: effectiveDone };
-            },
-
-renderReminders(vehicle) {
-                const { activeItems, snoozedItems, doneItems, snoozedUntil, done } = this.getReminderData(vehicle, { includeAll: true });
-                const tab = store.pageFilters.remindersTab || 'active';
-                const sortByDue = (list) => list.slice().sort((a, b) => {
-                    const aTime = a.dueDateIso ? new Date(a.dueDateIso).getTime() : Number.POSITIVE_INFINITY;
-                    const bTime = b.dueDateIso ? new Date(b.dueDateIso).getTime() : Number.POSITIVE_INFINITY;
-                    if (aTime !== bTime) return aTime - bTime;
-                    return (a.title || '').localeCompare(b.title || '');
-                });
-                const visible =
-                    tab === 'snoozed' ? sortByDue(snoozedItems) :
-                    tab === 'done' ? sortByDue(doneItems) :
-                    sortByDue(activeItems);
-
-                return `
-                    <div class="px-6 pt-safe min-h-screen pb-24">
-                        <div class="flex items-center justify-between mb-4">
-                            <h1 class="text-3xl font-black theme-text-heading">${utils.t('reminder_center')}</h1>
-                            <button onclick="router.navigate('dashboard')" class="text-sm font-bold text-teal-600">${utils.t('dashboard')}</button>
-                        </div>
-
-                        <div class="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-4">
-                            <button onclick="store.pageFilters.remindersTab='active'; ui.render()" class="flex-1 py-2 text-xs font-bold rounded-lg ${tab==='active'?'bg-white dark:bg-slate-700 shadow':''}">${utils.t('tab_active')} (${activeItems.length})</button>
-                            <button onclick="store.pageFilters.remindersTab='snoozed'; ui.render()" class="flex-1 py-2 text-xs font-bold rounded-lg ${tab==='snoozed'?'bg-white dark:bg-slate-700 shadow':''}">${utils.t('tab_snoozed')} (${snoozedItems.length})</button>
-                            <button onclick="store.pageFilters.remindersTab='done'; ui.render()" class="flex-1 py-2 text-xs font-bold rounded-lg ${tab==='done'?'bg-white dark:bg-slate-700 shadow':''}">${utils.t('tab_done')} (${doneItems.length})</button>
-                        </div>
-
-                        <div class="space-y-3">
-                            ${visible.length ? visible.map(it => `
-                                <div data-testid="reminder-card" data-reminder-id="${utils.escapeAttr(it.id)}" class="theme-bg-card p-4 rounded-2xl card-shadow border theme-border">
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div class="flex items-start gap-3">
-                                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                <span class="material-icons text-slate-500">${it.icon}</span>
-                                            </div>
-                                            <div>
-                                                <div class="font-bold theme-text-heading">${utils.escapeHtml(it.title)}</div>
-                                                <div class="text-xs theme-text-sub mt-0.5">${it.meta ? utils.escapeHtml(it.meta) : '&nbsp;'}</div>
-                                                ${snoozedUntil[it.id] && !done[it.id] ? `<div class="text-[10px] text-slate-400 mt-1">Snoozed until ${utils.formatDate(snoozedUntil[it.id])}</div>` : ''}
-                                            </div>
-                                        </div>
-                                        <button onclick="${it.editAction}" class="text-slate-300 hover:text-sky-500"><span class="material-icons">edit</span></button>
-                                    </div>
-                                    <div class="flex gap-2 mt-3">
-                                        ${tab === 'done'
-                                            ? `<button onclick="ui.restoreReminder('${it.id}')" class="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">${utils.t('restore')}</button>`
-                                            : `
-                                                <button onclick="ui.snoozeReminder('${it.id}', 1)" class="py-2 px-3 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">${utils.t('snooze_1d')}</button>
-                                                <button onclick="ui.snoozeReminder('${it.id}', 7)" class="py-2 px-3 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">${utils.t('snooze_7d')}</button>
-                                                <button onclick="ui.snoozeReminder('${it.id}', 30)" class="py-2 px-3 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">${utils.t('snooze_30d')}</button>
-                                                ${tab === 'snoozed' ? `<button onclick="ui.unsnoozeReminder('${it.id}')" class="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">${utils.t('unsnooze')}</button>` : `<button onclick="ui.markReminderDone('${it.id}')" class="flex-1 py-2 rounded-xl text-xs font-bold bg-teal-600 text-white">${utils.t('mark_done')}</button>`}
-                                            `}
-                                        ${(it.calendarType || it.dueDateIso)
-                                            ? `<button data-action="reminder-calendar" data-title="${utils.escapeAttr(encodeURIComponent(it.calendarTitle || it.title || ''))}" data-date="${utils.escapeAttr(it.dueDateIso || '')}" data-type="${utils.escapeAttr(it.calendarType || '')}" class="py-2 px-3 rounded-xl text-xs font-bold bg-blue-50 text-blue-700">${utils.t('export_calendar')}</button>`
-                                            : ''
-                                        }
-                                    </div>
-                                </div>
-                            `).join('') : `<div class="text-center theme-text-sub py-12">No reminders</div>`}
-                        </div>
-                    </div>
-                `;
             }
 });

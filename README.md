@@ -1,8 +1,25 @@
-# FuelMate IndexedDB v3.5.1
+# FuelMate IndexedDB v3.6.0
 
-> v3.5.1 makes offline startup immediate by serving the cached app shell before checking the network.
+> v3.6.0 upgrades the Reminder Center with urgency, filters, details and bulk actions while preserving existing local data.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.6.0 更新內容
+
+### 提醒中心 UI 升級
+
+- 新增「已逾期／即將到期／稍後」摘要及分組，重要提醒更容易識別，點擊摘要可快速篩選。
+- 新增全部、輪胎、保養、證件及備份分類篩選，並保留待辦、已延後、已完成狀態分頁。
+- 提醒卡顯示車輛、類別、到期資訊及延後日期；詳情頁集中顯示里程／日期條件、來源記錄、重複規則及相關操作。
+- 待辦提醒支援多選，可一次批量延後 7 天或標記完成；操作後會清空選取狀態，避免重複處理。
+
+### 邏輯、舊資料及測試
+
+- 輪胎、保養、證件及備份提醒加入一致的類別與優先級資料；同時有里程及日期條件的保養提醒會保留兩項條件。
+- 沿用現有 IndexedDB schema及`settings.reminderCenter`資料，毋須migration；舊版輪胎位置型提醒ID的Snooze／Done狀態仍會映射到新版穩定ID。
+- 批量操作會同步清理同一提醒的舊ID狀態，避免舊狀態在日後重新出現；無效或缺少的舊狀態欄位會安全初始化。
+- 新增提醒分類／優先級、舊Done狀態相容及瀏覽器篩選／詳情／批量完成流程測試。
+- App、package、設定頁、About及README同步升級至v3.6.0；Service Worker cache更新至`fuelmate-cache-v14`。
 
 ## v3.5.1 更新內容
 

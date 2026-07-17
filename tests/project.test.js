@@ -14,6 +14,7 @@ const runtimeFiles = [
   'ui/events.js',
   'ui/base.js',
   'ui/pages/dashboard.js',
+  'ui/pages/reminders.js',
   'ui/pages/records.js',
   'ui/pages/settings.js',
   'ui/actions/vehicles.js',
