@@ -261,7 +261,59 @@ const router = {
             setMonthlyMonthActive(monthIndex);
         });
         
+        const showPwaStatus = (message, options = {}) => {
+            let banner = document.getElementById('pwa-status-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'pwa-status-banner';
+                banner.setAttribute('role', 'status');
+                banner.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-[100] max-w-[calc(100%-2rem)] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold shadow-xl flex items-center gap-3';
+                document.body.appendChild(banner);
+            }
+            banner.replaceChildren();
+            const text = document.createElement('span');
+            text.textContent = message;
+            banner.appendChild(text);
+            if (options.actionLabel && typeof options.onAction === 'function') {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.textContent = options.actionLabel;
+                button.className = 'rounded-lg bg-teal-500 px-2 py-1 text-white whitespace-nowrap';
+                button.addEventListener('click', options.onAction, { once: true });
+                banner.appendChild(button);
+            }
+            banner.classList.remove('hidden');
+            if (!options.persistent) {
+                clearTimeout(showPwaStatus._timer);
+                showPwaStatus._timer = setTimeout(() => banner.classList.add('hidden'), options.duration || 2200);
+            }
+        };
+
+        const updateNetworkStatus = () => {
+            if (!navigator.onLine) {
+                showPwaStatus(utils.t('offline_mode'), { persistent: true });
+                return;
+            }
+            const banner = document.getElementById('pwa-status-banner');
+            if (banner && !banner.classList.contains('hidden')) showPwaStatus(utils.t('back_online'));
+        };
+        window.addEventListener('offline', updateNetworkStatus);
+        window.addEventListener('online', updateNetworkStatus);
+        if (!navigator.onLine) updateNetworkStatus();
+
         if ('serviceWorker' in navigator) {
+            const hadController = Boolean(navigator.serviceWorker.controller);
+            const showUpdateReady = () => showPwaStatus(utils.t('update_available'), {
+                persistent: true,
+                actionLabel: utils.t('reload_now'),
+                onAction: () => window.location.reload()
+            });
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data?.type === 'APP_SHELL_UPDATED') showUpdateReady();
+            });
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (hadController) showUpdateReady();
+            });
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').catch(err => console.error('Service Worker registration failed', err));
             });

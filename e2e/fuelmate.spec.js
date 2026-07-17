@@ -25,7 +25,7 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('nav-settings').click();
 
   await expect(page.getByRole('heading', { name: /Settings|設定/ })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('v3.5.0');
+  await expect(page.getByTestId('app-version')).toContainText('v3.5.1');
   await page.getByTestId('currency-setting').selectOption('€');
   await expect(page.getByTestId('currency-setting')).toHaveValue('€');
   expect(pageErrors).toEqual([]);
@@ -72,4 +72,21 @@ test('keeps an unset-tire reminder visible and supports snoozing it', async ({ p
   await expect(snoozedReminder).toBeVisible();
   await expect(snoozedReminder).toContainText('Snoozed until');
   expect(pageErrors).toEqual([]);
+});
+
+test('reloads the cached app shell while the browser is offline', async ({ page, context }) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+
+  await context.setOffline(true);
+  try {
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#app')).not.toBeEmpty();
+    await expect(page.getByText('E2E Roadster', { exact: false }).first()).toBeVisible();
+    await expect(page.locator('#pwa-status-banner')).toContainText(/Offline mode|離線模式/);
+  } finally {
+    await context.setOffline(false);
+  }
 });
