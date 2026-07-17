@@ -1,8 +1,15 @@
-# FuelMate IndexedDB v3.6.1
+# FuelMate IndexedDB v3.6.2
 
-> v3.6.1 keeps a manual reload control permanently available at the bottom of Settings.
+> v3.6.2 fixes the mobile Reminder Center E2E selector so verified releases can deploy to GitHub Pages.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.6.2 更新內容
+
+- 修正手機版提醒中心E2E測試同時匹配「已完成」分頁及批量完成按鈕，導致GitHub Actions停止部署的問題。
+- 提醒中心狀態分頁加入穩定`data-testid`，測試不再依賴可能重複的翻譯文字。
+- App、package、設定頁、About及README同步升級至v3.6.2；Service Worker cache更新至`fuelmate-cache-v16`。
+- IndexedDB schema及現有資料格式維持不變，毋須migration。
 
 ## v3.6.1 更新內容
 

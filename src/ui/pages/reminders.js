@@ -60,7 +60,7 @@ renderReminders(vehicle) {
 
                         <div class="grid grid-cols-3 bg-slate-200/70 dark:bg-slate-800 rounded-xl p-1 mb-3">
                             ${[['active','tab_active',data.activeItems.length],['snoozed','tab_snoozed',data.snoozedItems.length],['done','tab_done',data.doneItems.length]].map(([key,label,count]) => `
-                                <button data-action="ui" data-ui-method="setReminderTab" data-ui-args="${args(key)}" class="min-h-10 rounded-lg text-xs font-bold ${tab===key?'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-sm':'theme-text-sub'}">${utils.t(label)} <span class="ml-1">${count}</span></button>
+                                <button data-testid="reminder-tab-${key}" data-action="ui" data-ui-method="setReminderTab" data-ui-args="${args(key)}" class="min-h-10 rounded-lg text-xs font-bold ${tab===key?'bg-white dark:bg-slate-700 text-teal-700 dark:text-teal-300 shadow-sm':'theme-text-sub'}">${utils.t(label)} <span class="ml-1">${count}</span></button>
                             `).join('')}
                         </div>
 
