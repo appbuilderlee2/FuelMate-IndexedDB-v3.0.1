@@ -136,6 +136,7 @@ test('Apple Fluid appearance supports light, dark, and system modes', async () =
   assert.match(settings, /apple-fluid-light/);
   assert.match(settings, /apple-fluid-dark/);
   assert.match(settings, /apple-fluid-system/);
+  assert.ok(settings.indexOf('App Settings') < settings.indexOf('data-testid="appearance-settings"'));
   assert.match(store, /appearance: 'apple-fluid-system'/);
   assert.match(styles, /data-color-scheme="dark"/);
 });

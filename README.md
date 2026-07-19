@@ -1,8 +1,14 @@
-# FuelMate IndexedDB v3.8.0
+# FuelMate IndexedDB v3.8.1
 
-> v3.8.0 adds a complete Apple Fluid appearance system with light, dark and automatic system modes.
+> v3.8.1 places Apple Fluid appearance controls at the bottom of App Settings for a clearer settings flow.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.8.1 更新內容
+
+- 將Apple Fluid外觀選擇由設定頁頂部移至「App Settings」區塊最底部，排列在語言設定之後。
+- 深色、淺色及跟隨系統的功能、即時預覽、保存資料及舊資料相容邏輯維持不變。
+- 新增設定頁排序測試；App、package、設定頁、About及README同步升級至v3.8.1，Service Worker cache更新至`fuelmate-cache-v20`。
 
 ## v3.8.0 更新內容
 
