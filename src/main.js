@@ -1,3 +1,25 @@
+const FuelMateAppearance = (() => {
+            const allowed = new Set(['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system']);
+            const media = window.matchMedia('(prefers-color-scheme: dark)');
+            let current = 'apple-fluid-system';
+
+            const normalize = value => allowed.has(value) ? value : 'apple-fluid-system';
+            const resolve = value => value === 'apple-fluid-dark' || (value === 'apple-fluid-system' && media.matches) ? 'dark' : 'light';
+            const apply = value => {
+                current = normalize(value);
+                const scheme = resolve(current);
+                document.documentElement.dataset.appearance = current;
+                document.documentElement.dataset.colorScheme = scheme;
+                document.documentElement.style.colorScheme = scheme;
+                document.querySelector('meta[name="theme-color"]')?.setAttribute('content', scheme === 'dark' ? '#07111f' : '#e9f7f7');
+                try { localStorage.setItem('fuelmate_appearance', current); } catch (_) {}
+                return current;
+            };
+            media.addEventListener?.('change', () => { if (current === 'apple-fluid-system') apply(current); });
+            return Object.freeze({ apply, normalize, resolve });
+        })();
+        window.FuelMateAppearance = FuelMateAppearance;
+
 const router = {
             currentPage: 'dashboard',
             navigate(page) {

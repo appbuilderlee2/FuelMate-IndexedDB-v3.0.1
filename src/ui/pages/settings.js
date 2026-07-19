@@ -6,6 +6,27 @@ renderSettings(vehicle) {
                     <div class="px-6 pt-safe min-h-screen pb-24">
                         <h1 class="text-3xl font-black theme-text-heading mb-6">${utils.t('settings')}</h1>
 
+                        <section data-testid="appearance-settings" class="theme-bg-card rounded-3xl card-shadow mb-6 overflow-hidden border theme-border">
+                            <div class="px-4 pt-4 pb-2 text-xs font-bold theme-text-sub uppercase tracking-wider">${utils.t('appearance')}</div>
+                            ${[
+                                ['apple-fluid-light', 'light_mode', 'apple_fluid_light', 'light'],
+                                ['apple-fluid-dark', 'dark_mode', 'apple_fluid_dark', 'dark'],
+                                ['apple-fluid-system', 'brightness_auto', 'apple_fluid_system', 'system']
+                            ].map(([value, icon, label, preview]) => {
+                                const selected = (settings.appearance || 'apple-fluid-system') === value;
+                                const previewStyle = preview === 'light'
+                                    ? 'background:linear-gradient(145deg,#fff 0 58%,#dff7f5 100%)'
+                                    : preview === 'dark'
+                                        ? 'background:linear-gradient(145deg,#07111f 0 58%,#123b45 100%)'
+                                        : 'background:linear-gradient(90deg,#fff 0 49%,#07111f 51% 100%)';
+                                return `<button data-testid="appearance-${preview}" role="radio" aria-checked="${selected}" data-action="ui" data-ui-method="updateAppearance" data-ui-args="${encodeURIComponent(JSON.stringify([value]))}" class="appearance-option w-full min-h-[68px] px-4 flex items-center gap-3 text-left border-t theme-border">
+                                    <span class="appearance-preview w-11 h-11 shrink-0 rounded-xl relative overflow-hidden" style="${previewStyle}"><span class="absolute left-2 right-2 top-2 h-1 rounded-full bg-teal-400/70"></span><span class="absolute left-2 right-3 top-5 h-0.5 rounded bg-slate-400/35"></span><span class="absolute left-2 right-2 top-7 h-0.5 rounded bg-slate-400/25"></span></span>
+                                    <span class="min-w-0 flex-1"><span class="block text-sm font-bold theme-text-heading">${utils.t(label)}</span><span class="block text-[11px] theme-text-sub mt-0.5">${utils.t(label + '_desc')}</span></span>
+                                    <span class="material-icons text-xl ${selected ? 'text-teal-600' : 'text-slate-300'}">${selected ? 'check_circle' : icon}</span>
+                                </button>`;
+                            }).join('')}
+                        </section>
+
                         <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 card-shadow mb-6">
                             <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">${utils.t('select_vehicle')}</div>
                             <button data-action="ui" data-ui-method="openVehicleSelector" class="w-full p-4 rounded-2xl ${vehicle ? utils.getCarColorClass(vehicle.color || 'teal') : 'bg-slate-50 dark:bg-slate-700'} text-left ${vehicle ? 'text-white' : 'theme-text-heading'}">
@@ -234,6 +255,14 @@ async updateGlobalSetting(key, value) {
                 const allowed = ['units', 'pressureUnit', 'currency', 'language'];
                 if (!allowed.includes(key)) return;
                 store.data.settings[key] = value;
+                await store.saveData();
+                this.render();
+            },
+
+async updateAppearance(value) {
+                const appearance = FuelMateAppearance.normalize(value);
+                store.data.settings.appearance = appearance;
+                FuelMateAppearance.apply(appearance);
                 await store.saveData();
                 this.render();
             },
