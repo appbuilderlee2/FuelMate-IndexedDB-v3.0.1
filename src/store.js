@@ -3,8 +3,8 @@
             db: null,
             dbName: 'FuelMateDB',
             currentSchemaVersion: 2,
-            defaultSettings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, lastBackupDate: null, activeVehicleId: null },
-            data: { vehicles: [], logs: [], settings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, lastBackupDate: null, activeVehicleId: null } },
+            defaultSettings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, lastBackupDate: null, activeVehicleId: null },
+            data: { vehicles: [], logs: [], settings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, lastBackupDate: null, activeVehicleId: null } },
             pageFilters: {
                 dashboard: { mode: 'month', value: new Date().toISOString().slice(0, 7) },
                 fuel: { mode: 'year', value: new Date().getFullYear().toString() },
@@ -142,6 +142,9 @@
                 this.data.logs = await this.runTransaction('logs', 'readonly', s => s.getAll());
                 const settings = await this.runTransaction('settings', 'readonly', s => s.get('global'));
                 if (settings) this.data.settings = { ...this.data.settings, ...settings };
+                if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system'].includes(this.data.settings.appearance)) {
+                    this.data.settings.appearance = 'apple-fluid-system';
+                }
 
                 // Ensure default settings
                 if (!this.data.settings.activeVehicleId && this.data.vehicles.length > 0) {
@@ -349,6 +352,9 @@
                     const nextLogs = overwrite ? [...incomingLogs] : mergeById(this.data.logs, incomingLogs);
                     const settingsBase = overwrite ? this.defaultSettings : this.data.settings;
                     const nextSettings = { ...settingsBase, ...(importedData.settings || {}) };
+                    if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system'].includes(nextSettings.appearance)) {
+                        nextSettings.appearance = 'apple-fluid-system';
+                    }
                     if (!nextVehicles.some(v => v.id === nextSettings.activeVehicleId)) {
                         nextSettings.activeVehicleId = nextVehicles[0]?.id || null;
                     }

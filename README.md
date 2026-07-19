@@ -1,8 +1,17 @@
-# FuelMate IndexedDB v3.7.0
+# FuelMate IndexedDB v3.8.0
 
-> v3.7.0 upgrades Reminder Center with combined multi-vehicle and focused single-vehicle views.
+> v3.8.0 adds a complete Apple Fluid appearance system with light, dark and automatic system modes.
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
+
+## v3.8.0 更新內容
+
+- 設定頁新增「Apple Fluid 淺色」、「Apple Fluid 深色」及「Apple Fluid 跟隨系統」三個外觀選項，附有即時預覽及清晰選取狀態。
+- 跟隨系統模式會監聽裝置日夜外觀變更並即時切換；固定深色／淺色模式不再受瀏覽器`prefers-color-scheme`覆蓋。
+- 全App加入Apple Fluid材質系統：半透明卡片、背景模糊、柔和光影、平台系統字體、即時按壓回饋及一致的流體底部導覽。
+- 加入`prefers-reduced-motion`及`prefers-reduced-transparency`支援；使用者要求減少動態或透明效果時會自動使用更穩定、清晰的替代顯示。
+- 外觀設定保存於原有IndexedDB settings，並以安全的localStorage鏡像避免啟動時閃現錯誤主題；舊資料缺少外觀欄位時會自動使用「跟隨系統」，毋須schema migration。
+- 新增深／淺／系統切換、重新載入後保存及主題結構測試；App、package、設定頁、About及README同步升級至v3.8.0，Service Worker cache更新至`fuelmate-cache-v19`。
 
 ## v3.7.0 更新內容
 
