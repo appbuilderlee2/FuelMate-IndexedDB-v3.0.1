@@ -122,6 +122,24 @@ test('reminder center supports all-vehicle and per-vehicle views', async () => {
   assert.match(store, /getVehicleLogs\(type = null, vehicleId =/);
 });
 
+test('Apple Fluid appearance supports light, dark, and system modes', async () => {
+  const html = await read('index.html');
+  const main = await read('src/main.js');
+  const settings = await read('src/ui/pages/settings.js');
+  const store = await read('src/store.js');
+  const styles = await read('styles/tailwind.css');
+  assert.match(html, /dataset\.appearance/);
+  assert.match(html, /prefers-reduced-motion/);
+  assert.match(html, /prefers-reduced-transparency/);
+  assert.match(main, /FuelMateAppearance/);
+  assert.match(main, /prefers-color-scheme: dark/);
+  assert.match(settings, /apple-fluid-light/);
+  assert.match(settings, /apple-fluid-dark/);
+  assert.match(settings, /apple-fluid-system/);
+  assert.match(store, /appearance: 'apple-fluid-system'/);
+  assert.match(styles, /data-color-scheme="dark"/);
+});
+
 test('UI registry delegates implementation to focused page and action modules', async () => {
   const registry = await read('src/ui.js');
   assert.match(registry, /const ui = \{\};/);

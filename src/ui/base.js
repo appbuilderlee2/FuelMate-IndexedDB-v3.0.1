@@ -2,6 +2,7 @@
 Object.assign(ui, {
 init() {
                 store.init().then(() => {
+                    FuelMateAppearance.apply(store.data.settings.appearance);
                     this.render();
                     if (!store.data.vehicles.length) this.openAddVehicle();
                 }).catch(err => console.error("DB Init Failed", err));

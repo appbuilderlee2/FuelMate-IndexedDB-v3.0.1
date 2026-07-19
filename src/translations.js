@@ -2,6 +2,7 @@
         const translations = {
             en: {
                 dashboard: 'Dashboard', fuel: 'Fuel', maintenance: 'Vehicle Records', maintenance_plus: 'Records+', analytics: 'Analytics', settings: 'Settings', parking: 'Park',
+                appearance: 'Appearance', apple_fluid_light: 'Apple Fluid Light', apple_fluid_light_desc: 'Always use the bright fluid appearance', apple_fluid_dark: 'Apple Fluid Dark', apple_fluid_dark_desc: 'Always use the deep fluid appearance', apple_fluid_system: 'Apple Fluid System', apple_fluid_system_desc: 'Automatically follow this device',
                 welcome: 'Welcome', add_vehicle: 'Add Vehicle', select_vehicle: 'Select Vehicle',
                 range_month: 'Month', range_year: 'Year', range_all: 'All Time',
                 efficiency: 'Efficiency', cost_km: 'Cost/km', total_cost: 'Total Cost', total_dist: 'Total Distance',
@@ -149,6 +150,7 @@
             },
             zh: {
                 dashboard: '首頁', fuel: '加油', maintenance: '車務紀錄', maintenance_plus: '車務+', analytics: '統計', settings: '設定', parking: '停車',
+                appearance: '外觀', apple_fluid_light: 'Apple Fluid 淺色', apple_fluid_light_desc: '固定使用明亮流體外觀', apple_fluid_dark: 'Apple Fluid 深色', apple_fluid_dark_desc: '固定使用深色流體外觀', apple_fluid_system: 'Apple Fluid 跟隨系統', apple_fluid_system_desc: '跟隨裝置自動切換日夜模式',
                 welcome: '歡迎使用', add_vehicle: '新增車輛', select_vehicle: '切換車輛',
                 range_month: '月份', range_year: '年份', range_all: '全部',
                 efficiency: '油耗表現', cost_km: '每公里成本', total_cost: '總支出', total_dist: '總里程',
