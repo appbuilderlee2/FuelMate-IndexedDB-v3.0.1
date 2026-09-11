@@ -246,7 +246,7 @@ async updateActiveVehicleSetting(key, valueType, value) {
                     nextVehicle.maintenanceBaselineOdometer = parseFloat(vehicle.currentOdometer) || 0;
                 }
                 if (!hasPeriodicService && key === 'maintenanceTime' && parseInt(nextValue, 10) > 0 && !vehicle.maintenanceBaselineDate) {
-                    nextVehicle.maintenanceBaselineDate = new Date().toISOString().slice(0, 10);
+                    nextVehicle.maintenanceBaselineDate = FuelMateCore.localDateKey();
                 }
                 await store.updateVehicle(nextVehicle);
                 this.render();

@@ -12,6 +12,23 @@ const {
   validateImportPayload,
 } = globalThis.FuelMateCore;
 
+test('local date keys preserve Adelaide date and month boundaries', () => {
+  const previous = process.env.TZ;
+  process.env.TZ = 'Australia/Adelaide';
+  try {
+    assert.equal(FuelMateCore.localDateKey(new Date(2026, 8, 11, 8)), '2026-09-11');
+    assert.equal(FuelMateCore.localDateKey(new Date(2026, 8, 1)).slice(0, 7), '2026-09');
+  } finally {
+    if (previous === undefined) delete process.env.TZ; else process.env.TZ = previous;
+  }
+});
+
+test('import settings reject markup and unsupported enums but retain legacy currencies', () => {
+  const validate = settings => validateImportPayload({ vehicles: [], logs: [], settings }, () => true);
+  assert.equal(validate({ currency: 'AUD ', units: 'metric', language: 'zh' }).errors.length, 0);
+  assert.equal(validate({ currency: '<b>bad</b>', units: 'invalid', language: 'invalid' }).errors.length, 3);
+});
+
 test('calculates litres per 100 km', () => {
   assert.equal(calcEfficiencyValue(40, 500, 'L', 'km'), 8);
 });

@@ -5,7 +5,17 @@ init() {
                     FuelMateAppearance.apply(store.data.settings.appearance);
                     this.render();
                     if (!store.data.vehicles.length) this.openAddVehicle();
-                }).catch(err => console.error("DB Init Failed", err));
+                }).catch(err => {
+                    console.error('DB Init Failed', err);
+                    const app = document.getElementById('app');
+                    app.replaceChildren();
+                    const message = document.createElement('p');
+                    message.textContent = '無法載入本機資料 / Unable to load local data. 請關閉其他 FuelMate 分頁後重試；不會清除資料。';
+                    const retry = document.createElement('button');
+                    retry.textContent = '重新載入 / Retry';
+                    retry.onclick = () => location.reload();
+                    app.append(message, retry);
+                });
             },
 
 getPageLimit(pageKey) {
@@ -200,7 +210,7 @@ renderFilterHeader(page, filter, isColorBg = false) {
             },
 
 setFilter(page, mode, value) {
-                if (mode === 'month' && !value) value = new Date().toISOString().slice(0, 7);
+                if (mode === 'month' && !value) value = FuelMateCore.localDateKey().slice(0, 7);
                 if (mode === 'year' && !value) value = new Date().getFullYear().toString();
                 store.pageFilters[page] = { mode, value };
                 this.resetPageLimit(page);

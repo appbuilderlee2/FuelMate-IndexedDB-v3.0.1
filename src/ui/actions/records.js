@@ -1,7 +1,7 @@
 // FuelMate UI module: actions/records
 Object.assign(ui, {
 openAddParking(id = null) {
-                const log = id ? store.data.logs.find(l => String(l.id) === String(id)) : { date: new Date().toISOString().slice(0, 10), cost: '', location: '', notes: '' };
+                const log = id ? store.data.logs.find(l => String(l.id) === String(id)) : { date: FuelMateCore.localDateKey(), cost: '', location: '', notes: '' };
                 this.openModal(`
                     <h2 class="text-xl font-bold mb-4 theme-text-heading flex items-center gap-2"><span class="material-icons text-blue-600">local_parking</span> ${utils.t('add_parking')}</h2>
                     <div class="space-y-4">

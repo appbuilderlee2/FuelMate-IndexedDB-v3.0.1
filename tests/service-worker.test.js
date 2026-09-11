@@ -3,6 +3,22 @@ import fs from 'node:fs/promises';
 import test from 'node:test';
 import vm from 'node:vm';
 
+test('activation preserves other apps caches', async () => {
+  const listeners = new Map();
+  const removed = [];
+  const source = await fs.readFile(new URL('../public/sw.js', import.meta.url), 'utf8');
+  const current = source.match(/const CACHE_NAME = '([^']+)'/)[1];
+  vm.runInNewContext(source, {
+    URL,
+    caches: { keys: async () => ['trail-pocket-v1', 'fuelmate-cache-v20', current], delete: async key => removed.push(key) },
+    self: { registration: { scope: 'https://example.test/FuelMate/' }, clients: { claim: async () => {} }, addEventListener: (name, handler) => listeners.set(name, handler) },
+  });
+  let pending;
+  listeners.get('activate')({ waitUntil(promise) { pending = promise; } });
+  await pending;
+  assert.deepEqual(removed, ['fuelmate-cache-v20']);
+});
+
 test('offline navigation returns the cached shell without waiting for the network', async () => {
   const listeners = new Map();
   const cachedResponse = new Response('<main>cached FuelMate</main>', {

@@ -1,6 +1,16 @@
-# FuelMate IndexedDB v3.8.1
+# FuelMate IndexedDB v3.8.2
 
-> v3.8.1 places Apple Fluid appearance controls at the bottom of App Settings for a clearer settings flow.
+> v3.8.2 fixes local dates, import preview safety, atomic log writes, database startup failures and cache isolation.
+
+## v3.8.2 更新內容
+
+- 日期及月度圖表使用本地年月日，修正Adelaide時區顯示昨日或上月的問題；提醒既有穩定ID不變。
+- 匯入設定驗證單位、語言、胎壓單位及安全幣別文字，預覽檔名及設定統一HTML escape；保留舊有幣別代碼。
+- 新增、編輯及刪除記錄連同車輛里程使用單一IndexedDB transaction，成功後才更新記憶體及快取。
+- 資料庫載入失敗會正確reject並關閉連線，提供不清除資料的重新載入入口；處理blocked及versionchange。
+- Service Worker僅清除FuelMate舊版cache，不刪除同網域其他App快取；cache升級至fuelmate-cache-v21。
+- 新增本地時區、匯入驗證、寫入失敗及初始化失敗回歸測試。IndexedDB schema及資料格式不變，毋須migration。
+- 驗證：59項Node測試通過，typecheck及production build通過；未執行瀏覽器E2E或iPhone實機驗證。
 
 一個 **本地優先（Local-first）** 的車輛油耗與開支管理 PWA：所有資料預設只存喺你部機（IndexedDB），支援離線使用、備份/匯入、提醒中心、輪胎更換/換位追蹤同埋基礎分析。
 

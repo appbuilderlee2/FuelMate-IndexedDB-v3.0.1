@@ -27,3 +27,9 @@ test('neutralizes formulas in spreadsheet exports', () => {
   assert.equal(neutralizeSpreadsheetFormula('  +1+1'), "'  +1+1");
   assert.equal(neutralizeSpreadsheetFormula('ordinary note'), 'ordinary note');
 });
+test('import preview escapes filenames and all settings summary values', async () => {
+  const fs = await import('node:fs/promises');
+  const source = await fs.readFile(new URL('../src/ui/actions/data.js', import.meta.url), 'utf8');
+  assert.ok(source.includes('utils.escapeHtml(fileName)'));
+  for (const field of ['units', 'currency', 'language']) assert.ok(source.includes(`utils.escapeHtml(incomingSummary.settings.${field}`));
+});

@@ -1,7 +1,7 @@
 // FuelMate UI module: actions/fuel
 Object.assign(ui, {
 openAddFuel(id = null) {
-                const log = id ? store.data.logs.find(l => String(l.id) === String(id)) : { date: new Date().toISOString().slice(0, 10), odometer: store.getActiveVehicle()?.currentOdometer || '', liters: '', cost: '', location: '', notes: '', isPartial: false };
+                const log = id ? store.data.logs.find(l => String(l.id) === String(id)) : { date: FuelMateCore.localDateKey(), odometer: store.getActiveVehicle()?.currentOdometer || '', liters: '', cost: '', location: '', notes: '', isPartial: false };
                 this._fuelCalcLast = [];
                 const fuelUnit = utils.getFuelUnit();
                 const volLabel = fuelUnit === 'kWh' ? utils.t('kwh') : (fuelUnit === 'Gal' ? utils.t('gallons') : utils.t('liters'));

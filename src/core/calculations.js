@@ -4,6 +4,10 @@
     return Number.isFinite(parsed) ? parsed : null;
   }
 
+  function localDateKey(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
   function isValidIsoDate(value) {
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
     const parsed = new Date(`${value}T00:00:00.000Z`);
@@ -162,6 +166,12 @@
       errors.push('settings_not_object');
     }
     if (settings && typeof settings === 'object' && !Array.isArray(settings)) {
+      const enums = { units: ['metric', 'imperial'], language: ['en', 'zh'], pressureUnit: ['kPa', 'psi', 'bar'] };
+      for (const [key, allowed] of Object.entries(enums)) {
+        if (settings[key] !== undefined && !allowed.includes(settings[key])) errors.push(`settings_invalid_${key}`);
+      }
+      // Preserve legacy currency codes/symbols, but never accept markup or controls.
+      if (settings.currency !== undefined && (typeof settings.currency !== 'string' || !/^[\p{L}\p{Sc} .]{1,12}$/u.test(settings.currency))) errors.push('settings_invalid_currency');
       const snoozedUntil = settings.reminderCenter?.snoozedUntil;
       const done = settings.reminderCenter?.done;
       if (snoozedUntil !== undefined && (!snoozedUntil || typeof snoozedUntil !== 'object' || Array.isArray(snoozedUntil))) {
@@ -231,6 +241,7 @@
   }
 
   global.FuelMateCore = Object.freeze({
+    localDateKey,
     buildFuelEfficiencySegments,
     calculateFuelEfficiencyFromLogs,
     calcEfficiencyValue,
