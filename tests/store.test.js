@@ -122,3 +122,24 @@ test('database initialization rejects load failures instead of hanging', async (
   await assert.rejects(pending, /load failed/);
   assert.equal(closed, true);
 });
+
+test('overlapping saves retain both records and highest odometer', async () => {
+  const store = await createStore();
+  await Promise.all([
+    store.addLog({ id: 'a', vehicleId: 'v1', odometer: 1700 }),
+    store.addLog({ id: 'b', vehicleId: 'v1', odometer: 1800 }),
+  ]);
+  assert.ok(store.data.logs.some(l => l.id === 'a'));
+  assert.ok(store.data.logs.some(l => l.id === 'b'));
+  assert.equal(store.data.vehicles[0].currentOdometer, 1800);
+});
+
+test('queue continues after a rejected save', async () => {
+  const store = await createStore();
+  const commit = store._commitLogChange.bind(store);
+  store._commitLogChange = (log, previous) => log.id === 'bad' ? Promise.reject(new Error('failure')) : commit(log, previous);
+  const results = await Promise.allSettled([store.addLog({ id: 'bad' }), store.addLog({ id: 'good', vehicleId: 'v1', odometer: 1900 })]);
+  assert.equal(results[0].status, 'rejected');
+  assert.equal(results[1].status, 'fulfilled');
+  assert.ok(store.data.logs.some(l => l.id === 'good'));
+});

@@ -273,7 +273,15 @@
                 await this.commitLogChange(log, null);
             },
 
-            async commitLogChange(log, previous) {
+            _logWriteQueue: Promise.resolve(),
+
+            commitLogChange(log, previous) {
+                const operation = this._logWriteQueue.then(() => this._commitLogChange(log, previous));
+                this._logWriteQueue = operation.catch(() => {});
+                return operation;
+            },
+
+            async _commitLogChange(log, previous) {
                 const id = log?.id || previous?.id;
                 const nextLogs = this.data.logs.filter(item => item.id !== id);
                 if (log) nextLogs.push(log);

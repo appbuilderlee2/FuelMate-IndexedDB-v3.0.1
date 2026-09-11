@@ -1,4 +1,13 @@
-# FuelMate IndexedDB v3.8.2
+# FuelMate IndexedDB v3.8.3
+
+## v3.8.3 更新內容
+
+- 記錄寫入使用佇列，避免並行儲存覆蓋記憶體；失敗不阻塞下一筆。
+- 入油編輯保留備註、車輛及既有附加欄位，新增備註輸入及防重複提交。
+- Production build產生SHA-256資源清單，Service Worker驗證整套資源後才完成安裝。
+- 已啟用版本只讀自己的快取，不單獨刷新首頁；缺失資源不回傳HTML或其他版本資源。
+- 新版本等待所有舊視窗關閉後才啟用，提示先儲存再關閉重開，避免中途接管表單。首次由舊版更新時仍受舊Service Worker行為影響。
+- IndexedDB schema不變；App版本3.8.3，cache v22。
 
 > v3.8.2 fixes local dates, import preview safety, atomic log writes, database startup failures and cache isolation.
 

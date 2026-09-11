@@ -64,17 +64,8 @@ test('Tailwind scans styles used by split JavaScript UI templates', async () => 
 
 test('service worker uses its GitHub Pages scope for index caching', async () => {
   const worker = await read('public/sw.js');
-  assert.match(worker, /fetch\(urlFor\('index\.html'\)/);
+  assert.match(worker, /urlFor\('index\.html'\)/);
   assert.doesNotMatch(worker, /fetch\('\/index\.html'/);
-});
-
-test('service worker serves navigation cache before background refresh', async () => {
-  const worker = await read('public/sw.js');
-  const cacheLookup = worker.indexOf('const cached = await caches.match(indexUrl)');
-  const cachedReturn = worker.indexOf('return cached', cacheLookup);
-  assert.ok(cacheLookup !== -1 && cachedReturn > cacheLookup);
-  assert.match(worker, /event\.waitUntil\(refresh/);
-  assert.match(worker, /APP_SHELL_UPDATED/);
 });
 
 test('PWA status banner stays below the iOS safe area and remains interactive', async () => {

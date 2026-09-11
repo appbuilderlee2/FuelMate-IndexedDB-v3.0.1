@@ -32,7 +32,7 @@ test('offline navigation returns the cached shell without waiting for the networ
     fetch: () => new Promise(() => {}),
     caches: {
       match: async () => cachedResponse.clone(),
-      open: async () => ({ addAll: async () => {}, put: async () => {} }),
+      open: async () => ({ match: async () => cachedResponse.clone(), put: async () => {} }),
       keys: async () => [],
       delete: async () => true,
     },
@@ -60,5 +60,22 @@ test('offline navigation returns the cached shell without waiting for the networ
     new Promise(resolve => setTimeout(() => resolve('timed-out'), 100)),
   ]);
   assert.equal(result, '<main>cached FuelMate</main>');
-  assert.equal(background.length, 1);
+  assert.equal(background.length, 0);
+});
+
+test('mismatched production release is rejected before cache writes', async () => {
+  const { webcrypto } = await import('node:crypto');
+  const listeners = new Map();
+  let writes = 0;
+  const source = (await fs.readFile(new URL('../public/sw.js', import.meta.url), 'utf8')).replace('const RELEASE_HASHES = null;', 'const RELEASE_HASHES = {"index.html":"wrong-hash"};');
+  vm.runInNewContext(source, {
+    URL, Response, crypto: webcrypto, Uint8Array,
+    fetch: async () => new Response('new shell'),
+    caches: { open: async () => ({ put() { writes++; } }) },
+    self: { registration: { scope: 'https://example.test/FuelMate/' }, addEventListener: (name, handler) => listeners.set(name, handler) },
+  });
+  let pending;
+  listeners.get('install')({ waitUntil(promise) { pending = promise; } });
+  await assert.rejects(pending, /Release mismatch/);
+  assert.equal(writes, 0);
 });

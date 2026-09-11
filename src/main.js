@@ -325,19 +325,22 @@ const router = {
         if (!navigator.onLine) updateNetworkStatus();
 
         if ('serviceWorker' in navigator) {
-            const hadController = Boolean(navigator.serviceWorker.controller);
-            const showUpdateReady = () => showPwaStatus(utils.t('update_available'), {
-                persistent: true,
-                actionLabel: utils.t('reload_now'),
-                onAction: () => window.location.reload()
-            });
-            navigator.serviceWorker.addEventListener('message', (event) => {
-                if (event.data?.type === 'APP_SHELL_UPDATED') showUpdateReady();
-            });
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (hadController) showUpdateReady();
-            });
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.error('Service Worker registration failed', err));
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+                    const notifyWaiting = () => {
+                        if (registration.waiting) showPwaStatus(
+                            store.data.settings.language === 'zh'
+                                ? '新版已準備好。請先儲存，再關閉所有 FuelMate 視窗並重新開啟。'
+                                : 'Update ready. Save your work, close all FuelMate windows, then reopen.',
+                            { persistent: true }
+                        );
+                    };
+                    notifyWaiting();
+                    registration.addEventListener('updatefound', () => {
+                        registration.installing?.addEventListener('statechange', notifyWaiting);
+                    });
+                    window.addEventListener('online', () => registration.update().catch(console.error));
+                } catch (error) { console.error('Service Worker registration failed', error); }
             });
         }

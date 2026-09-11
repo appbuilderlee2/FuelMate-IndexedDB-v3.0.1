@@ -128,3 +128,19 @@ test('service and parking submissions reject negative values', async () => {
   assert.equal(saved.length, 0);
   assert.equal(alerts.at(-1), 'validation_cost');
 });
+
+test('fuel editing saves notes and preserves extra existing fields', async () => {
+  const existing = { id: 'old', vehicleId: 'v', notes: 'Previous note', receiptId: 'receipt-1' };
+  let saved;
+  const fields = { l_loc: { value: 'Station' }, l_partial: { checked: false }, l_notes: { value: 'Updated note' } };
+  const ui = { validateDateField: () => '2026-09-11', validateNumberField: () => ({ ok: true, number: 1200, value: '40' }), closeModal() {}, render() {} };
+  const context = vm.createContext({ ui, document: { getElementById: id => fields[id] }, store: { data: { logs: [existing], settings: { activeVehicleId: 'other' } }, updateLog: async log => { saved = log; } } });
+  vm.runInContext(await fs.readFile(new URL('../src/ui/actions/fuel.js', import.meta.url), 'utf8'), context);
+  await ui.submitFuel('old');
+  assert.equal(saved.notes, 'Updated note');
+  assert.equal(saved.vehicleId, 'v');
+  assert.equal(saved.receiptId, 'receipt-1');
+  delete fields.l_notes;
+  await ui.submitFuel('old');
+  assert.equal(saved.notes, 'Previous note');
+});

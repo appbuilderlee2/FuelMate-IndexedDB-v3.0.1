@@ -1,5 +1,5 @@
 /* FuelMate Service Worker - app-shell cache for offline install */
-const CACHE_NAME = 'fuelmate-cache-v21';
+const CACHE_NAME = 'fuelmate-cache-v22';
 
 function urlFor(path) {
   return new URL(path, self.registration.scope).toString();
@@ -37,124 +37,41 @@ const CORE_ASSETS = [
   urlFor('material-icons/material-icons.woff'),
 ];
 
-function extractSameOriginAssetPaths(htmlText) {
-  const matches = htmlText.matchAll(/\b(?:href|src)\s*=\s*"(\/[^"#?]+)"/g);
-  const paths = new Set();
-  for (const m of matches) {
-    const p = m[1];
-    if (!p) continue;
-    if (p.startsWith('//')) continue;
-    if (p.startsWith('/@')) continue;
-    paths.add(p);
-  }
-  return Array.from(paths);
-}
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.addAll(CORE_ASSETS);
-
-      // Best-effort: cache same-origin assets referenced by the current HTML (works for hashed Vite assets too).
-      try {
-        const res = await fetch(urlFor('index.html'), { cache: 'no-store' });
-        if (res.ok) {
-          const html = await res.text();
-          const assets = extractSameOriginAssetPaths(html);
-          await cache.addAll(assets);
-        }
-      } catch {
-        // ignore
+// Production build replaces this with hashes of the complete release assets.
+const RELEASE_HASHES = null;
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const paths = RELEASE_HASHES ? Object.keys(RELEASE_HASHES) : CORE_ASSETS;
+    const entries = await Promise.all(paths.map(async path => {
+      const url = RELEASE_HASHES ? urlFor(path) : path;
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Incomplete release: ' + url);
+      if (RELEASE_HASHES) {
+        const bytes = await response.clone().arrayBuffer();
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        const hash = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+        if (hash !== RELEASE_HASHES[path]) throw new Error('Release mismatch: ' + path);
       }
-
-      self.skipWaiting();
-    })(),
-  );
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    (async () => {
-      const keys = await caches.keys();
-      await Promise.all(keys.filter(k => /^fuelmate-cache-v\d+$/.test(k) && k !== CACHE_NAME).map(k => caches.delete(k)));
-      await self.clients.claim();
-    })(),
-  );
-});
-
-async function responsesDiffer(cached, fresh) {
-  if (!cached || !fresh) return false;
-  const cachedEtag = cached.headers.get('etag');
-  const freshEtag = fresh.headers.get('etag');
-  if (cachedEtag && freshEtag) return cachedEtag !== freshEtag;
-  const cachedModified = cached.headers.get('last-modified');
-  const freshModified = fresh.headers.get('last-modified');
-  if (cachedModified && freshModified) return cachedModified !== freshModified;
-  const [cachedText, freshText] = await Promise.all([cached.clone().text(), fresh.clone().text()]);
-  return cachedText !== freshText;
-}
-
-async function notifyShellUpdated() {
-  const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-  windows.forEach((client) => client.postMessage({ type: 'APP_SHELL_UPDATED' }));
-}
-
-async function refreshNavigationShell(request, cached) {
-  try {
-    const response = await fetch(request, { cache: 'no-store' });
-    if (!response?.ok) return null;
-    const changed = await responsesDiffer(cached, response);
+      return [url, response];
+    }));
     const cache = await caches.open(CACHE_NAME);
-    await cache.put(urlFor('index.html'), response.clone());
-    if (changed) await notifyShellUpdated();
-    return response;
-  } catch {
-    return null;
-  }
-}
-
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  if (request.method !== 'GET') return;
-
-  const url = new URL(request.url);
-  const isSameOrigin = url.origin === self.location.origin;
-  const indexUrl = urlFor('index.html');
-
-  // Render the cached shell immediately; refresh it in the background when online.
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      (async () => {
-        const cached = await caches.match(indexUrl);
-        const refresh = refreshNavigationShell(request, cached);
-        if (cached) {
-          event.waitUntil(refresh.then(() => undefined));
-          return cached;
-        }
-        return (await refresh) || Response.error();
-      })(),
-    );
-    return;
-  }
-
-  // Cache-first for same-origin; runtime cache opaque CDN assets too.
-  event.respondWith(
-    (async () => {
-      const cached = await caches.match(request);
-      if (cached) return cached;
-
-      try {
-        const response = await fetch(request);
-        if (response && (response.ok || response.type === 'opaque')) {
-          const cache = await caches.open(CACHE_NAME);
-          cache.put(request, response.clone());
-        }
-        return response;
-      } catch {
-        if (isSameOrigin) return (await caches.match(indexUrl)) || Response.error();
-        return Response.error();
-      }
-    })(),
-  );
+    await Promise.all(entries.map(([url, response]) => cache.put(url, response)));
+    // Wait for all old tabs to close. Never take over an open form.
+  })());
+});
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => /^fuelmate-cache-v\d+$/.test(k) && k !== CACHE_NAME).map(k => caches.delete(k)));
+  })());
+});
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const key = request.mode === 'navigate' ? urlFor('index.html') : request;
+    // A missing asset must never be filled from a different release or with HTML.
+    return (await cache.match(key)) || Response.error();
+  })());
 });
