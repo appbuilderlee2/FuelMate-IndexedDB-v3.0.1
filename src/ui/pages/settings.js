@@ -173,6 +173,24 @@ renderSettings(vehicle) {
                                             </button>`;
                                         }).join('')}
                                     </div>
+                                    <div class="mt-4 rounded-2xl overflow-hidden border theme-border" role="group" aria-label="iOS">
+                                        ${['ios-native', 'ios-glass'].map(family => {
+                                            const selected = (settings.appearance || '').startsWith(family);
+                                            const mode = (settings.appearance || 'apple-fluid-system').split('-').pop();
+                                            const label = family === 'ios-native' ? 'iOS 原生' : 'iOS 玻璃';
+                                            const english = family === 'ios-native' ? 'iOS Native' : 'iOS Glass';
+                                            return `<button data-testid="appearance-${family}" aria-pressed="${selected}" data-action="ui" data-ui-method="updateAppearance" data-ui-args="${encodeURIComponent(JSON.stringify([family + '-' + mode]))}" class="appearance-option w-full min-h-[68px] px-3 flex items-center gap-3 text-left border-t first:border-t-0 theme-border">
+                                                <span class="ios-theme-preview ${family === 'ios-glass' ? 'ios-theme-preview-glass' : ''}"><span class="material-icons">${family === 'ios-glass' ? 'blur_on' : 'view_agenda'}</span></span>
+                                                <span class="flex-1"><span class="block text-sm font-bold theme-text-heading">${settings.language === 'zh' ? label : english}</span><span class="block text-xs theme-text-sub">${settings.language === 'zh' ? (family === 'ios-native' ? '簡潔分組列表' : '通透導覽與柔和層次') : (family === 'ios-native' ? 'Clean, grouped surfaces' : 'Translucent navigation and sheets')}</span></span>
+                                                <span class="material-icons ${selected ? 'text-blue-600' : 'text-slate-300'}">${selected ? 'check_circle' : 'radio_button_unchecked'}</span>
+                                            </button>`;
+                                        }).join('')}
+                                    </div>
+                                    <p class="text-xs theme-text-sub mt-2">${settings.language === 'zh' ? '保留所有原有風格；切換不會影響記錄與資料。' : 'All existing styles remain available. Switching keeps your records and data.'}</p>
+                                    ${(settings.appearance || '').startsWith('ios-') ? `<div class="ios-display-modes mt-4" role="group" aria-label="${settings.language === 'zh' ? '顯示模式' : 'Color scheme'}">
+                                        ${['light', 'dark', 'system'].map((mode, i) => `<button data-testid="ios-mode-${mode}" aria-pressed="${settings.appearance.endsWith('-' + mode)}" data-action="ui" data-ui-method="updateAppearance" data-ui-args="${encodeURIComponent(JSON.stringify([settings.appearance.replace(/-(light|dark|system)$/, '-' + mode)]))}">${(settings.language === 'zh' ? ['淺色', '深色', '跟隨系統'] : ['Light', 'Dark', 'System'])[i]}</button>`).join('')}
+                                    </div>` : ''}
+                                    <label class="ios-transparency-row"><span>${settings.language === 'zh' ? '減少透明度（iOS 風格）' : 'Reduce transparency (iOS styles)'}</span><input type="checkbox" role="switch" data-testid="reduce-transparency" ${settings.reduceTransparency === true ? 'checked' : ''} data-change-action="ui" data-ui-method="updateTransparency" data-ui-pass-element="true"></label>
                                 </section>
                             </div>
                         </div>
@@ -246,7 +264,7 @@ async updateActiveVehicleSetting(key, valueType, value) {
                     nextVehicle.maintenanceBaselineOdometer = parseFloat(vehicle.currentOdometer) || 0;
                 }
                 if (!hasPeriodicService && key === 'maintenanceTime' && parseInt(nextValue, 10) > 0 && !vehicle.maintenanceBaselineDate) {
-                    nextVehicle.maintenanceBaselineDate = new Date().toISOString().slice(0, 10);
+                    nextVehicle.maintenanceBaselineDate = FuelMateCore.localDateKey();
                 }
                 await store.updateVehicle(nextVehicle);
                 this.render();
@@ -261,11 +279,38 @@ async updateGlobalSetting(key, value) {
             },
 
 async updateAppearance(value) {
+                if (this._savingAppearance) return;
+                this._savingAppearance = true;
+                const previous = store.data.settings.appearance;
                 const appearance = FuelMateAppearance.normalize(value);
-                store.data.settings.appearance = appearance;
-                FuelMateAppearance.apply(appearance);
-                await store.saveData();
-                this.render();
+                try {
+                    store.data.settings.appearance = appearance;
+                    await store.saveData();
+                    FuelMateAppearance.apply(appearance);
+                    this.render();
+                } catch (error) {
+                    store.data.settings.appearance = previous;
+                    throw error;
+                } finally { this._savingAppearance = false; }
+            },
+
+async updateTransparency(element) {
+                const previous = store.data.settings.reduceTransparency === true;
+                store.data.settings.reduceTransparency = element.checked;
+                try {
+                    await store.saveData();
+                    this.applyTransparency();
+                } catch (error) {
+                    store.data.settings.reduceTransparency = previous;
+                    element.checked = previous;
+                    throw error;
+                }
+            },
+
+applyTransparency() {
+                const value = store.data.settings.reduceTransparency === true;
+                document.documentElement.dataset.reduceTransparency = String(value);
+                try { localStorage.setItem('fuelmate_reduce_transparency', String(value)); } catch (_) {}
             },
 
 openImportPicker() {

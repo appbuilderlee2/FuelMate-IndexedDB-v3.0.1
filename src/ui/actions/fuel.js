@@ -1,7 +1,7 @@
 // FuelMate UI module: actions/fuel
 Object.assign(ui, {
 openAddFuel(id = null) {
-                const log = id ? store.data.logs.find(l => String(l.id) === String(id)) : { date: new Date().toISOString().slice(0, 10), odometer: store.getActiveVehicle()?.currentOdometer || '', liters: '', cost: '', location: '', notes: '', isPartial: false };
+                const log = id ? store.data.logs.find(l => String(l.id) === String(id)) : { date: FuelMateCore.localDateKey(), odometer: store.getActiveVehicle()?.currentOdometer || '', liters: '', cost: '', location: '', notes: '', isPartial: false };
                 this._fuelCalcLast = [];
                 const fuelUnit = utils.getFuelUnit();
                 const volLabel = fuelUnit === 'kWh' ? utils.t('kwh') : (fuelUnit === 'Gal' ? utils.t('gallons') : utils.t('liters'));
@@ -36,6 +36,7 @@ openAddFuel(id = null) {
                              <button data-action="ui" data-ui-method="detectLocationFor" data-ui-args="${encodeURIComponent(JSON.stringify(['l_loc']))}" class="absolute right-3 top-8 text-teal-500"><span class="material-icons">my_location</span></button>
                         </div>
 
+                        <div><label for="l_notes" class="text-xs theme-text-sub">${utils.t('notes')}</label><textarea id="l_notes" class="w-full p-3 rounded-xl">${utils.escapeHtml(log.notes || '')}</textarea></div>
                         <div class="flex gap-3 mt-4">
                             ${id ? `<button data-action="ui" data-ui-method="deleteLog" data-ui-args="${encodeURIComponent(JSON.stringify([id]))}" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold">${utils.t('delete')}</button>` : ''}
                             <button data-testid="save-fuel" data-action="ui" data-ui-method="submitFuel" data-ui-args="${encodeURIComponent(JSON.stringify([id || '']))}" class="flex-1 grad-teal text-white py-3 rounded-xl font-bold shadow-lg">${utils.t('save')}</button>
@@ -124,6 +125,7 @@ calcFuel(trigger) {
             },
 
 async submitFuel(id) {
+                if (this._savingFuel) return;
                 const date = this.validateDateField('l_date');
                 if (!date) return;
                 const odometer = this.validateNumberField('l_odo', { messageKey: 'validation_odometer' });
@@ -133,9 +135,11 @@ async submitFuel(id) {
                 const cost = this.validateNumberField('l_cost', { messageKey: 'validation_cost' });
                 if (!cost.ok) return;
 
+                const existing = id ? store.data.logs.find(item => item.id === id) : null;
                 const log = {
+                    ...existing,
                     id: id || utils.newId(),
-                    vehicleId: store.data.settings.activeVehicleId,
+                    vehicleId: existing?.vehicleId || store.data.settings.activeVehicleId,
                     type: 'fuel',
                     date,
                     odometer: odometer.number,
@@ -143,12 +147,15 @@ async submitFuel(id) {
                     cost: cost.value,
                     location: document.getElementById('l_loc').value.trim(),
                     isPartial: document.getElementById('l_partial').checked,
-                    notes: ''
+                    notes: document.getElementById('l_notes')?.value ?? existing?.notes ?? ''
                 };
 
-                if (id) await store.updateLog(log);
-                else await store.addLog(log);
-                this.closeModal();
-                this.render();
+                this._savingFuel = true;
+                try {
+                    if (id) await store.updateLog(log);
+                    else await store.addLog(log);
+                    this.closeModal();
+                    this.render();
+                } finally { this._savingFuel = false; }
             }
 });

@@ -1,0 +1,91 @@
+/* Optional iOS themes. Apple Fluid deliberately keeps its existing rules. */
+:root[data-appearance^="ios-"] {
+  --bg-main: #f2f2f7;
+  --bg-card: #fff;
+  --text-heading: #1c1c1e;
+  --text-sub: #636366;
+  --border-color: #d1d1d6;
+  --ios-accent: #007aff;
+  --ios-material: rgba(250, 250, 253, .78);
+  --ios-edge: rgba(255,255,255,.85);
+}
+:root[data-appearance^="ios-"][data-color-scheme="dark"] {
+  --bg-main: #000;
+  --bg-card: #1c1c1e;
+  --text-heading: #f2f2f7;
+  --text-sub: #aeaeb2;
+  --border-color: #38383a;
+  --ios-accent: #0a84ff;
+  --ios-material: rgba(35,35,39,.82);
+  --ios-edge: rgba(255,255,255,.18);
+}
+:root[data-appearance^="ios-"] body { background: var(--bg-main); font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; font-size: 17px; }
+:root[data-appearance^="ios-"] :is(button,input,select,textarea) { font-family: inherit; touch-action: manipulation; }
+:root[data-appearance^="ios-"] :is(input,select,textarea) { font-size: 16px; accent-color: var(--ios-accent); }
+:root[data-appearance^="ios-"] :is(.theme-bg-card,.card-shadow) { background: var(--bg-card); border-radius: 12px; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-appearance^="ios-"] :is(.shadow-lg,.shadow-xl,.shadow-sm) { box-shadow: none; }
+:root[data-appearance^="ios-"] :is(.text-teal-500,.text-teal-600,.text-teal-700) { color: var(--ios-accent); }
+:root[data-appearance^="ios-"] :is(.bg-teal-600,.grad-teal) { background: var(--ios-accent); }
+:root[data-appearance^="ios-"] :is(.bg-teal-50,.bg-teal-100) { background: color-mix(in srgb,var(--ios-accent) 10%,var(--bg-card)); }
+:root[data-appearance^="ios-"] #app > div > h1 { font-size: 34px; letter-spacing: -.8px; font-weight: 700; }
+:root[data-appearance^="ios-"] .liquid-nav { background: var(--bg-card); border-top: 1px solid var(--border-color); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-appearance^="ios-"] :is(.liquid-nav-bg,.liquid-nav-gloss,.liquid-nav-highlight) { display: none; }
+:root[data-appearance^="ios-"] .liquid-nav-item { min-height: 49px; color: var(--text-sub); transform: none; }
+:root[data-appearance^="ios-"] .liquid-nav-item.is-active { color: var(--ios-accent); }
+:root[data-appearance^="ios-"] .liquid-nav-item .material-icons { font-size: 24px; text-shadow: none; }
+:root[data-appearance^="ios-"] .liquid-nav-item span:last-child { font-size: 10px; font-weight: 500; }
+:root[data-appearance^="ios-"] .nav-safe { padding-bottom: max(8px,env(safe-area-inset-bottom)); }
+:root[data-appearance^="ios-"] #modal-content { background: var(--bg-main); color: var(--text-heading); border-radius: 20px 20px 0 0; padding: 20px 20px max(24px,env(safe-area-inset-bottom)); }
+:root[data-appearance^="ios-"] #modal-content > h2 { font-size: 20px; }
+:root[data-appearance^="ios-"] #modal-content :is(input:not([type="checkbox"]),select,textarea) { background: var(--bg-card); border-color: transparent; border-radius: 10px; min-height: 44px; }
+:root[data-appearance^="ios-"] #modal-content label { font-size: 13px; }
+.ios-sheet-toolbar { display: grid; grid-template-columns: 64px 1fr 64px; align-items: center; gap: 8px; margin-bottom: 20px; }
+.ios-sheet-toolbar h2 { margin: 0; font-size: 17px; font-weight: 600; text-align: center; justify-content: center; }
+.ios-sheet-toolbar h2 .material-icons { display: none; }
+.ios-sheet-toolbar button { min-height: 44px; font-size: 16px; color: var(--ios-accent); background: none; }
+.ios-sheet-toolbar > button:first-child { text-align: left; }
+.ios-sheet-save { text-align: right; font-weight: 600; }
+:root[data-appearance^="ios-"] [data-testid="log-card"] { border-bottom: 1px solid var(--border-color); padding: 16px; }
+:root[data-appearance^="ios-"] [data-testid="log-card"] .font-bold { font-weight: 600; }
+:root[data-appearance^="ios-"] [data-page="settings"] [data-ui-method="openVehicleSelector"] { background: var(--bg-main); color: var(--text-heading); border-radius: 10px; }
+:root[data-appearance^="ios-"] [data-page="settings"] [data-ui-method="openVehicleSelector"] .text-white\/80 { color: var(--text-sub); }
+:root[data-appearance^="ios-"] .appearance-option[aria-checked="true"],
+.appearance-option[aria-pressed="true"] { background: rgba(0,122,255,.08); box-shadow: none; }
+.ios-theme-preview { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; background: #f2f2f7; color: #007aff; }
+.ios-theme-preview-glass { background: linear-gradient(140deg,#f8fcff,#bcdcff); border: 1px solid #fff; box-shadow: inset 0 1px 4px #fff; }
+.ios-display-modes { display: flex; background: var(--border-color); padding: 3px; border-radius: 9px; }
+.ios-display-modes button { flex: 1; min-height: 38px; border-radius: 7px; font-size: 13px; color: var(--text-heading); }
+.ios-display-modes button[aria-pressed="true"] { background: var(--bg-card); box-shadow: 0 1px 3px #0002; }
+.ios-transparency-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 4px 4px; font-size: 15px; }
+.ios-transparency-row input { appearance: none; width: 46px; height: 28px; background: #78788055; border: 0; border-radius: 20px; position: relative; flex: none; }
+.ios-transparency-row input::after { content: ''; position: absolute; width: 24px; height: 24px; left: 2px; top: 2px; border-radius: 50%; background: white; box-shadow: 0 1px 3px #0003; }
+.ios-transparency-row input:checked { background: #34c759; }
+.ios-transparency-row input:checked::after { transform: translateX(18px); }
+.ios-transparency-row input:focus-visible { outline: 3px solid #007aff; outline-offset: 3px; }
+/* Glass is restricted to chrome, leaving records on opaque, readable surfaces. */
+:root[data-appearance^="ios-"] .dashboard-header { background: var(--bg-main); color: var(--text-heading); border-radius: 0; padding-bottom: 20px; }
+:root[data-appearance^="ios-"] .dashboard-header > .absolute { display: none; }
+:root[data-appearance^="ios-"] .dashboard-header :is(.text-white,.text-white\/80,.text-white\/70) { color: var(--text-heading); }
+:root[data-appearance^="ios-"] .dashboard-header button { color: var(--ios-accent); background: var(--bg-card); }
+:root[data-appearance^="ios-"] .dashboard-metrics { display: flex; flex-direction: column; gap: 0; background: var(--bg-card); border-radius: 12px; overflow: hidden; }
+:root[data-appearance^="ios-"] .dashboard-metrics > div { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 3px 12px; padding: 14px 16px; border-radius: 0; border-bottom: 1px solid var(--border-color); }
+:root[data-appearance^="ios-"] .dashboard-metrics > div:last-child { border-bottom: 0; }
+:root[data-appearance^="ios-"] .dashboard-metrics > div > :first-child { font-size: 15px; font-weight: 400; letter-spacing: normal; text-transform: none; color: var(--text-heading); margin: 0; }
+:root[data-appearance^="ios-"] .dashboard-metrics > div > :nth-child(2) { font-size: 20px; font-weight: 600; color: var(--text-heading); font-variant-numeric: tabular-nums; }
+:root[data-appearance^="ios-"] .dashboard-metrics > div > :nth-child(3) { grid-column: 2; text-align: right; font-size: 12px; }
+:root[data-appearance^="ios-glass"] .dashboard-header button { background: var(--ios-material); border: 1px solid var(--ios-edge); box-shadow: 0 2px 8px #0000000a; }
+:root[data-appearance^="ios-glass"] .liquid-nav { left: 12px; bottom: max(10px,env(safe-area-inset-bottom)); width: calc(100% - 24px); border-radius: 32px; padding: 3px 4px; background: var(--ios-material); border: 1px solid var(--ios-edge); backdrop-filter: blur(24px) saturate(150%); -webkit-backdrop-filter: blur(24px) saturate(150%); box-shadow: 0 6px 24px #00000012,inset 0 1px 1px var(--ios-edge); }
+:root[data-appearance^="ios-glass"] .liquid-nav-inner { padding-top: 0; }
+:root[data-appearance^="ios-glass"] .liquid-nav-item.is-active { border-radius: 26px; background: color-mix(in srgb,var(--ios-accent) 12%,transparent); }
+:root[data-appearance^="ios-glass"] #modal-content { background: var(--ios-material); border: 1px solid var(--ios-edge); backdrop-filter: blur(28px) saturate(140%); -webkit-backdrop-filter: blur(28px) saturate(140%); box-shadow: inset 0 1px 1px var(--ios-edge); }
+:root[data-appearance^="ios-"][data-reduce-transparency="true"] :is(.liquid-nav,#modal-content) { background: var(--bg-card); backdrop-filter: none; -webkit-backdrop-filter: none; }
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-appearance^="ios-"] :is(.liquid-nav,#modal-content) { background: var(--bg-card); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-appearance^="ios-"] :is(.liquid-nav,#modal-content) { background: var(--bg-card); }
+}
+@media (min-width: 640px) {
+  :root[data-appearance^="ios-"] #modal-content { border-radius: 20px; }
+  :root[data-appearance^="ios-glass"] .liquid-nav { max-width: 560px; left: 50%; transform: translateX(-50%); }
+}

@@ -1,21 +1,21 @@
 const FuelMateAppearance = (() => {
-            const allowed = new Set(['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system']);
+            const allowed = new Set(['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system']);
             const media = window.matchMedia('(prefers-color-scheme: dark)');
             let current = 'apple-fluid-system';
 
             const normalize = value => allowed.has(value) ? value : 'apple-fluid-system';
-            const resolve = value => value === 'apple-fluid-dark' || (value === 'apple-fluid-system' && media.matches) ? 'dark' : 'light';
+            const resolve = value => value.endsWith('-dark') || (value.endsWith('-system') && media.matches) ? 'dark' : 'light';
             const apply = value => {
                 current = normalize(value);
                 const scheme = resolve(current);
                 document.documentElement.dataset.appearance = current;
                 document.documentElement.dataset.colorScheme = scheme;
                 document.documentElement.style.colorScheme = scheme;
-                document.querySelector('meta[name="theme-color"]')?.setAttribute('content', scheme === 'dark' ? '#07111f' : '#e9f7f7');
+                document.querySelector('meta[name="theme-color"]')?.setAttribute('content', current.startsWith('ios-') ? (scheme === 'dark' ? '#000000' : '#f2f2f7') : (scheme === 'dark' ? '#07111f' : '#e9f7f7'));
                 try { localStorage.setItem('fuelmate_appearance', current); } catch (_) {}
                 return current;
             };
-            media.addEventListener?.('change', () => { if (current === 'apple-fluid-system') apply(current); });
+            media.addEventListener?.('change', () => { if (current.endsWith('-system')) apply(current); });
             return Object.freeze({ apply, normalize, resolve });
         })();
         window.FuelMateAppearance = FuelMateAppearance;
@@ -325,19 +325,22 @@ const router = {
         if (!navigator.onLine) updateNetworkStatus();
 
         if ('serviceWorker' in navigator) {
-            const hadController = Boolean(navigator.serviceWorker.controller);
-            const showUpdateReady = () => showPwaStatus(utils.t('update_available'), {
-                persistent: true,
-                actionLabel: utils.t('reload_now'),
-                onAction: () => window.location.reload()
-            });
-            navigator.serviceWorker.addEventListener('message', (event) => {
-                if (event.data?.type === 'APP_SHELL_UPDATED') showUpdateReady();
-            });
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (hadController) showUpdateReady();
-            });
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.error('Service Worker registration failed', err));
+            window.addEventListener('load', async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+                    const notifyWaiting = () => {
+                        if (registration.waiting) showPwaStatus(
+                            store.data.settings.language === 'zh'
+                                ? '新版已準備好。請先儲存，再關閉所有 FuelMate 視窗並重新開啟。'
+                                : 'Update ready. Save your work, close all FuelMate windows, then reopen.',
+                            { persistent: true }
+                        );
+                    };
+                    notifyWaiting();
+                    registration.addEventListener('updatefound', () => {
+                        registration.installing?.addEventListener('statechange', notifyWaiting);
+                    });
+                    window.addEventListener('online', () => registration.update().catch(console.error));
+                } catch (error) { console.error('Service Worker registration failed', error); }
             });
         }

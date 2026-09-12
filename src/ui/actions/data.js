@@ -18,7 +18,7 @@ exportData() {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `fuelmate_backup_${new Date().toISOString().slice(0,10)}.json`;
+                a.download = `fuelmate_backup_${FuelMateCore.localDateKey()}.json`;
                 a.click();
 
                 // Update backup date
@@ -70,7 +70,7 @@ importData(input) {
 
                                 <div class="theme-bg-card p-4 rounded-2xl border theme-border">
                                     <div class="text-xs theme-text-sub uppercase tracking-wider mb-2">${utils.t('import_file')}</div>
-                                    <div class="font-bold theme-text-heading">${fileName}</div>
+                                    <div class="font-bold theme-text-heading">${utils.escapeHtml(fileName)}</div>
                                     <div class="text-xs theme-text-sub">${utils.formatFileSize(fileSize)}</div>
                                 </div>
 
@@ -90,7 +90,7 @@ importData(input) {
                                 <div class="theme-bg-card p-4 rounded-2xl border theme-border">
                                     <div class="text-xs theme-text-sub uppercase tracking-wider mb-2">${utils.t('import_settings')}</div>
                                     <div class="text-xs theme-text-sub">
-                                        units: ${incomingSummary.settings.units || '--'} • currency: ${incomingSummary.settings.currency || '--'} • language: ${incomingSummary.settings.language || '--'}
+                                        units: ${utils.escapeHtml(incomingSummary.settings.units || '--')} • currency: ${utils.escapeHtml(incomingSummary.settings.currency || '--')} • language: ${utils.escapeHtml(incomingSummary.settings.language || '--')}
                                     </div>
                                 </div>
 

@@ -3,9 +3,20 @@ Object.assign(ui, {
 init() {
                 store.init().then(() => {
                     FuelMateAppearance.apply(store.data.settings.appearance);
+                    this.applyTransparency();
                     this.render();
                     if (!store.data.vehicles.length) this.openAddVehicle();
-                }).catch(err => console.error("DB Init Failed", err));
+                }).catch(err => {
+                    console.error('DB Init Failed', err);
+                    const app = document.getElementById('app');
+                    app.replaceChildren();
+                    const message = document.createElement('p');
+                    message.textContent = '無法載入本機資料 / Unable to load local data. 請關閉其他 FuelMate 分頁後重試；不會清除資料。';
+                    const retry = document.createElement('button');
+                    retry.textContent = '重新載入 / Retry';
+                    retry.onclick = () => location.reload();
+                    app.append(message, retry);
+                });
             },
 
 getPageLimit(pageKey) {
@@ -63,6 +74,7 @@ renderLoadMore(pageKey, shown, total) {
 render() {
                 const app = document.getElementById('app');
                 const page = router.currentPage;
+                app.dataset.page = page;
                 const vehicle = store.getActiveVehicle();
                 const scrollY = window.scrollY;
 
@@ -200,7 +212,7 @@ renderFilterHeader(page, filter, isColorBg = false) {
             },
 
 setFilter(page, mode, value) {
-                if (mode === 'month' && !value) value = new Date().toISOString().slice(0, 7);
+                if (mode === 'month' && !value) value = FuelMateCore.localDateKey().slice(0, 7);
                 if (mode === 'year' && !value) value = new Date().getFullYear().toString();
                 store.pageFilters[page] = { mode, value };
                 this.resetPageLimit(page);
@@ -423,6 +435,28 @@ openModal(html) {
                 const overlay = document.getElementById('modal-overlay');
                 const content = document.getElementById('modal-content');
                 content.innerHTML = html;
+                if ((store.data.settings.appearance || '').startsWith('ios-')) {
+                    const title = content.querySelector('h2');
+                    if (title) {
+                        const toolbar = document.createElement('div');
+                        toolbar.className = 'ios-sheet-toolbar';
+                        const cancel = document.createElement('button');
+                        cancel.textContent = utils.t('cancel');
+                        cancel.dataset.action = 'ui';
+                        cancel.dataset.uiMethod = 'closeModal';
+                        toolbar.append(cancel, title);
+                        const save = content.querySelector('[data-testid="save-fuel"]');
+                        if (save) {
+                            save.className = 'ios-sheet-save';
+                            toolbar.append(save);
+                        } else {
+                            const spacer = document.createElement('span');
+                            spacer.setAttribute('aria-hidden', 'true');
+                            toolbar.append(spacer);
+                        }
+                        content.prepend(toolbar);
+                    }
+                }
                 overlay.classList.remove('hidden');
                 setTimeout(() => {
                     overlay.classList.remove('opacity-0');

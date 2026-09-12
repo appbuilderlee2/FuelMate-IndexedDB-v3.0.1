@@ -80,7 +80,7 @@ async submitQuickTireSetup() {
                         id: utils.newId(),
                         vehicleId: vehicle.id,
                         type: 'tire_replace',
-                        date: now.toISOString().slice(0, 10),
+                        date: FuelMateCore.localDateKey(now),
                         odometer: currentOdo,
                         cost: '',
                         location: '',
@@ -121,7 +121,7 @@ setQuickTireSetupMode(mode) {
 
 openAddService(id = null, defaultType = 'service') {
                 const existing = id ? store.data.logs.find(l => String(l.id) === String(id)) : null;
-                const log = existing ? { ...existing } : { date: new Date().toISOString().slice(0, 10), odometer: store.getActiveVehicle()?.currentOdometer || '', type: defaultType, cost: '', location: '', notes: '', expiryDate: '', tirePosition: 'front_left', tireBrand: '', tireTread: '', tirePressureKpa: '', tireAlignment: false, tireBalancing: false, tireSwaps: [{ a: 'front_left', b: 'rear_left' }, { a: 'front_right', b: 'rear_right' }] };
+                const log = existing ? { ...existing } : { date: FuelMateCore.localDateKey(), odometer: store.getActiveVehicle()?.currentOdometer || '', type: defaultType, cost: '', location: '', notes: '', expiryDate: '', tirePosition: 'front_left', tireBrand: '', tireTread: '', tirePressureKpa: '', tireAlignment: false, tireBalancing: false, tireSwaps: [{ a: 'front_left', b: 'rear_left' }, { a: 'front_right', b: 'rear_right' }] };
                 if (log.type === 'tire_replace') {
                     const unit = utils.getPressureUnit();
                     const kpa = (log.tirePressureKpa !== undefined && log.tirePressureKpa !== null && log.tirePressureKpa !== '')

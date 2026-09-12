@@ -108,7 +108,7 @@ renderDashboard(vehicle) {
                 const bgClass = utils.getCarColorClass(vehicle.color || 'teal');
                 return `
                     <div class="relative pb-20">
-                        <div class="${bgClass} pt-safe pb-20 rounded-b-[2.5rem] shadow-xl px-6 relative overflow-hidden transition-all duration-500 z-10">
+                        <div class="dashboard-header ${bgClass} pt-safe pb-20 rounded-b-[2.5rem] shadow-xl px-6 relative overflow-hidden transition-all duration-500 z-10">
                              <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
 
                              <div class="relative z-10">
@@ -137,7 +137,7 @@ renderDashboard(vehicle) {
                         </div>
 
                         <div class="px-6 mt-2 relative z-20">
-                            <div class="grid grid-cols-2 gap-3 mb-6">
+                            <div class="dashboard-metrics grid grid-cols-2 gap-3 mb-6">
                                 <div class="theme-bg-card p-4 rounded-2xl card-shadow">
                                     <div class="theme-text-sub text-[10px] font-bold uppercase tracking-wider mb-1">${utils.t('efficiency')}</div>
                                     <div class="text-2xl font-black text-teal-600">${stats.efficiency}</div>

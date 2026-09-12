@@ -178,12 +178,12 @@ async addDemoCar() {
                 const isoDaysAgo = (daysAgo) => {
                     const d = new Date(now);
                     d.setDate(d.getDate() - daysAgo);
-                    return d.toISOString().slice(0, 10);
+                    return FuelMateCore.localDateKey(d);
                 };
                 const isoDaysFromNow = (daysFromNow) => {
                     const d = new Date(now);
                     d.setDate(d.getDate() + daysFromNow);
-                    return d.toISOString().slice(0, 10);
+                    return FuelMateCore.localDateKey(d);
                 };
 
                 const vehicleId = utils.newId();

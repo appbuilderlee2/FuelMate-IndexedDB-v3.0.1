@@ -442,7 +442,7 @@
                 const now = new Date();
                 for (let i=5; i>=0; i--) {
                     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                    months.push(d.toISOString().slice(0, 7)); 
+                    months.push(FuelMateCore.localDateKey(d).slice(0, 7));
                 }
                 
                 const data = months.map(m => {
@@ -524,7 +524,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `fuelmate_export_${new Date().toISOString().slice(0,10)}.csv`;
+                a.download = `fuelmate_export_${FuelMateCore.localDateKey()}.csv`;
                 a.click();
             },
             

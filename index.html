@@ -10,8 +10,9 @@
         (() => {
             let appearance = 'apple-fluid-system';
             try { appearance = localStorage.getItem('fuelmate_appearance') || appearance; } catch (_) {}
-            if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system'].includes(appearance)) appearance = 'apple-fluid-system';
-            const dark = appearance === 'apple-fluid-dark' || (appearance === 'apple-fluid-system' && matchMedia('(prefers-color-scheme: dark)').matches);
+            if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system'].includes(appearance)) appearance = 'apple-fluid-system';
+            const dark = appearance.endsWith('-dark') || (appearance.endsWith('-system') && matchMedia('(prefers-color-scheme: dark)').matches);
+            try { document.documentElement.dataset.reduceTransparency = localStorage.getItem('fuelmate_reduce_transparency') === 'true' ? 'true' : 'false'; } catch (_) {}
             document.documentElement.dataset.appearance = appearance;
             document.documentElement.dataset.colorScheme = dark ? 'dark' : 'light';
             document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
@@ -226,6 +227,7 @@
         /* Color Picker Radio */
         .color-radio:checked + div { ring: 2px solid white; box-shadow: 0 0 0 4px currentColor; }
     </style>
+    <link rel="stylesheet" href="./ios-themes.css">
     <!-- Dynamic Icon Generator -->
     <script>
         (function() {

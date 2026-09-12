@@ -6,7 +6,7 @@
             defaultSettings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, lastBackupDate: null, activeVehicleId: null },
             data: { vehicles: [], logs: [], settings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, lastBackupDate: null, activeVehicleId: null } },
             pageFilters: {
-                dashboard: { mode: 'month', value: new Date().toISOString().slice(0, 7) },
+                dashboard: { mode: 'month', value: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}` },
                 fuel: { mode: 'year', value: new Date().getFullYear().toString() },
                 maintenance: { mode: 'year', value: new Date().getFullYear().toString() },
                 parking: { mode: 'year', value: new Date().getFullYear().toString() },
@@ -83,10 +83,17 @@
                     };
                     request.onsuccess = async (event) => {
                         this.db = event.target.result;
-                        await this.migrateFromLocalStorage();
-                        await this.loadAllData();
-                        resolve();
+                        this.db.onversionchange = () => this.db.close();
+                        try {
+                            await this.migrateFromLocalStorage();
+                            await this.loadAllData();
+                            resolve();
+                        } catch (error) {
+                            this.db.close();
+                            reject(error);
+                        }
                     };
+                    request.onblocked = () => reject(new Error('Database blocked: close other FuelMate tabs and retry.'));
                     request.onerror = (e) => reject(e);
                 });
             },
@@ -142,7 +149,7 @@
                 this.data.logs = await this.runTransaction('logs', 'readonly', s => s.getAll());
                 const settings = await this.runTransaction('settings', 'readonly', s => s.get('global'));
                 if (settings) this.data.settings = { ...this.data.settings, ...settings };
-                if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system'].includes(this.data.settings.appearance)) {
+                if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system'].includes(this.data.settings.appearance)) {
                     this.data.settings.appearance = 'apple-fluid-system';
                 }
 
@@ -263,16 +270,48 @@
             },
 
             async addLog(log) {
-                await this.runTransaction('logs', 'readwrite', s => s.put(log));
-                this.data.logs.push(log);
+                await this.commitLogChange(log, null);
+            },
 
-                // Auto-update vehicle odometer
-                const vehicle = this.data.vehicles.find(v => v.id === log.vehicleId);
-                const odo = parseFloat(log.odometer) || 0;
-                const current = parseFloat(vehicle?.currentOdometer) || 0;
-                if (vehicle && odo > current) {
-                    await this.updateVehicle({ ...vehicle, currentOdometer: odo });
-                }
+            _logWriteQueue: Promise.resolve(),
+
+            commitLogChange(log, previous) {
+                const operation = this._logWriteQueue.then(() => this._commitLogChange(log, previous));
+                this._logWriteQueue = operation.catch(() => {});
+                return operation;
+            },
+
+            async _commitLogChange(log, previous) {
+                const id = log?.id || previous?.id;
+                const nextLogs = this.data.logs.filter(item => item.id !== id);
+                if (log) nextLogs.push(log);
+                const affected = new Set([log?.vehicleId, previous?.vehicleId]);
+                const nextVehicles = this.data.vehicles.map(vehicle => {
+                    if (!affected.has(vehicle.id)) return vehicle;
+                    const max = nextLogs.filter(item => item.vehicleId === vehicle.id)
+                        .reduce((value, item) => Math.max(value, parseFloat(item.odometer) || 0), 0);
+                    const current = parseFloat(vehicle.currentOdometer) || 0;
+                    const derived = previous?.vehicleId === vehicle.id && current === this.getVehicleMaxLogOdometer(vehicle.id);
+                    return max > current || (derived && max < current) ? { ...vehicle, currentOdometer: max } : vehicle;
+                });
+                await new Promise((resolve, reject) => {
+                    const tx = this.db.transaction(['logs', 'vehicles'], 'readwrite');
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error || new Error('Log write failed'));
+                    tx.onabort = () => reject(tx.error || new Error('Log write aborted'));
+                    try {
+                        const logs = tx.objectStore('logs');
+                        if (log) logs.put(log); else logs.delete(id);
+                        nextVehicles.forEach((vehicle, index) => {
+                            if (vehicle !== this.data.vehicles[index]) tx.objectStore('vehicles').put(vehicle);
+                        });
+                    } catch (error) {
+                        tx.abort();
+                        reject(error);
+                    }
+                });
+                this.data.logs = nextLogs;
+                this.data.vehicles = nextVehicles;
                 if (!this._bulkImporting) this._invalidateLogsCache();
             },
 
@@ -297,26 +336,13 @@
             },
 
             async updateLog(log) {
-                const idx = this.data.logs.findIndex(l => l.id === log.id);
-                if (idx !== -1) {
-                    const previous = this.data.logs[idx];
-                    const previousVehicleId = previous.vehicleId;
-                    const previousMax = this.getVehicleMaxLogOdometer(previousVehicleId);
-                    await this.runTransaction('logs', 'readwrite', s => s.put(log));
-                    this.data.logs[idx] = log;
-                    if (!this._bulkImporting) this._invalidateLogsCache();
-                    await this.reconcileVehicleOdometer(previousVehicleId, previousMax);
-                    if (log.vehicleId !== previousVehicleId) await this.reconcileVehicleOdometer(log.vehicleId, null);
-                }
+                const previous = this.data.logs.find(l => l.id === log.id);
+                if (previous) await this.commitLogChange(log, previous);
             },
 
             async deleteLog(id) {
                 const previous = this.data.logs.find(l => l.id === id);
-                const previousMax = previous ? this.getVehicleMaxLogOdometer(previous.vehicleId) : null;
-                await this.runTransaction('logs', 'readwrite', s => s.delete(id));
-                this.data.logs = this.data.logs.filter(l => l.id !== id);
-                if (!this._bulkImporting) this._invalidateLogsCache();
-                if (previous) await this.reconcileVehicleOdometer(previous.vehicleId, previousMax);
+                if (previous) await this.commitLogChange(null, previous);
             },
 
             async clearVehicleLogs(vehicleId) {
@@ -352,7 +378,7 @@
                     const nextLogs = overwrite ? [...incomingLogs] : mergeById(this.data.logs, incomingLogs);
                     const settingsBase = overwrite ? this.defaultSettings : this.data.settings;
                     const nextSettings = { ...settingsBase, ...(importedData.settings || {}) };
-                    if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system'].includes(nextSettings.appearance)) {
+                    if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system'].includes(nextSettings.appearance)) {
                         nextSettings.appearance = 'apple-fluid-system';
                     }
                     if (!nextVehicles.some(v => v.id === nextSettings.activeVehicleId)) {
