@@ -149,7 +149,7 @@
                 this.data.logs = await this.runTransaction('logs', 'readonly', s => s.getAll());
                 const settings = await this.runTransaction('settings', 'readonly', s => s.get('global'));
                 if (settings) this.data.settings = { ...this.data.settings, ...settings };
-                if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system'].includes(this.data.settings.appearance)) {
+                if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system'].includes(this.data.settings.appearance)) {
                     this.data.settings.appearance = 'apple-fluid-system';
                 }
 
@@ -378,7 +378,7 @@
                     const nextLogs = overwrite ? [...incomingLogs] : mergeById(this.data.logs, incomingLogs);
                     const settingsBase = overwrite ? this.defaultSettings : this.data.settings;
                     const nextSettings = { ...settingsBase, ...(importedData.settings || {}) };
-                    if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system'].includes(nextSettings.appearance)) {
+                    if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system'].includes(nextSettings.appearance)) {
                         nextSettings.appearance = 'apple-fluid-system';
                     }
                     if (!nextVehicles.some(v => v.id === nextSettings.activeVehicleId)) {

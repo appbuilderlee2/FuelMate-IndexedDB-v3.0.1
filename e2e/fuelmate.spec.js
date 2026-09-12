@@ -25,7 +25,7 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('nav-settings').click();
 
   await expect(page.getByRole('heading', { name: /Settings|設定/ })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('v3.8.1');
+  await expect(page.getByTestId('app-version')).toContainText('v3.9.0');
   await page.getByTestId('appearance-dark').click();
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'apple-fluid-dark');
   await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
@@ -41,6 +41,32 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('currency-setting').selectOption('€');
   await expect(page.getByTestId('currency-setting')).toHaveValue('€');
   expect(pageErrors).toEqual([]);
+});
+
+test('optional iOS styles preserve mode, records and the original appearance', async ({ page }) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.getByTestId('nav-settings').click();
+  await page.getByTestId('appearance-ios-native').click();
+  await page.getByTestId('ios-mode-dark').click();
+  await expect(page.locator('html')).toHaveAttribute('data-appearance', 'ios-native-dark');
+  await page.getByTestId('appearance-ios-glass').click();
+  await expect(page.locator('html')).toHaveAttribute('data-appearance', 'ios-glass-dark');
+  await page.getByTestId('reduce-transparency').check();
+  await expect(page.locator('html')).toHaveAttribute('data-reduce-transparency', 'true');
+  await page.reload();
+  await page.getByTestId('nav-settings').click();
+  await expect(page.getByTestId('appearance-ios-glass')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('reduce-transparency')).toBeChecked();
+  await page.getByTestId('ios-mode-system').click();
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'light');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
+  await page.getByTestId('appearance-light').click();
+  await expect(page.locator('html')).toHaveAttribute('data-appearance', 'apple-fluid-light');
+  await page.getByTestId('nav-dashboard').click();
+  await expect(page.getByText('E2E Roadster', { exact: false }).first()).toBeVisible();
 });
 
 test('adds a fuel record and renders the saved IndexedDB data', async ({ page }) => {

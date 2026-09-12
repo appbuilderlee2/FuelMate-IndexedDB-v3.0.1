@@ -3,6 +3,7 @@ Object.assign(ui, {
 init() {
                 store.init().then(() => {
                     FuelMateAppearance.apply(store.data.settings.appearance);
+                    this.applyTransparency();
                     this.render();
                     if (!store.data.vehicles.length) this.openAddVehicle();
                 }).catch(err => {
@@ -73,6 +74,7 @@ renderLoadMore(pageKey, shown, total) {
 render() {
                 const app = document.getElementById('app');
                 const page = router.currentPage;
+                app.dataset.page = page;
                 const vehicle = store.getActiveVehicle();
                 const scrollY = window.scrollY;
 
@@ -433,6 +435,28 @@ openModal(html) {
                 const overlay = document.getElementById('modal-overlay');
                 const content = document.getElementById('modal-content');
                 content.innerHTML = html;
+                if ((store.data.settings.appearance || '').startsWith('ios-')) {
+                    const title = content.querySelector('h2');
+                    if (title) {
+                        const toolbar = document.createElement('div');
+                        toolbar.className = 'ios-sheet-toolbar';
+                        const cancel = document.createElement('button');
+                        cancel.textContent = utils.t('cancel');
+                        cancel.dataset.action = 'ui';
+                        cancel.dataset.uiMethod = 'closeModal';
+                        toolbar.append(cancel, title);
+                        const save = content.querySelector('[data-testid="save-fuel"]');
+                        if (save) {
+                            save.className = 'ios-sheet-save';
+                            toolbar.append(save);
+                        } else {
+                            const spacer = document.createElement('span');
+                            spacer.setAttribute('aria-hidden', 'true');
+                            toolbar.append(spacer);
+                        }
+                        content.prepend(toolbar);
+                    }
+                }
                 overlay.classList.remove('hidden');
                 setTimeout(() => {
                     overlay.classList.remove('opacity-0');
