@@ -24,7 +24,9 @@ Object.assign(ui, {
     const enteredKey = document.getElementById('ai_api_key')?.value?.trim() || '';
     return {
       provider,
-      model: document.getElementById('ai_model')?.value?.trim() || '',
+      model: document.getElementById('ai_model_select')?.classList.contains('hidden') === false
+        ? document.getElementById('ai_model_select')?.value?.trim() || ''
+        : document.getElementById('ai_model')?.value?.trim() || '',
       endpoint: document.getElementById('ai_endpoint')?.value?.trim() || FuelMateInvoiceAI.PROVIDERS[provider]?.endpoint || '',
       apiKey: enteredKey || FuelMateInvoiceAI.getKey(provider),
       remember: Boolean(document.getElementById('ai_remember_key')?.checked),
@@ -33,7 +35,7 @@ Object.assign(ui, {
 
   async saveAISettings() {
     const config = this._readAIForm();
-    if (!config.model || !/^[\w./:-]{1,120}$/.test(config.model)) return alert(this._aiText('Enter a valid model ID.', '請輸入有效模型 ID。'));
+    if (!config.model || !/^[\w./:@+-]{1,160}$/.test(config.model)) return alert(this._aiText('Enter a valid model ID.', '請輸入有效模型 ID。'));
     try { FuelMateInvoiceAI.normalizeEndpoint(config.provider, config.endpoint); }
     catch (_) { return alert(this._aiText('Enter a valid HTTPS API URL.', '請輸入有效 HTTPS API 網址。')); }
     const previous = { ...store.data.settings };
@@ -50,10 +52,45 @@ Object.assign(ui, {
     const config = this._readAIForm();
     if (status) status.textContent = this._aiText('Testing…', '正在測試…');
     try {
-      await FuelMateInvoiceAI.testConnection(config);
-      if (status) { status.textContent = this._aiText('Connected successfully.', '連接成功。'); status.className = 'text-xs text-green-600'; }
+      const models = await FuelMateInvoiceAI.listModels(config);
+      const select = document.getElementById('ai_model_select');
+      const input = document.getElementById('ai_model');
+      const toggle = document.getElementById('ai_model_entry_toggle');
+      if (select && input && models.length) {
+        select.replaceChildren(new Option(this._aiText('Choose a model', '選擇模型'), '', true, false));
+        select.options[0].disabled = true;
+        models.forEach(model => select.add(new Option(model, model)));
+        if (models.includes(config.model)) select.value = config.model;
+        select.classList.remove('hidden');
+        input.classList.add('hidden');
+        toggle?.classList.remove('hidden');
+      }
+      if (status) {
+        status.textContent = models.length
+          ? this._aiText(`Connected. ${models.length} models loaded.`, `連接成功，已載入 ${models.length} 個模型。`)
+          : this._aiText('Connected, but this provider returned no model list. Enter the model ID manually.', '連接成功，但供應商未有傳回模型清單，請手動輸入模型 ID。');
+        status.className = models.length ? 'text-xs text-green-600' : 'text-xs text-amber-700';
+      }
     } catch (error) {
       if (status) { status.textContent = this._invoiceError(error); status.className = 'text-xs text-red-600'; }
+    }
+  },
+
+  toggleAIModelEntry() {
+    const select = document.getElementById('ai_model_select');
+    const input = document.getElementById('ai_model');
+    const toggle = document.getElementById('ai_model_entry_toggle');
+    if (!select || !input || !toggle) return;
+    const useManual = input.classList.contains('hidden');
+    if (useManual) {
+      if (select.value) input.value = select.value;
+      input.classList.remove('hidden');
+      select.classList.add('hidden');
+      toggle.textContent = this._aiText('Use loaded model list', '使用已載入模型清單');
+    } else {
+      select.classList.remove('hidden');
+      input.classList.add('hidden');
+      toggle.textContent = this._aiText('Enter model ID manually', '手動輸入模型 ID');
     }
   },
 
