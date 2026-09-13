@@ -25,7 +25,7 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('nav-settings').click();
 
   await expect(page.getByRole('heading', { name: /Settings|設定/ })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('v3.9.0');
+  await expect(page.getByTestId('app-version')).toContainText('v4.0.0');
   await page.getByTestId('appearance-dark').click();
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'apple-fluid-dark');
   await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
@@ -91,6 +91,44 @@ test('adds a fuel record and renders the saved IndexedDB data', async ({ page })
   await page.getByTestId('nav-fuel').click();
   await expect(page.locator('[data-testid="log-card"][data-log-type="fuel"]')).toContainText('E2E Station');
   expect(pageErrors).toEqual([]);
+});
+
+test('recognizes an invoice with a user key and saves one reviewed expense', async ({ page }) => {
+  await page.route('https://api.openai.com/v1/responses', async route => {
+    const request = route.request();
+    expect(request.headers().authorization).toBe('Bearer test-user-key');
+    expect(request.postData()).toContain('input_image');
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ output_text: JSON.stringify({
+      documentType: 'invoice', date: '2026-09-13', supplier: 'Example Motors', invoiceNumber: 'INV-42', odometer: 1500,
+      currency: 'A$', subtotal: 100, tax: 10, total: 110, confidence: 0.94, warnings: [],
+      lineItems: [
+        { description: 'Oil and filter service', amount: 80, category: 'oil', status: 'completed', selected: true },
+        { description: 'Inspect brakes next visit', amount: 30, category: 'brake', status: 'recommended', selected: true },
+      ],
+    }) }) });
+  });
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.getByTestId('nav-settings').click();
+  await page.getByTestId('ai-invoice-toggle').check();
+  await page.getByTestId('ai-api-key').fill('test-user-key');
+  await page.getByTestId('save-ai-settings').click();
+  await page.getByTestId('nav-maintenance').click();
+  await page.getByTestId('add-service').click();
+  await page.getByTestId('scan-invoice').click();
+  await page.locator('#invoice_file').setInputFiles({ name: 'invoice.png', mimeType: 'image/png', buffer: Buffer.from('fake-image') });
+  await expect(page.getByRole('heading', { name: /Review invoice|核對帳單/ })).toBeVisible();
+  await expect(page.locator('#inv_selected_0')).toBeChecked();
+  await expect(page.locator('#inv_selected_1')).not.toBeChecked();
+  await page.getByTestId('save-invoice-record').click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  const invoiceLogs = await page.evaluate(() => store.data.logs.filter(log => log.invoiceMeta));
+  expect(invoiceLogs).toHaveLength(1);
+  expect(invoiceLogs[0].cost).toBe('110.00');
+  expect(invoiceLogs[0].invoiceItems).toHaveLength(2);
+  expect(invoiceLogs[0].notes).toContain('Oil and filter service');
+  expect(invoiceLogs[0].notes).toContain('Inspect brakes next visit');
+  expect(await page.evaluate(() => JSON.stringify(store.data.settings))).not.toContain('test-user-key');
 });
 
 test('keeps an unset-tire reminder visible and supports snoozing it', async ({ page }) => {

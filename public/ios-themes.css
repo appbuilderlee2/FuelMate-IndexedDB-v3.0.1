@@ -89,3 +89,6 @@
   :root[data-appearance^="ios-"] #modal-content { border-radius: 20px; }
   :root[data-appearance^="ios-glass"] .liquid-nav { max-width: 560px; left: 50%; transform: translateX(-50%); }
 }
+.invoice-spinner { width: 36px; height: 36px; border: 3px solid color-mix(in srgb,var(--border-color) 75%,transparent); border-top-color: #007aff; border-radius: 50%; animation: invoice-spin .8s linear infinite; }
+.invoice-review-actions { background: linear-gradient(to bottom,transparent,var(--bg-card) 18%); }
+@keyframes invoice-spin { to { transform: rotate(360deg); } }

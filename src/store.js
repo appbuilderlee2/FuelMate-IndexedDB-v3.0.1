@@ -3,8 +3,8 @@
             db: null,
             dbName: 'FuelMateDB',
             currentSchemaVersion: 2,
-            defaultSettings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, lastBackupDate: null, activeVehicleId: null },
-            data: { vehicles: [], logs: [], settings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, lastBackupDate: null, activeVehicleId: null } },
+            defaultSettings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, aiInvoiceEnabled: false, aiProvider: 'openai', aiModel: 'gpt-4.1-mini', aiEndpoint: '', aiRememberKey: false, lastBackupDate: null, activeVehicleId: null },
+            data: { vehicles: [], logs: [], settings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, aiInvoiceEnabled: false, aiProvider: 'openai', aiModel: 'gpt-4.1-mini', aiEndpoint: '', aiRememberKey: false, lastBackupDate: null, activeVehicleId: null } },
             pageFilters: {
                 dashboard: { mode: 'month', value: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}` },
                 fuel: { mode: 'year', value: new Date().getFullYear().toString() },
@@ -152,6 +152,9 @@
                 if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system'].includes(this.data.settings.appearance)) {
                     this.data.settings.appearance = 'apple-fluid-system';
                 }
+                if (!['openai', 'gemini', 'compatible'].includes(this.data.settings.aiProvider)) this.data.settings.aiProvider = 'openai';
+                this.data.settings.aiInvoiceEnabled = this.data.settings.aiInvoiceEnabled === true;
+                this.data.settings.aiRememberKey = this.data.settings.aiRememberKey === true;
 
                 // Ensure default settings
                 if (!this.data.settings.activeVehicleId && this.data.vehicles.length > 0) {
@@ -381,6 +384,11 @@
                     if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system'].includes(nextSettings.appearance)) {
                         nextSettings.appearance = 'apple-fluid-system';
                     }
+                    if (!['openai', 'gemini', 'compatible'].includes(nextSettings.aiProvider)) nextSettings.aiProvider = 'openai';
+                    // Imported files must never activate an external request path automatically.
+                    nextSettings.aiInvoiceEnabled = false;
+                    nextSettings.aiRememberKey = false;
+                    delete nextSettings.aiApiKey;
                     if (!nextVehicles.some(v => v.id === nextSettings.activeVehicleId)) {
                         nextSettings.activeVehicleId = nextVehicles[0]?.id || null;
                     }

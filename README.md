@@ -1,4 +1,16 @@
-# FuelMate IndexedDB v3.9.0
+# FuelMate IndexedDB v4.0.0
+
+## v4.0.0 更新內容
+
+- 新增可關閉的 AI 帳單識別：車務表單可選擇 JPG、PNG、WebP 或 PDF，識別結果必須經使用者逐項核對後才儲存。
+- 支援 OpenAI、Google Gemini 及自訂 OpenAI-compatible API；使用者自行輸入 API Key、模型 ID，並可測試連接。
+- 完全無後端：帳單由裝置直接傳送到所選供應商。API Key 預設只留到分頁關閉；選擇「記住於此裝置」才保存在此瀏覽器。
+- API Key 不寫入 IndexedDB、JSON 備份、匯出檔、程式碼或 Git；匯入備份後 AI 功能一律重新關閉，避免外部請求被備份自動啟用。
+- AI 區分 invoice、receipt、quote、已完成及建議項目；報價單不預選任何完成項目，模糊欄位留待使用者確認。
+- 每張帳單只建立一筆開支，明細、稅項及 invoice metadata 附於同一記錄，避免總額與各項目重複計算；檔案 SHA-256 及 invoice 編號用作重複提示。
+- 只保存帳單檔名及抽取結果，不保存原相片/PDF；保留手動輸入、原有資料 schema、Apple Fluid、iOS 原生及 iOS 玻璃風格。
+- App 版本 4.0.0，cache v24；AI runtime 納入整套 SHA-256 離線資源驗證。AI 識別本身需要網絡，已儲存資料仍可離線使用。
+- 驗證：69 項 Node 測試、14 項 Chromium 桌面／手機尺寸 E2E、typecheck 及 production build 通過；AI E2E 使用模擬供應商回應，未使用或保存真實 API Key。真實供應商仍受個別模型、帳戶權限、費用及 CORS 設定影響。
 
 ## v3.9.0 更新內容
 
