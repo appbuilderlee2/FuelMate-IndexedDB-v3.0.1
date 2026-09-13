@@ -152,7 +152,7 @@
                 if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system'].includes(this.data.settings.appearance)) {
                     this.data.settings.appearance = 'apple-fluid-system';
                 }
-                if (!['openai', 'gemini', 'compatible'].includes(this.data.settings.aiProvider)) this.data.settings.aiProvider = 'openai';
+                if (!['openai', 'gemini', 'groq', 'deepseek', 'openrouter', 'nvidia', 'compatible'].includes(this.data.settings.aiProvider)) this.data.settings.aiProvider = 'openai';
                 this.data.settings.aiInvoiceEnabled = this.data.settings.aiInvoiceEnabled === true;
                 this.data.settings.aiRememberKey = this.data.settings.aiRememberKey === true;
 
@@ -384,7 +384,7 @@
                     if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system'].includes(nextSettings.appearance)) {
                         nextSettings.appearance = 'apple-fluid-system';
                     }
-                    if (!['openai', 'gemini', 'compatible'].includes(nextSettings.aiProvider)) nextSettings.aiProvider = 'openai';
+                    if (!['openai', 'gemini', 'groq', 'deepseek', 'openrouter', 'nvidia', 'compatible'].includes(nextSettings.aiProvider)) nextSettings.aiProvider = 'openai';
                     // Imported files must never activate an external request path automatically.
                     nextSettings.aiInvoiceEnabled = false;
                     nextSettings.aiRememberKey = false;

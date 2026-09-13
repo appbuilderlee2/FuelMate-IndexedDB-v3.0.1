@@ -32,6 +32,7 @@ test('import settings reject markup and unsupported enums but retain legacy curr
 test('import validates AI configuration and rejects API keys in backups', () => {
   const validate = settings => validateImportPayload({ vehicles: [], logs: [], settings }, () => true);
   assert.equal(validate({ aiProvider: 'gemini', aiInvoiceEnabled: true, aiModel: 'gemini-2.5-flash', aiEndpoint: '' }).errors.length, 0);
+  assert.equal(validate({ aiProvider: 'openrouter', aiInvoiceEnabled: true, aiModel: 'google/gemini-2.5-flash', aiEndpoint: '' }).errors.length, 0);
   assert.ok(validate({ aiProvider: 'unknown', aiInvoiceEnabled: 'yes', aiModel: '<script>', aiApiKey: 'secret' }).errors.length >= 4);
 });
 

@@ -1,5 +1,5 @@
 /* FuelMate Service Worker - app-shell cache for offline install */
-const CACHE_NAME = 'fuelmate-cache-v24';
+const CACHE_NAME = 'fuelmate-cache-v25';
 
 function urlFor(path) {
   return new URL(path, self.registration.scope).toString();

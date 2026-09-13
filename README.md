@@ -1,4 +1,13 @@
-# FuelMate IndexedDB v4.0.0
+# FuelMate IndexedDB v4.1.0
+
+## v4.1.0 更新內容
+
+- AI 帳單識別新增 Groq、DeepSeek、OpenRouter 及 NVIDIA API Key，原有 Google Gemini 選項改名為 Google AI Studio；OpenAI及自訂 OpenAI-compatible API 繼續保留。
+- 每個供應商使用獨立 API Key、官方固定 API endpoint 及使用者自行輸入的模型 ID；切換供應商不會將 Key 寫入 IndexedDB 或備份。
+- OpenAI、Google AI Studio 及 OpenRouter 可上載相片或 PDF；Groq、DeepSeek、NVIDIA 及自訂相容服務在 FuelMate 只接受相片，並須選用支援圖片的模型。
+- 內置供應商 endpoint 不接受設定或匯入資料覆寫，避免 API Key 被錯誤傳送到非官方網址；只有自訂 OpenAI-compatible API 可以輸入 HTTPS Base URL。
+- App 版本 4.1.0，cache v25；IndexedDB schema 不變，毋須資料遷移。
+- 驗證：70 項 Node 測試、14 項 Chromium 桌面／手機尺寸 E2E、typecheck 及 production build 通過。
 
 ## v4.0.0 更新內容
 

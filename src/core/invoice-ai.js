@@ -1,9 +1,13 @@
 // Direct, user-authorized invoice recognition. API keys never enter FuelMate backups.
 const FuelMateInvoiceAI = (() => {
   const PROVIDERS = Object.freeze({
-    openai: { endpoint: 'https://api.openai.com/v1', model: 'gpt-4.1-mini' },
-    gemini: { endpoint: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.5-flash' },
-    compatible: { endpoint: '', model: '' },
+    openai: { endpoint: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', transport: 'responses', pdf: true },
+    gemini: { endpoint: 'https://generativelanguage.googleapis.com/v1beta', model: 'gemini-2.5-flash', transport: 'gemini', pdf: true },
+    groq: { endpoint: 'https://api.groq.com/openai/v1', model: '', transport: 'chat', pdf: false },
+    deepseek: { endpoint: 'https://api.deepseek.com', model: '', transport: 'chat', pdf: false },
+    openrouter: { endpoint: 'https://openrouter.ai/api/v1', model: '', transport: 'chat', pdf: true },
+    nvidia: { endpoint: 'https://integrate.api.nvidia.com/v1', model: '', transport: 'chat', pdf: false },
+    compatible: { endpoint: '', model: '', transport: 'chat', pdf: false },
   });
   const MAX_FILE_BYTES = 12 * 1024 * 1024;
   const MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
@@ -30,7 +34,7 @@ const FuelMateInvoiceAI = (() => {
 
   function normalizeEndpoint(provider, endpoint) {
     const fallback = PROVIDERS[provider]?.endpoint || '';
-    const value = String(endpoint || fallback).trim().replace(/\/+$/, '');
+    const value = String(provider === 'compatible' ? endpoint : fallback).trim().replace(/\/+$/, '');
     let url;
     try { url = new URL(value); } catch (_) { throw new Error('invalid_endpoint'); }
     if (url.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(url.hostname)) throw new Error('invalid_endpoint');
@@ -117,12 +121,17 @@ const FuelMateInvoiceAI = (() => {
     return parseJson(outputText(body));
   }
 
-  async function analyzeCompatible({ endpoint, apiKey, model, file }) {
-    if (file.type === 'application/pdf') throw new Error('pdf_not_supported');
+  async function analyzeChat({ provider, endpoint, apiKey, model, file }) {
+    const providerConfig = PROVIDERS[provider];
+    if (!providerConfig || providerConfig.transport !== 'chat') throw new Error('unsupported_provider');
+    if (file.type === 'application/pdf' && !providerConfig.pdf) throw new Error('pdf_not_supported');
     const dataUrl = await readDataUrl(file);
-    const body = await request(`${normalizeEndpoint('compatible', endpoint)}/chat/completions`, {
+    const attachment = file.type === 'application/pdf'
+      ? { type: 'file', file: { filename: file.name || 'invoice.pdf', file_data: dataUrl } }
+      : { type: 'image_url', image_url: { url: dataUrl } };
+    const body = await request(`${normalizeEndpoint(provider, endpoint)}/chat/completions`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, temperature: 0, messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: dataUrl } }] }] }),
+      body: JSON.stringify({ model, temperature: 0, messages: [{ role: 'user', content: [{ type: 'text', text: prompt }, attachment] }] }),
     });
     return parseJson(outputText(body));
   }
@@ -143,13 +152,16 @@ const FuelMateInvoiceAI = (() => {
     validateFile(config.file);
     if (!config.apiKey?.trim()) throw new Error('missing_api_key');
     if (!config.model?.trim()) throw new Error('missing_model');
-    if (config.provider === 'gemini') return analyzeGemini(config);
-    if (config.provider === 'compatible') return analyzeCompatible(config);
+    const provider = PROVIDERS[config.provider];
+    if (!provider) throw new Error('unsupported_provider');
+    if (provider.transport === 'gemini') return analyzeGemini(config);
+    if (provider.transport === 'chat') return analyzeChat(config);
     return analyzeOpenAI(config);
   }
 
   async function testConnection(config) {
     if (!config.apiKey?.trim()) throw new Error('missing_api_key');
+    if (!PROVIDERS[config.provider]) throw new Error('unsupported_provider');
     const base = normalizeEndpoint(config.provider, config.endpoint);
     if (config.provider === 'gemini') {
       await request(`${base}/models?pageSize=1`, { headers: { 'x-goog-api-key': config.apiKey } });

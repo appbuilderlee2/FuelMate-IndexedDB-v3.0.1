@@ -166,7 +166,7 @@
       errors.push('settings_not_object');
     }
     if (settings && typeof settings === 'object' && !Array.isArray(settings)) {
-      const enums = { units: ['metric', 'imperial'], language: ['en', 'zh'], pressureUnit: ['kPa', 'psi', 'bar'], aiProvider: ['openai', 'gemini', 'compatible'] };
+      const enums = { units: ['metric', 'imperial'], language: ['en', 'zh'], pressureUnit: ['kPa', 'psi', 'bar'], aiProvider: ['openai', 'gemini', 'groq', 'deepseek', 'openrouter', 'nvidia', 'compatible'] };
       for (const [key, allowed] of Object.entries(enums)) {
         if (settings[key] !== undefined && !allowed.includes(settings[key])) errors.push(`settings_invalid_${key}`);
       }

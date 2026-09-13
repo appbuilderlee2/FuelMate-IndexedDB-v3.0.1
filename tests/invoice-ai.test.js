@@ -50,3 +50,15 @@ test('custom providers require HTTPS except for local development', async () => 
   assert.throws(() => core.normalizeEndpoint('compatible', 'http://example.com/v1'), /invalid_endpoint/);
   assert.throws(() => core.normalizeEndpoint('compatible', 'https://user:pass@example.com/v1'), /invalid_endpoint/);
 });
+
+test('built-in providers use fixed official endpoints and declare document support', async () => {
+  const { core } = await loadCore();
+  assert.equal(core.normalizeEndpoint('groq', 'https://attacker.example/v1'), 'https://api.groq.com/openai/v1');
+  assert.equal(core.normalizeEndpoint('deepseek', ''), 'https://api.deepseek.com');
+  assert.equal(core.normalizeEndpoint('openrouter', ''), 'https://openrouter.ai/api/v1');
+  assert.equal(core.normalizeEndpoint('nvidia', ''), 'https://integrate.api.nvidia.com/v1');
+  assert.equal(core.PROVIDERS.openrouter.pdf, true);
+  assert.equal(core.PROVIDERS.groq.pdf, false);
+  assert.equal(core.PROVIDERS.deepseek.transport, 'chat');
+  assert.equal(core.PROVIDERS.nvidia.transport, 'chat');
+});

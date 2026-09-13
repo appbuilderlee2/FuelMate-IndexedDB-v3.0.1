@@ -25,7 +25,7 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('nav-settings').click();
 
   await expect(page.getByRole('heading', { name: /Settings|設定/ })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('v4.0.0');
+  await expect(page.getByTestId('app-version')).toContainText('v4.1.0');
   await page.getByTestId('appearance-dark').click();
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'apple-fluid-dark');
   await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
@@ -111,6 +111,10 @@ test('recognizes an invoice with a user key and saves one reviewed expense', asy
   await createVehicle(page);
   await page.getByTestId('nav-settings').click();
   await page.getByTestId('ai-invoice-toggle').check();
+  await expect(page.getByTestId('ai-provider').locator('option')).toHaveText(['OpenAI', 'Google AI Studio', 'Groq', 'DeepSeek', 'OpenRouter', 'NVIDIA', 'OpenAI-compatible API']);
+  await page.getByTestId('ai-provider').selectOption('openrouter');
+  await expect(page.getByText(/OpenRouter requires a vision-capable model|OpenRouter 必須選用支援圖片/)).toBeVisible();
+  await page.getByTestId('ai-provider').selectOption('openai');
   await page.getByTestId('ai-api-key').fill('test-user-key');
   await page.getByTestId('save-ai-settings').click();
   await page.getByTestId('nav-maintenance').click();
