@@ -10,7 +10,7 @@ Object.assign(ui, {
   },
 
   async changeAIProvider(provider) {
-    if (!['openai', 'gemini', 'compatible'].includes(provider)) return;
+    if (!FuelMateInvoiceAI.PROVIDERS[provider]) return;
     const previous = { provider: store.data.settings.aiProvider, model: store.data.settings.aiModel, endpoint: store.data.settings.aiEndpoint };
     store.data.settings.aiProvider = provider;
     store.data.settings.aiModel = FuelMateInvoiceAI.PROVIDERS[provider].model;
@@ -72,7 +72,8 @@ Object.assign(ui, {
       missing_model: ['Choose a model first.', '請先選擇模型。'],
       unsupported_file: ['Use a JPG, PNG, WebP, or PDF file.', '請使用 JPG、PNG、WebP 或 PDF。'],
       file_too_large: ['The file must be 12 MB or smaller.', '檔案不可超過 12 MB。'],
-      pdf_not_supported: ['This compatible provider only supports images.', '此相容供應商只支援圖片。'],
+      pdf_not_supported: ['This provider only supports invoice images in FuelMate.', 'FuelMate 只可用相片連接呢個供應商。'],
+      unsupported_provider: ['Choose a supported AI provider.', '請選擇支援嘅 AI 供應商。'],
       invalid_api_key: ['The API key was rejected.', 'API Key 被拒絕。'],
       rate_limited: ['The provider rate limit was reached.', '已到達供應商用量限制。'],
       invalid_endpoint: ['The API URL is invalid.', 'API 網址無效。'],

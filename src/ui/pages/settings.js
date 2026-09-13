@@ -2,6 +2,14 @@
 Object.assign(ui, {
 renderSettings(vehicle) {
                 const settings = store.data.settings;
+                const aiProviders = [
+                    ['openai', 'OpenAI'], ['gemini', 'Google AI Studio'], ['groq', 'Groq'],
+                    ['deepseek', 'DeepSeek'], ['openrouter', 'OpenRouter'], ['nvidia', 'NVIDIA'],
+                    ['compatible', 'OpenAI-compatible API'],
+                ];
+                const aiProviderName = aiProviders.find(([id]) => id === settings.aiProvider)?.[1] || 'OpenAI';
+                const aiModelExamples = { openai: 'gpt-4.1-mini', gemini: 'gemini-2.5-flash', groq: '輸入支援圖片的 Groq 模型 ID', deepseek: '輸入支援圖片的 DeepSeek 模型 ID', openrouter: '例如 google/gemini-2.5-flash', nvidia: '輸入支援圖片的 NVIDIA NIM 模型 ID', compatible: '輸入模型 ID' };
+                const aiPdfSupported = FuelMateInvoiceAI.PROVIDERS[settings.aiProvider]?.pdf === true;
                 return `
                     <div class="px-6 pt-safe min-h-screen pb-24">
                         <h1 class="text-3xl font-black theme-text-heading mb-6">${utils.t('settings')}</h1>
@@ -207,14 +215,12 @@ renderSettings(vehicle) {
                                 <div class="space-y-3 mt-4 pt-4 border-t theme-border">
                                     <div><label class="text-xs theme-text-sub block mb-1">${settings.language === 'zh' ? 'AI 供應商' : 'AI provider'}</label>
                                         <select id="ai_provider" data-testid="ai-provider" class="w-full p-3 rounded-xl" data-change-action="ui" data-ui-method="changeAIProvider" data-ui-pass-value="true">
-                                            <option value="openai" ${settings.aiProvider === 'openai' ? 'selected' : ''}>OpenAI</option>
-                                            <option value="gemini" ${settings.aiProvider === 'gemini' ? 'selected' : ''}>Google Gemini</option>
-                                            <option value="compatible" ${settings.aiProvider === 'compatible' ? 'selected' : ''}>OpenAI-compatible API</option>
+                                            ${aiProviders.map(([id, name]) => `<option value="${id}" ${settings.aiProvider === id ? 'selected' : ''}>${name}</option>`).join('')}
                                         </select>
                                     </div>
-                                    <div><label class="text-xs theme-text-sub block mb-1">${settings.language === 'zh' ? '模型 ID' : 'Model ID'}</label><input id="ai_model" data-testid="ai-model" type="text" maxlength="120" value="${utils.escapeAttr(settings.aiModel || '')}" class="w-full p-3 rounded-xl" autocomplete="off" placeholder="${settings.aiProvider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4.1-mini'}"></div>
+                                    <div><label class="text-xs theme-text-sub block mb-1">${settings.language === 'zh' ? '模型 ID' : 'Model ID'}</label><input id="ai_model" data-testid="ai-model" type="text" maxlength="120" value="${utils.escapeAttr(settings.aiModel || '')}" class="w-full p-3 rounded-xl" autocomplete="off" placeholder="${utils.escapeAttr(aiModelExamples[settings.aiProvider] || 'Model ID')}"><div class="text-[11px] theme-text-sub mt-1">${settings.language === 'zh' ? `${aiProviderName} 必須選用支援圖片的模型；${aiPdfSupported ? '亦可上載 PDF。' : '只接受相片，不接受 PDF。'}` : `${aiProviderName} requires a vision-capable model; ${aiPdfSupported ? 'PDF is also accepted.' : 'use an image rather than a PDF.'}`}</div></div>
                                     ${settings.aiProvider === 'compatible' ? `<div><label class="text-xs theme-text-sub block mb-1">API Base URL</label><input id="ai_endpoint" data-testid="ai-endpoint" type="url" maxlength="500" value="${utils.escapeAttr(settings.aiEndpoint || '')}" class="w-full p-3 rounded-xl" inputmode="url" autocomplete="off" placeholder="https://example.com/v1"></div>` : ''}
-                                    <div><label class="text-xs theme-text-sub block mb-1">API Key</label><input id="ai_api_key" data-testid="ai-api-key" type="password" class="w-full p-3 rounded-xl" autocomplete="new-password" placeholder="${FuelMateInvoiceAI.getKey(settings.aiProvider) ? '••••••••••••  ' + (settings.language === 'zh' ? '已儲存' : 'saved') : ''}"></div>
+                                    <div><label class="text-xs theme-text-sub block mb-1">${aiProviderName} API Key</label><input id="ai_api_key" data-testid="ai-api-key" type="password" class="w-full p-3 rounded-xl" autocomplete="new-password" placeholder="${FuelMateInvoiceAI.getKey(settings.aiProvider) ? '••••••••••••  ' + (settings.language === 'zh' ? '已儲存' : 'saved') : ''}"></div>
                                     <label class="flex items-start gap-3 text-sm theme-text-heading"><input id="ai_remember_key" data-testid="ai-remember-key" type="checkbox" class="mt-0.5" ${settings.aiRememberKey ? 'checked' : ''}><span>${settings.language === 'zh' ? '記住於此裝置' : 'Remember on this device'}<span class="block text-[11px] theme-text-sub mt-0.5">${settings.language === 'zh' ? '未選擇時，關閉分頁後需要重新輸入。API Key 不會加入備份。' : 'Otherwise the key is cleared when this tab closes. API keys are excluded from backups.'}</span></span></label>
                                     <div id="ai_connection_status" class="text-xs theme-text-sub" aria-live="polite"></div>
                                     <div class="grid grid-cols-2 gap-3">
