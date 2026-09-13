@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import vm from 'node:vm';
 
-async function loadCore() {
+async function loadCore(fetchImpl = fetch) {
   const session = new Map();
   const local = new Map();
   const storage = map => ({ getItem: key => map.get(key) || null, setItem: (key, value) => map.set(key, String(value)), removeItem: key => map.delete(key) });
-  const context = vm.createContext({ URL, sessionStorage: storage(session), localStorage: storage(local), crypto: globalThis.crypto, fetch, AbortSignal, FileReader: class {} });
+  const context = vm.createContext({ URL, sessionStorage: storage(session), localStorage: storage(local), crypto: globalThis.crypto, fetch: fetchImpl, AbortSignal, FileReader: class {} });
   const source = await fs.readFile(new URL('../src/core/invoice-ai.js', import.meta.url), 'utf8');
   vm.runInContext(`${source}\nglobalThis.__invoiceAI = FuelMateInvoiceAI;`, context);
   return { core: context.__invoiceAI, session, local };
@@ -61,4 +61,25 @@ test('built-in providers use fixed official endpoints and declare document suppo
   assert.equal(core.PROVIDERS.groq.pdf, false);
   assert.equal(core.PROVIDERS.deepseek.transport, 'chat');
   assert.equal(core.PROVIDERS.nvidia.transport, 'chat');
+});
+
+test('model lists are normalized, deduplicated, sorted, and sanitized', async () => {
+  const { core } = await loadCore();
+  assert.deepEqual(Array.from(core.normalizeModelList('openai', { data: [{ id: 'gpt-z' }, { id: 'gpt-a' }, { id: 'gpt-a' }, { id: '<bad>' }] })), ['gpt-a', 'gpt-z']);
+  assert.deepEqual(Array.from(core.normalizeModelList('gemini', { models: [{ name: 'models/gemini-flash' }, { name: 'models/gemini-pro' }] })), ['gemini-flash', 'gemini-pro']);
+});
+
+test('model discovery uses provider authentication without storing the API key', async () => {
+  const calls = [];
+  const fakeFetch = async (url, options) => {
+    calls.push({ url, options });
+    return { ok: true, json: async () => ({ data: [{ id: 'vision-model' }] }) };
+  };
+  const { core, session, local } = await loadCore(fakeFetch);
+  const models = await core.listModels({ provider: 'openrouter', endpoint: 'https://attacker.example', apiKey: 'temporary-key' });
+  assert.deepEqual(Array.from(models), ['vision-model']);
+  assert.equal(calls[0].url, 'https://openrouter.ai/api/v1/models');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer temporary-key');
+  assert.equal(session.size, 0);
+  assert.equal(local.size, 0);
 });

@@ -1,4 +1,13 @@
-# FuelMate IndexedDB v4.1.0
+# FuelMate IndexedDB v4.2.0
+
+## v4.2.0 更新內容
+
+- AI 設定新增「連接並載入模型」：直接使用使用者輸入的 API Key 向所選供應商取得模型清單，成功後以選單取代手動輸入。
+- 支援 OpenAI、Google AI Studio、Groq、DeepSeek、OpenRouter、NVIDIA 及自訂 OpenAI-compatible API 的模型清單格式；Google 的 `models/` 前綴會自動整理。
+- 模型清單只保留於目前頁面，不寫入 IndexedDB 或備份；API Key 亦不會因載入模型而自動保存。
+- 保留手動模型 ID 模式，處理供應商沒有模型清單、模型清單權限受限或瀏覽器 CORS 阻擋的情況。
+- App 版本 4.2.0，cache v26；IndexedDB schema 不變，毋須資料遷移。
+- 驗證：72 項 Node 測試、14 項 Chromium 桌面／手機尺寸 E2E、typecheck 及 production build。
 
 ## v4.1.0 更新內容
 

@@ -97,6 +97,14 @@ const FuelMateInvoiceAI = (() => {
     if (Array.isArray(chat)) return chat.map(part => part?.text || '').join('');
     return chat || '';
   }
+  function normalizeModelList(provider, body) {
+    const values = provider === 'gemini' ? body?.models : (body?.data || body?.models);
+    if (!Array.isArray(values)) return [];
+    return [...new Set(values.map(item => {
+      const raw = typeof item === 'string' ? item : (item?.id || item?.name || item?.model || '');
+      return String(raw).replace(/^models\//, '').trim();
+    }).filter(id => /^[\w./:@+-]{1,160}$/.test(id)))].sort((a, b) => a.localeCompare(b));
+  }
   async function request(url, options) {
     const response = await fetch(url, { ...options, signal: AbortSignal.timeout(60000) });
     const body = await response.json().catch(() => ({}));
@@ -159,17 +167,19 @@ const FuelMateInvoiceAI = (() => {
     return analyzeOpenAI(config);
   }
 
-  async function testConnection(config) {
+  async function listModels(config) {
     if (!config.apiKey?.trim()) throw new Error('missing_api_key');
     if (!PROVIDERS[config.provider]) throw new Error('unsupported_provider');
     const base = normalizeEndpoint(config.provider, config.endpoint);
+    let body;
     if (config.provider === 'gemini') {
-      await request(`${base}/models?pageSize=1`, { headers: { 'x-goog-api-key': config.apiKey } });
+      body = await request(`${base}/models?pageSize=1000`, { headers: { 'x-goog-api-key': config.apiKey } });
     } else {
-      await request(`${base}/models`, { headers: { Authorization: `Bearer ${config.apiKey}` } });
+      body = await request(`${base}/models`, { headers: { Authorization: `Bearer ${config.apiKey}` } });
     }
-    return true;
+    return normalizeModelList(config.provider, body);
   }
+  const testConnection = listModels;
 
-  return Object.freeze({ PROVIDERS, MAX_FILE_BYTES, getKey, hasRememberedKey, setKey, clearKey, normalizeEndpoint, validateFile, hashFile, parseJson, analyze, testConnection });
+  return Object.freeze({ PROVIDERS, MAX_FILE_BYTES, getKey, hasRememberedKey, setKey, clearKey, normalizeEndpoint, validateFile, hashFile, parseJson, normalizeModelList, analyze, listModels, testConnection });
 })();

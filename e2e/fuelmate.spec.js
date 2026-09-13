@@ -25,7 +25,7 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('nav-settings').click();
 
   await expect(page.getByRole('heading', { name: /Settings|設定/ })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('v4.1.0');
+  await expect(page.getByTestId('app-version')).toContainText('v4.2.0');
   await page.getByTestId('appearance-dark').click();
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'apple-fluid-dark');
   await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
@@ -94,6 +94,10 @@ test('adds a fuel record and renders the saved IndexedDB data', async ({ page })
 });
 
 test('recognizes an invoice with a user key and saves one reviewed expense', async ({ page }) => {
+  await page.route('https://api.openai.com/v1/models', async route => {
+    expect(route.request().headers().authorization).toBe('Bearer test-user-key');
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: [{ id: 'gpt-4.1-mini' }, { id: 'gpt-4o-mini' }] }) });
+  });
   await page.route('https://api.openai.com/v1/responses', async route => {
     const request = route.request();
     expect(request.headers().authorization).toBe('Bearer test-user-key');
@@ -113,9 +117,13 @@ test('recognizes an invoice with a user key and saves one reviewed expense', asy
   await page.getByTestId('ai-invoice-toggle').check();
   await expect(page.getByTestId('ai-provider').locator('option')).toHaveText(['OpenAI', 'Google AI Studio', 'Groq', 'DeepSeek', 'OpenRouter', 'NVIDIA', 'OpenAI-compatible API']);
   await page.getByTestId('ai-provider').selectOption('openrouter');
-  await expect(page.getByText(/OpenRouter requires a vision-capable model|OpenRouter 必須選用支援圖片/)).toBeVisible();
+  await expect(page.getByText(/Connect to load OpenRouter models automatically|連接後會自動列出 OpenRouter 模型/)).toBeVisible();
   await page.getByTestId('ai-provider').selectOption('openai');
   await page.getByTestId('ai-api-key').fill('test-user-key');
+  await page.getByTestId('test-ai-connection').click();
+  await expect(page.getByText(/2 models loaded|已載入 2 個模型/)).toBeVisible();
+  await expect(page.getByTestId('ai-model-select')).toBeVisible();
+  await page.getByTestId('ai-model-select').selectOption('gpt-4o-mini');
   await page.getByTestId('save-ai-settings').click();
   await page.getByTestId('nav-maintenance').click();
   await page.getByTestId('add-service').click();
@@ -132,6 +140,7 @@ test('recognizes an invoice with a user key and saves one reviewed expense', asy
   expect(invoiceLogs[0].invoiceItems).toHaveLength(2);
   expect(invoiceLogs[0].notes).toContain('Oil and filter service');
   expect(invoiceLogs[0].notes).toContain('Inspect brakes next visit');
+  expect(await page.evaluate(() => store.data.settings.aiModel)).toBe('gpt-4o-mini');
   expect(await page.evaluate(() => JSON.stringify(store.data.settings))).not.toContain('test-user-key');
 });
 

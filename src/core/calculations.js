@@ -173,7 +173,7 @@
       // Preserve legacy currency codes/symbols, but never accept markup or controls.
       if (settings.currency !== undefined && (typeof settings.currency !== 'string' || !/^[\p{L}\p{Sc} .]{1,12}$/u.test(settings.currency))) errors.push('settings_invalid_currency');
       if (settings.aiInvoiceEnabled !== undefined && typeof settings.aiInvoiceEnabled !== 'boolean') errors.push('settings_invalid_ai_enabled');
-      if (settings.aiModel !== undefined && (typeof settings.aiModel !== 'string' || !/^[\w./:-]{1,120}$/.test(settings.aiModel))) errors.push('settings_invalid_ai_model');
+      if (settings.aiModel !== undefined && (typeof settings.aiModel !== 'string' || !/^[\w./:@+-]{1,160}$/.test(settings.aiModel))) errors.push('settings_invalid_ai_model');
       if (settings.aiEndpoint !== undefined && (typeof settings.aiEndpoint !== 'string' || settings.aiEndpoint.length > 500 || /[<>\x00-\x1f]/.test(settings.aiEndpoint))) errors.push('settings_invalid_ai_endpoint');
       if (settings.aiApiKey !== undefined) errors.push('settings_contains_ai_key');
       const snoozedUntil = settings.reminderCenter?.snoozedUntil;
