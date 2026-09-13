@@ -195,6 +195,37 @@ renderSettings(vehicle) {
                             </div>
                         </div>
 
+                        <div data-testid="ai-invoice-settings" class="theme-bg-card rounded-2xl p-4 card-shadow mb-6 border theme-border">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <div class="text-sm font-black theme-text-heading flex items-center gap-2"><span class="material-icons text-blue-500">document_scanner</span>${settings.language === 'zh' ? 'AI 帳單識別' : 'AI Invoice Recognition'}</div>
+                                    <div class="text-xs theme-text-sub mt-1">${settings.language === 'zh' ? '相片或 PDF 先由你選擇的供應商識別，確認後才儲存。' : 'Your selected provider reads a photo or PDF. You confirm before saving.'}</div>
+                                </div>
+                                <label class="ios-transparency-row !p-0"><span class="sr-only">AI</span><input data-testid="ai-invoice-toggle" type="checkbox" role="switch" ${settings.aiInvoiceEnabled ? 'checked' : ''} data-change-action="ui" data-ui-method="toggleAIInvoice" data-ui-pass-element="true"></label>
+                            </div>
+                            ${settings.aiInvoiceEnabled ? `
+                                <div class="space-y-3 mt-4 pt-4 border-t theme-border">
+                                    <div><label class="text-xs theme-text-sub block mb-1">${settings.language === 'zh' ? 'AI 供應商' : 'AI provider'}</label>
+                                        <select id="ai_provider" data-testid="ai-provider" class="w-full p-3 rounded-xl" data-change-action="ui" data-ui-method="changeAIProvider" data-ui-pass-value="true">
+                                            <option value="openai" ${settings.aiProvider === 'openai' ? 'selected' : ''}>OpenAI</option>
+                                            <option value="gemini" ${settings.aiProvider === 'gemini' ? 'selected' : ''}>Google Gemini</option>
+                                            <option value="compatible" ${settings.aiProvider === 'compatible' ? 'selected' : ''}>OpenAI-compatible API</option>
+                                        </select>
+                                    </div>
+                                    <div><label class="text-xs theme-text-sub block mb-1">${settings.language === 'zh' ? '模型 ID' : 'Model ID'}</label><input id="ai_model" data-testid="ai-model" type="text" maxlength="120" value="${utils.escapeAttr(settings.aiModel || '')}" class="w-full p-3 rounded-xl" autocomplete="off" placeholder="${settings.aiProvider === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4.1-mini'}"></div>
+                                    ${settings.aiProvider === 'compatible' ? `<div><label class="text-xs theme-text-sub block mb-1">API Base URL</label><input id="ai_endpoint" data-testid="ai-endpoint" type="url" maxlength="500" value="${utils.escapeAttr(settings.aiEndpoint || '')}" class="w-full p-3 rounded-xl" inputmode="url" autocomplete="off" placeholder="https://example.com/v1"></div>` : ''}
+                                    <div><label class="text-xs theme-text-sub block mb-1">API Key</label><input id="ai_api_key" data-testid="ai-api-key" type="password" class="w-full p-3 rounded-xl" autocomplete="new-password" placeholder="${FuelMateInvoiceAI.getKey(settings.aiProvider) ? '••••••••••••  ' + (settings.language === 'zh' ? '已儲存' : 'saved') : ''}"></div>
+                                    <label class="flex items-start gap-3 text-sm theme-text-heading"><input id="ai_remember_key" data-testid="ai-remember-key" type="checkbox" class="mt-0.5" ${settings.aiRememberKey ? 'checked' : ''}><span>${settings.language === 'zh' ? '記住於此裝置' : 'Remember on this device'}<span class="block text-[11px] theme-text-sub mt-0.5">${settings.language === 'zh' ? '未選擇時，關閉分頁後需要重新輸入。API Key 不會加入備份。' : 'Otherwise the key is cleared when this tab closes. API keys are excluded from backups.'}</span></span></label>
+                                    <div id="ai_connection_status" class="text-xs theme-text-sub" aria-live="polite"></div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button data-testid="save-ai-settings" data-action="ui" data-ui-method="saveAISettings" class="py-3 rounded-xl bg-blue-600 text-white text-sm font-bold">${settings.language === 'zh' ? '儲存設定' : 'Save settings'}</button>
+                                        <button data-testid="test-ai-connection" data-action="ui" data-ui-method="testAIConnection" class="py-3 rounded-xl bg-blue-50 text-blue-700 text-sm font-bold border border-blue-100">${settings.language === 'zh' ? '測試連接' : 'Test connection'}</button>
+                                    </div>
+                                    ${FuelMateInvoiceAI.getKey(settings.aiProvider) ? `<button data-action="ui" data-ui-method="clearAIKey" class="text-xs text-red-600">${settings.language === 'zh' ? '清除 API Key' : 'Clear API key'}</button>` : ''}
+                                    <div class="rounded-xl bg-amber-50 text-amber-900 p-3 text-[11px] leading-relaxed">${settings.language === 'zh' ? '完全無後端模式：帳單會由此裝置直接傳送到所選 AI 供應商。只使用你信任的供應商及受限制的 API Key。' : 'Backend-free mode: this device sends the invoice directly to your selected AI provider. Use a trusted provider and a restricted API key.'}</div>
+                                </div>` : ''}
+                        </div>
+
                         <div class="grid grid-cols-2 gap-3 mb-8">
                             <button data-action="ui" data-ui-method="exportData" class="bg-blue-50 text-blue-600 p-4 rounded-xl text-sm font-bold flex flex-col items-center gap-2"><span class="material-icons">download</span> ${utils.t('export_json')}</button>
                             <button data-action="ui" data-ui-method="openImportPicker" class="bg-purple-50 text-purple-600 p-4 rounded-xl text-sm font-bold flex flex-col items-center gap-2"><span class="material-icons">upload</span> ${utils.t('import_json')}</button>

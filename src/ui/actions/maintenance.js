@@ -150,6 +150,7 @@ openAddService(id = null, defaultType = 'service') {
                 this.openModal(`
                     <h2 class="text-xl font-bold mb-4 theme-text-heading">${utils.t('add_service')}</h2>
                     <div class="space-y-4">
+                        ${store.data.settings.aiInvoiceEnabled ? `<div class="rounded-xl bg-blue-50 border border-blue-100 p-3"><button data-testid="scan-invoice" data-action="ui" data-ui-method="openInvoicePicker" class="w-full min-h-11 text-blue-700 font-bold flex items-center justify-center gap-2"><span class="material-icons">document_scanner</span>${store.data.settings.language === 'zh' ? '掃描帳單／Invoice' : 'Scan invoice or receipt'}</button><input id="invoice_file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" class="hidden" data-change-action="ui" data-ui-method="scanInvoice" data-ui-pass-element="true"></div>` : ''}
                         <select id="l_type" class="w-full p-3 rounded-xl font-bold bg-slate-100" onchange="ui.handleTypeChange(this.value)">
                             <option value="service" ${log.type==='service'?'selected':''}>${utils.t('service')}</option>
                             <option value="repair" ${log.type==='repair'?'selected':''}>${utils.t('repair')}</option>
@@ -443,6 +444,7 @@ async submitService(id) {
                 }
 
                 const log = {
+                    ...(existing || {}),
                     id: id || utils.newId(),
                     vehicleId: store.data.settings.activeVehicleId,
                     type,

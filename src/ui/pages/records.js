@@ -212,7 +212,7 @@ renderMaintenance(vehicle) {
                                 : (visibleLogs.length ? visibleLogs.map(l => this.renderLogCard(l)).join('') : `<div class="text-center theme-text-sub py-12">${utils.t('no_records_found')}</div>`)}
                             ${view === 'all' && filteredLogs.length > visibleLogs.length ? ui.renderLoadMore('maintenance', visibleLogs.length, filteredLogs.length) : ''}
                         </div>
-                        <button onclick="ui.openAddService()" class="fixed bottom-[calc(130px+var(--safe-bottom))] right-6 w-14 h-14 rounded-full bg-white dark:bg-slate-700 theme-text-heading shadow-xl flex items-center justify-center active:scale-90 transition-transform z-50 border theme-border">
+                        <button data-testid="add-service" onclick="ui.openAddService()" class="fixed bottom-[calc(130px+var(--safe-bottom))] right-6 w-14 h-14 rounded-full bg-white dark:bg-slate-700 theme-text-heading shadow-xl flex items-center justify-center active:scale-90 transition-transform z-50 border theme-border">
                             <span class="material-icons">add</span>
                         </button>
                     </div>
