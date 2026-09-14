@@ -8,7 +8,8 @@
 - 每個輪胎保留獨立身份及提醒狀態；輪胎換位後仍會按實體輪胎繼續追蹤。
 - 快速設定全輪亦改為單一原子更換事件；取消所有位置或選擇無效位置時不會寫入資料。
 - App 版本 4.3.0，cache v27；新增位置選擇及多輪胎狀態測試。
-- 驗證：76 項 Node 測試、typecheck 及 production build。
+- 修正 GitHub Pages E2E 的硬編碼舊版本斷言，往後會直接核對 runtime 版本，避免版本升級阻塞部署。
+- 驗證：76 項 Node 測試、14 項 Chromium 桌面／手機尺寸 E2E、typecheck 及 production build。
 
 ## v4.2.0 更新內容
 

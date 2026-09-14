@@ -25,7 +25,8 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('nav-settings').click();
 
   await expect(page.getByRole('heading', { name: /Settings|設定/ })).toBeVisible();
-  await expect(page.getByTestId('app-version')).toContainText('v4.2.0');
+  const runtimeVersion = await page.evaluate(() => FuelMateVersion.current);
+  await expect(page.getByTestId('app-version')).toContainText(`v${runtimeVersion}`);
   await page.getByTestId('appearance-dark').click();
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'apple-fluid-dark');
   await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
