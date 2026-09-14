@@ -1,5 +1,56 @@
 // FuelMate UI module: actions/maintenance
 Object.assign(ui, {
+_readTirePositionsFromForm() {
+                const allowed = new Set(typeof utils.getTirePositions === 'function' ? utils.getTirePositions() : ['front_left', 'front_right', 'rear_left', 'rear_right']);
+                const inputs = Array.from(document.querySelectorAll?.('input[name="l_tire_positions"]') || []);
+                const selected = inputs
+                    .filter(input => input.checked && allowed.has(input.value))
+                    .map(input => input.value);
+                if (inputs.length) return [...new Set(selected)];
+                const fallback = document.getElementById('l_tire_pos')?.value;
+                return fallback && allowed.has(fallback) ? [fallback] : [];
+            },
+
+updateTireSelectionSummary() {
+                const selected = this._readTirePositionsFromForm();
+                const hidden = document.getElementById('l_tire_pos');
+                if (hidden && selected[0]) hidden.value = selected[0];
+                const summary = document.getElementById('l_tire_selection_summary');
+                if (summary) {
+                    const template = utils.t('tire_selected_count');
+                    summary.textContent = template.includes('{n}') ? template.replace(/\{n\}/g, String(selected.length)) : `${selected.length} ${utils.t('tire_replace')}`;
+                }
+            },
+
+selectTirePositions(positions) {
+                const allowed = new Set(typeof utils.getTirePositions === 'function' ? utils.getTirePositions() : ['front_left', 'front_right', 'rear_left', 'rear_right']);
+                const requested = Array.isArray(positions) ? positions : [positions];
+                const selected = new Set(requested.filter(position => allowed.has(position)));
+                Array.from(document.querySelectorAll?.('input[name="l_tire_positions"]') || []).forEach(input => { input.checked = selected.has(input.value); });
+                this.updateTireSelectionSummary();
+            },
+
+setTirePositionSelection(positions) {
+                this.selectTirePositions(Array.isArray(positions) ? positions : [positions]);
+            },
+
+_getTireIdsForPositions(existing, positions) {
+                const existingIds = existing?.tireIds && typeof existing.tireIds === 'object' && !Array.isArray(existing.tireIds)
+                    ? existing.tireIds
+                    : {};
+                const legacyId = existing?.tireId ? String(existing.tireId) : '';
+                const used = new Set();
+                return Object.fromEntries(positions.map(position => {
+                    let id = typeof existingIds[position] === 'string' ? existingIds[position].trim() : '';
+                    // A legacy record has one physical tire id. Keep it attached
+                    // to its original position when the user adds more positions.
+                    if (!id && legacyId && position === existing?.tirePosition) id = legacyId;
+                    if (!id || used.has(id)) id = utils.newId();
+                    used.add(id);
+                    return [position, id];
+                }));
+            },
+
 openQuickTireSetup(pos = null, applyAll = false) {
                 const distUnit = utils.getDistUnit();
                 const defaultPos = pos || 'front_left';
@@ -75,24 +126,25 @@ async submitQuickTireSetup() {
                     return unset.length ? unset : utils.getTirePositions();
                 })();
 
-                for (const p of positions) {
-                    const log = {
-                        id: utils.newId(),
-                        vehicleId: vehicle.id,
-                        type: 'tire_replace',
-                        date: FuelMateCore.localDateKey(now),
-                        odometer: currentOdo,
-                        cost: '',
-                        location: '',
-                        notes: '',
-                        tirePosition: p,
-                        tireBrand: '',
-                        tireTread: tread === null ? '' : tread,
-                        tireRemainingDist: remainingDist,
-                        tireRemainingDays: remainingMonths === null ? null : Math.round(remainingMonths * 30)
-                    };
-                    await store.addLog(log);
-                }
+                const tireIds = this._getTireIdsForPositions(null, positions);
+                await store.addLog({
+                    id: utils.newId(),
+                    vehicleId: vehicle.id,
+                    type: 'tire_replace',
+                    date: FuelMateCore.localDateKey(now),
+                    odometer: currentOdo,
+                    cost: '',
+                    location: '',
+                    notes: '',
+                    tirePosition: positions[0],
+                    tirePositions: positions,
+                    tireId: tireIds[positions[0]],
+                    tireIds,
+                    tireBrand: '',
+                    tireTread: tread === null ? '' : tread,
+                    tireRemainingDist: remainingDist,
+                    tireRemainingDays: remainingMonths === null ? null : Math.round(remainingMonths * 30)
+                });
                 this.closeModal();
                 this.render();
             },
@@ -145,6 +197,15 @@ openAddService(id = null, defaultType = 'service') {
                     log.tireMoves = FuelMateCore.normalizeTireMoves({ tireMoves: log.tireMoves });
                     log.tireRotationPattern = log.tireRotationPattern || '';
                 }
+                const tirePositions = typeof utils.getTirePositions === 'function'
+                    ? utils.getTirePositions()
+                    : ['front_left', 'front_right', 'rear_left', 'rear_right'];
+                const existingTirePositions = log.type === 'tire_replace'
+                    ? (utils.getTireReplacementPositions?.(log) || [])
+                    : [];
+                const selectedTirePositions = log.type === 'tire_replace'
+                    ? (existingTirePositions.length ? existingTirePositions : (log.tirePosition ? [log.tirePosition] : ['front_left']))
+                    : ['front_left'];
                 const quickTags = ['oil_change','tire_change','alignment','air_filter','cabin_filter','spark_plugs','brake_fluid','transmission_fluid','coolant','wiper_blades','battery','brake','inspection'];
 
                 this.openModal(`
@@ -180,15 +241,32 @@ openAddService(id = null, defaultType = 'service') {
 
                         <div id="loc_note_fields" class="${['license','insurance','registration'].includes(log.type) ? 'hidden' : ''}">
                             <div id="tire_replace_fields" class="${log.type === 'tire_replace' ? '' : 'hidden'} bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border theme-border mb-3">
-                                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">${utils.t('tire_positions')}</div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="text-xs theme-text-sub block mb-1">${utils.t('tire_pos')}</label>
-                                        <select id="l_tire_pos" class="w-full p-3 rounded-xl text-sm">
-                                            ${['front_left','front_right','rear_left','rear_right'].map(p => `<option value="${p}" ${log.tirePosition===p?'selected':''}>${utils.t('tire_'+p)}</option>`).join('')}
-                                        </select>
-                                    </div>
-                                    <div>
+                                <div class="flex items-center justify-between gap-2 mb-2">
+                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">${utils.t('tire_positions')}</div>
+                                    <div id="l_tire_selection_summary" class="text-[10px] font-bold text-teal-700 dark:text-teal-300"></div>
+                                </div>
+                                <div id="l_tire_positions" class="grid grid-cols-2 gap-2" role="group" aria-label="${utils.escapeAttr(utils.t('tire_positions'))}">
+                                    ${tirePositions.map(p => `
+                                        <label data-testid="tire-position-${p}" class="cursor-pointer select-none">
+                                            <input type="checkbox" name="l_tire_positions" value="${p}" class="peer sr-only" data-change-action="ui" data-ui-method="updateTireSelectionSummary" ${selectedTirePositions.includes(p) ? 'checked' : ''}>
+                                            <span class="min-h-11 px-3 py-2 rounded-xl border theme-border bg-white/70 dark:bg-slate-800/60 flex items-center gap-2 text-xs font-bold theme-text-heading transition peer-checked:border-teal-500 peer-checked:bg-teal-50 peer-checked:text-teal-700 dark:peer-checked:bg-teal-900/30 dark:peer-checked:text-teal-200">
+                                                <span class="material-icons text-base">tire_repair</span>
+                                                <span class="flex-1">${utils.t('tire_'+p)}</span>
+                                                <span class="material-icons text-base opacity-0 peer-checked:opacity-100">check_circle</span>
+                                            </span>
+                                        </label>`).join('')}
+                                </div>
+                                <select id="l_tire_pos" class="hidden" aria-hidden="true" tabindex="-1">
+                                    ${tirePositions.map(p => `<option value="${p}" ${selectedTirePositions[0]===p?'selected':''}>${utils.t('tire_'+p)}</option>`).join('')}
+                                </select>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    <button type="button" data-action="ui" data-ui-method="selectTirePositions" data-ui-args="${encodeURIComponent(JSON.stringify([['front_left', 'front_right']]))}" class="px-2.5 py-1.5 rounded-lg bg-white/80 dark:bg-slate-700 text-[10px] font-bold theme-text-sub border theme-border">${utils.t('tire_front_pair')}</button>
+                                    <button type="button" data-action="ui" data-ui-method="selectTirePositions" data-ui-args="${encodeURIComponent(JSON.stringify([['rear_left', 'rear_right']]))}" class="px-2.5 py-1.5 rounded-lg bg-white/80 dark:bg-slate-700 text-[10px] font-bold theme-text-sub border theme-border">${utils.t('tire_rear_pair')}</button>
+                                    <button type="button" data-action="ui" data-ui-method="selectTirePositions" data-ui-args="${encodeURIComponent(JSON.stringify([tirePositions]))}" class="px-2.5 py-1.5 rounded-lg bg-white/80 dark:bg-slate-700 text-[10px] font-bold theme-text-sub border theme-border">${utils.t('tire_all_four')}</button>
+                                </div>
+                                <div class="text-[10px] theme-text-sub mt-2">${utils.t('tire_selection_hint')}</div>
+                                <div class="grid grid-cols-2 gap-3 mt-3">
+                                    <div class="col-span-2">
                                         <label class="text-xs theme-text-sub block mb-1">${utils.t('tire_brand')}</label>
                                         <input id="l_tire_brand" type="text" value="${log.tireBrand || ''}" class="w-full p-3 rounded-xl text-sm" placeholder="e.g. Michelin Primacy 4">
                                     </div>
@@ -304,6 +382,7 @@ openAddService(id = null, defaultType = 'service') {
                 `);
                 // Init state
                 this.handleTypeChange(log.type);
+                this.updateTireSelectionSummary();
             },
 
 handleTypeChange(type) {
@@ -381,6 +460,10 @@ async submitService(id) {
                 const isTireReplace = type === 'tire_replace';
                 const isTireRotation = type === 'tire_rotation';
                 const existing = id ? store.data.logs.find(l => String(l.id) === String(id)) : null;
+                const selectedTirePositions = isTireReplace ? this._readTirePositionsFromForm() : [];
+                if (isTireReplace && !selectedTirePositions.length) {
+                    return alert(utils.t('validation_tire_position'));
+                }
                 const date = this.validateDateField('l_date');
                 if (!date) return;
                 const odometer = this.validateNumberField('l_odo', { messageKey: 'validation_odometer' });
@@ -443,10 +526,12 @@ async submitService(id) {
                     }
                 }
 
+                const tireIds = isTireReplace ? this._getTireIdsForPositions(existing, selectedTirePositions) : null;
+
                 const log = {
                     ...(existing || {}),
                     id: id || utils.newId(),
-                    vehicleId: store.data.settings.activeVehicleId,
+                    vehicleId: existing?.vehicleId || store.data.settings.activeVehicleId,
                     type,
                     date,
                     odometer: odometer.number,
@@ -454,13 +539,17 @@ async submitService(id) {
                     location: isDoc ? '' : document.getElementById('l_loc').value.trim(),
                     notes: isDoc ? '' : document.getElementById('l_notes').value.trim(),
                     expiryDate,
-                    tirePosition: isTireReplace ? document.getElementById('l_tire_pos')?.value : undefined,
+                    // Keep the original single-position fields for old readers,
+                    // while storing all selected positions in one replacement event.
+                    tirePosition: isTireReplace ? selectedTirePositions[0] : undefined,
+                    tirePositions: isTireReplace ? selectedTirePositions : undefined,
                     tireBrand: isTireReplace ? document.getElementById('l_tire_brand')?.value.trim() : undefined,
                     tireTread: isTireReplace ? tireTread.value : undefined,
                     tirePressureKpa: isTireReplace ? (utils.pressureToKpa(tirePressure.value, utils.getPressureUnit())?.toFixed(1) || '') : undefined,
                     tireAlignment: isTireReplace ? !!document.getElementById('l_tire_alignment')?.checked : undefined,
                     tireBalancing: isTireReplace ? !!document.getElementById('l_tire_balancing')?.checked : undefined,
-                    tireId: isTireReplace ? (existing?.tireId || utils.newId()) : undefined,
+                    tireId: isTireReplace ? tireIds[selectedTirePositions[0]] : undefined,
+                    tireIds: isTireReplace ? tireIds : undefined,
                     tireRemainingDist: isTireReplace ? tireRemainingDistance.number : undefined,
                     tireRemainingDays: isTireReplace ? (tireRemainingMonths.number === null ? null : Math.round(tireRemainingMonths.number * 30)) : undefined,
                     tireMoves: isTireRotation ? tireMoves : undefined,

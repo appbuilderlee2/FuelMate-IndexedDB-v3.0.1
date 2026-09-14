@@ -259,7 +259,8 @@ renderLogCard(log) {
                 } else if (log.type === 'tire_replace') {
                     icon = 'tire_repair';
                     colorClass = 'bg-slate-50 text-slate-700';
-                    const posLabel = log.tirePosition ? utils.t('tire_' + log.tirePosition) : '';
+                    const positions = utils.getTireReplacementPositions(log);
+                    const posLabel = positions.map(position => utils.t('tire_' + position)).join(', ');
                     const brand = log.tireBrand ? ` • ${log.tireBrand}` : '';
                     title = `${utils.t('tire_replace')}${posLabel ? ' • ' + posLabel : ''}${brand}`;
                 } else if (log.type === 'tire_rotation') {
