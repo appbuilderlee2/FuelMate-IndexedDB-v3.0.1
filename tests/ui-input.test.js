@@ -21,16 +21,28 @@ async function createUiHarness() {
   };
   const saved = [];
   const alerts = [];
+  const tireInputs = [];
   const context = vm.createContext({
     console,
-    document: { getElementById: getElement },
+    document: {
+      getElementById: getElement,
+      querySelectorAll: selector => selector === 'input[name="l_tire_positions"]' ? tireInputs : [],
+    },
     store: {
       data: { settings: { activeVehicleId: 'vehicle-1' }, logs: [] },
       getActiveVehicle: () => ({ id: 'vehicle-1', currentOdometer: 1000 }),
       addLog: async (log) => saved.push(log),
       updateLog: async (log) => saved.push(log),
     },
-    utils: { newId: () => 'log-1', t: (key) => key },
+    utils: {
+      newId: () => `log-${saved.length + 1}`,
+      t: (key) => key,
+      getTirePositions: () => ['front_left', 'front_right', 'rear_left', 'rear_right'],
+      getTireReplacementPositions: log => Array.isArray(log?.tirePositions) ? log.tirePositions : (log?.tirePosition ? [log.tirePosition] : []),
+      getPressureUnit: () => 'kPa',
+      pressureToKpa: value => Number(value),
+      getDistUnit: () => 'km',
+    },
     alert: (message) => alerts.push(message),
     setTimeout,
     clearTimeout,
@@ -50,7 +62,7 @@ async function createUiHarness() {
   vm.runInContext('globalThis.__ui = ui;', context);
   context.__ui.closeModal = () => {};
   context.__ui.render = () => {};
-  return { ui: context.__ui, getElement, saved, alerts };
+  return { ui: context.__ui, getElement, saved, alerts, tireInputs };
 }
 
 test('fuel input calculates the third value from the last two fields', async () => {
@@ -127,6 +139,31 @@ test('service and parking submissions reject negative values', async () => {
   await ui.submitParking('');
   assert.equal(saved.length, 0);
   assert.equal(alerts.at(-1), 'validation_cost');
+});
+
+test('tire replacement submits one shared event for multiple positions', async () => {
+  const { ui, getElement, saved, tireInputs } = await createUiHarness();
+  tireInputs.push(
+    { value: 'front_left', checked: true },
+    { value: 'front_right', checked: true },
+    { value: 'rear_left', checked: false },
+    { value: 'rear_right', checked: false },
+  );
+  getElement('l_type').value = 'tire_replace';
+  getElement('l_date').value = '2026-08-01';
+  getElement('l_odo').value = '10000';
+  getElement('l_cost').value = '420';
+  getElement('l_tire_brand').value = 'Michelin Primacy 4';
+  getElement('l_tire_tread').value = '7';
+  getElement('l_tire_pressure').value = '240';
+  getElement('l_tire_remaining_dist').value = '40000';
+  getElement('l_tire_remaining_months').value = '48';
+  await ui.submitService('');
+  assert.equal(saved.length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(saved[0].tirePositions)), ['front_left', 'front_right']);
+  assert.deepEqual(JSON.parse(JSON.stringify(Object.keys(saved[0].tireIds))), ['front_left', 'front_right']);
+  assert.equal(saved[0].tirePosition, 'front_left');
+  assert.equal(saved[0].cost, '420');
 });
 
 test('fuel editing saves notes and preserves extra existing fields', async () => {

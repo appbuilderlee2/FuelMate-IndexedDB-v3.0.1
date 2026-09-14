@@ -229,14 +229,16 @@ getReminderData(vehicle, options = {}) {
                 const tireThresholdDays = 60;
                 const tireStatuses = utils.getTireReplacementStatus(vehicle);
                 const addTireReminder = (s) => {
+                    const replacementKey = s.reminderKey || s.editLogId;
                     const id = s.isNotSet
                         ? `tire:${vehicle.id}:unset:${s.pos}`
-                        : `tire:${vehicle.id}:asset:${s.editLogId}`;
+                        : `tire:${vehicle.id}:asset:${replacementKey}`;
                     const legacyIds = s.isNotSet
                         ? [`tire:${vehicle.id}:${s.pos}:none`, `tire:${vehicle.id}:next:${s.pos}`]
                         : [
                             ...utils.getTirePositions().map(pos => `tire:${vehicle.id}:${pos}:${s.editLogId}`),
-                            ...utils.getTirePositions().map(pos => `tire:${vehicle.id}:next:${pos}`)
+                            ...utils.getTirePositions().map(pos => `tire:${vehicle.id}:next:${pos}`),
+                            ...(replacementKey && replacementKey !== s.editLogId ? [`tire:${vehicle.id}:asset:${s.editLogId}`] : [])
                         ];
                     items.push({
                         id,
@@ -255,7 +257,7 @@ getReminderData(vehicle, options = {}) {
                             ? `ui.openQuickTireSetup('${s.pos}')`
                             : (s.editLogId
                                 ? `ui.openAddService('${s.editLogId}')`
-                                : `ui.openAddService(null,'tire_replace'); setTimeout(() => { const el=document.getElementById('l_tire_pos'); if (el) el.value='${s.pos}'; }, 60);`)
+                                : `ui.openAddService(null,'tire_replace'); setTimeout(() => ui.setTirePositionSelection('${s.pos}'), 60);`)
                     });
                 };
                 let configuredReminderCount = 0;

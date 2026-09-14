@@ -7,6 +7,7 @@ const {
   calcEfficiencyValue,
   isNonNegativeNumber,
   isValidIsoDate,
+  normalizeTireReplacementEntries,
   pressureFromKpa,
   pressureToKpa,
   validateImportPayload,
@@ -130,4 +131,42 @@ test('validates reminder dates and directional tire rotations in imports', () =>
   assert.ok(invalid.errors.includes('log_invalid_tire_rotation'));
   assert.ok(invalid.errors.includes('settings_invalid_snooze'));
   assert.ok(invalid.errors.includes('settings_invalid_done'));
+});
+
+test('normalizes a multi-position tire replacement while preserving legacy shape', () => {
+  const entries = normalizeTireReplacementEntries({
+    id: 'rep-batch', type: 'tire_replace',
+    tirePositions: ['front_left', 'front_right', 'rear_left'],
+    tireIds: { front_left: 't1', front_right: 't2', rear_left: 't3' },
+    tireBrand: 'Michelin Primacy 4', tireTread: '7.1', tireRemainingDays: 720,
+  });
+  assert.deepEqual(entries.map(entry => [entry.position, entry.tireId]), [
+    ['front_left', 't1'], ['front_right', 't2'], ['rear_left', 't3'],
+  ]);
+  assert.equal(entries[1].tireBrand, 'Michelin Primacy 4');
+  assert.equal(entries[2].tireRemainingDays, 720);
+
+  const legacy = normalizeTireReplacementEntries({ id: 'legacy', tirePosition: 'rear_right', tireId: 'old-tire' });
+  assert.deepEqual(legacy.map(entry => [entry.position, entry.tireId]), [['rear_right', 'old-tire']]);
+});
+
+test('validates multi-position tire replacement imports without changing the schema version', () => {
+  const safeId = (value) => /^[A-Za-z0-9._:-]+$/.test(value);
+  const valid = validateImportPayload({
+    vehicles: [{ id: 'v1', currentOdometer: 1000 }],
+    logs: [{
+      id: 'rep-batch', vehicleId: 'v1', type: 'tire_replace', date: '2026-08-01', odometer: 1000,
+      tirePositions: ['front_left', 'front_right'], tireIds: { front_left: 't1', front_right: 't2' }, cost: 400,
+    }], settings: {},
+  }, safeId);
+  assert.deepEqual(valid.errors, []);
+
+  const invalid = validateImportPayload({
+    vehicles: [{ id: 'v1', currentOdometer: 1000 }],
+    logs: [{
+      id: 'rep-bad', vehicleId: 'v1', type: 'tire_replace', date: '2026-08-01', odometer: 1000,
+      tirePositions: ['front_left', 'front_left'], cost: 400,
+    }], settings: {},
+  }, safeId);
+  assert.ok(invalid.errors.includes('log_invalid_tire_replacement'));
 });

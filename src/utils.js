@@ -111,6 +111,12 @@
                 });
             },
             getTirePositions() { return ['front_left','front_right','rear_left','rear_right']; },
+            getTireReplacementEntries(log) {
+                return FuelMateCore.normalizeTireReplacementEntries(log);
+            },
+            getTireReplacementPositions(log) {
+                return utils.getTireReplacementEntries(log).map(entry => entry.position);
+            },
             getTireRotationMoves(log) {
                 return FuelMateCore.normalizeTireMoves(log);
             },
@@ -148,11 +154,10 @@
 
                 for (const { log, odo, dateMs } of events) {
                     if (log.type === 'tire_replace') {
-                        const pos = log.tirePosition;
-                        if (!pos) continue;
-                        const tireId = log.tireId || `rep:${log.id}`;
-                        posToTireId.set(pos, tireId);
-                        tireLastReplace.set(tireId, { odo, dateMs, logId: log.id, log });
+                        for (const entry of utils.getTireReplacementEntries(log)) {
+                            posToTireId.set(entry.position, entry.tireId);
+                            tireLastReplace.set(entry.tireId, { odo, dateMs, logId: log.id, log, entry });
+                        }
                     } else if (log.type === 'tire_rotation') {
                         utils.applyTireRotation(posToTireId, log);
                     }
@@ -168,12 +173,16 @@
 
                     const lastOdo = latest.odo;
                     const lastDate = latest.dateMs ? new Date(latest.dateMs) : null;
+                    const reminderKey = Array.isArray(latest.log?.tirePositions) && latest.log.tirePositions.length > 1
+                        ? `${latest.logId}:${tireId}`
+                        : latest.logId;
 
-                    const remainingDistSeed = Number.isFinite(parseFloat(latest.log?.tireRemainingDist))
-                        ? parseFloat(latest.log.tireRemainingDist)
+                    const source = latest.entry || latest.log || {};
+                    const remainingDistSeed = Number.isFinite(parseFloat(source.tireRemainingDist))
+                        ? parseFloat(source.tireRemainingDist)
                         : null;
-                    const remainingDaysSeed = Number.isFinite(parseFloat(latest.log?.tireRemainingDays))
-                        ? parseFloat(latest.log.tireRemainingDays)
+                    const remainingDaysSeed = Number.isFinite(parseFloat(source.tireRemainingDays))
+                        ? parseFloat(source.tireRemainingDays)
                         : null;
                     if (remainingDistSeed !== null || remainingDaysSeed !== null) {
                         const distUsed = Math.max(0, currentOdo - lastOdo);
@@ -203,7 +212,7 @@
                             ? new Date(lastDate.getTime() + remainingDaysSeed * 86400000)
                             : null;
 
-                        return { pos, tireId, editLogId: latest.logId || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate ? dueDate.toISOString() : null, dueOdo, isNotSet: false };
+                        return { pos, tireId, editLogId: latest.logId || null, reminderKey: reminderKey || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate ? dueDate.toISOString() : null, dueOdo, isNotSet: false };
                     }
 
                     const dueOdo = distInt > 0 ? (lastOdo + distInt) : null;
@@ -234,7 +243,7 @@
                     if (!isOverdue && timeText && primaryIsDist) secondaryParts.push(timeText);
                     const secondary = secondaryParts.length ? `${utils.t('due_in')} ${secondaryParts.join(' / ')}` : '';
 
-                    return { pos, tireId, editLogId: latest.logId || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate ? dueDate.toISOString() : null, dueOdo, isNotSet: false };
+                    return { pos, tireId, editLogId: latest.logId || null, reminderKey: reminderKey || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate ? dueDate.toISOString() : null, dueOdo, isNotSet: false };
                 });
             },
 
@@ -258,13 +267,14 @@
 
                 for (const { log, odo } of events) {
                     if (log.type === 'tire_replace') {
-                        const pos = log.tirePosition;
-                        if (!pos) continue;
-                        const tireId = log.tireId || `rep:${log.id}`;
-                        posToTireId.set(pos, tireId);
-                        const t = ensure(tireId);
-                        t.lastReplace = { logId: log.id, date: log.date, odometer: odo, brand: log.tireBrand || '' };
-                        t.events.push({ kind: 'replace', logId: log.id, date: log.date, odometer: odo, pos, brand: log.tireBrand || '' });
+                        for (const entry of utils.getTireReplacementEntries(log)) {
+                            const pos = entry.position;
+                            const tireId = entry.tireId;
+                            posToTireId.set(pos, tireId);
+                            const t = ensure(tireId);
+                            t.lastReplace = { logId: log.id, date: log.date, odometer: odo, brand: entry.tireBrand || '' };
+                            t.events.push({ kind: 'replace', logId: log.id, date: log.date, odometer: odo, pos, brand: entry.tireBrand || '' });
+                        }
                     } else if (log.type === 'tire_rotation') {
                         utils.applyTireRotation(posToTireId, log, (tireId, from, to) => {
                             ensure(tireId).events.push({ kind: 'rotate', logId: log.id, date: log.date, odometer: odo, from, to });

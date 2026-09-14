@@ -1,4 +1,14 @@
-# FuelMate IndexedDB v4.2.0
+# FuelMate IndexedDB v4.3.0
+
+## v4.3.0 更新內容
+
+- 更換輪胎表單支援一次選擇前兩條、後兩條、四條或任意多個位置。
+- 同一批更換只建立一筆事件，日期、里程、車房、輪胎資料及總額共用，避免費用重複計算。
+- 新增 `tirePositions[]` 及 `tireIds{}` 的兼容資料欄位；舊有 `tirePosition/tireId` 記錄仍可讀取及編輯，毋須 IndexedDB migration。
+- 每個輪胎保留獨立身份及提醒狀態；輪胎換位後仍會按實體輪胎繼續追蹤。
+- 快速設定全輪亦改為單一原子更換事件；取消所有位置或選擇無效位置時不會寫入資料。
+- App 版本 4.3.0，cache v27；新增位置選擇及多輪胎狀態測試。
+- 驗證：76 項 Node 測試、typecheck 及 production build。
 
 ## v4.2.0 更新內容
 

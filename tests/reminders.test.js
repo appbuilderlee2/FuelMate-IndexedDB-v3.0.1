@@ -138,6 +138,26 @@ test('legacy position-based done state still completes the stable tire reminder'
   assert.equal(data.activeItems.some(item => item.id === 'tire:v1:asset:rep1'), false);
 });
 
+test('a multi-tire replacement creates independent tire status and reminder identities', async () => {
+  const { store, ui, utils, vehicle } = await createHarness();
+  vehicle.currentOdometer = 10000;
+  store.data.logs = [{
+    id: 'rep-batch', vehicleId: 'v1', type: 'tire_replace', date: '2026-01-01', odometer: 9000,
+    tirePositions: ['front_left', 'front_right'],
+    tireIds: { front_left: 't1', front_right: 't2' },
+    tireBrand: 'Michelin', tireRemainingDist: 1000,
+  }];
+  const statuses = utils.getTireReplacementStatus(vehicle).filter(item => !item.isNotSet);
+  assert.deepEqual(JSON.parse(JSON.stringify(statuses.map(item => [item.pos, item.tireId]))), [['front_left', 't1'], ['front_right', 't2']]);
+  assert.notEqual(statuses[0].reminderKey, statuses[1].reminderKey);
+
+  const assetItems = ui.getReminderData(vehicle, { includeAll: true, now: '2026-01-10T00:00:00.000Z' }).items
+    .filter(item => item.id.startsWith('tire:v1:asset:'));
+  assert.equal(assetItems.length, 2);
+  assert.notEqual(assetItems[0].id, assetItems[1].id);
+  assert.ok(assetItems.every(item => item.sourceLogId === 'rep-batch'));
+});
+
 test('reminder center can combine all vehicles or isolate one vehicle', async () => {
   const { store, ui, vehicle } = await createHarness();
   const second = {

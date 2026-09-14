@@ -22,6 +22,44 @@
 
   const tirePositions = Object.freeze(['front_left', 'front_right', 'rear_left', 'rear_right']);
 
+  /**
+   * Normalise both the original one-position replacement shape and the
+   * multi-position shape used by newer records.  The returned entries keep
+   * the shared fields on the log as defaults, while allowing a future import
+   * to provide a per-position override in tireDetails without changing the
+   * IndexedDB schema.
+   */
+  function normalizeTireReplacementEntries(log) {
+    const rawPositions = Array.isArray(log?.tirePositions) && log.tirePositions.length
+      ? log.tirePositions
+      : (log?.tirePosition ? [log.tirePosition] : []);
+    const positions = rawPositions.map(position => typeof position === 'string' ? position : '');
+    const allowed = new Set(tirePositions);
+    if (!positions.length || positions.some(position => !allowed.has(position)) || new Set(positions).size !== positions.length) return [];
+
+    const idMap = log?.tireIds && typeof log.tireIds === 'object' && !Array.isArray(log.tireIds)
+      ? log.tireIds
+      : {};
+    const detailMap = log?.tireDetails && typeof log.tireDetails === 'object' && !Array.isArray(log.tireDetails)
+      ? log.tireDetails
+      : {};
+    const fields = ['tireBrand', 'tireTread', 'tirePressureKpa', 'tireAlignment', 'tireBalancing', 'tireRemainingDist', 'tireRemainingDays'];
+    const legacyId = typeof log?.tireId === 'string' ? log.tireId.trim() : (log?.tireId == null ? '' : String(log.tireId).trim());
+
+    return positions.map((position, index) => {
+      const mappedId = typeof idMap[position] === 'string' ? idMap[position].trim() : (idMap[position] == null ? '' : String(idMap[position]).trim());
+      const tireId = mappedId || (positions.length === 1 && legacyId ? legacyId : `rep:${log?.id || 'unknown'}:${position}`);
+      const details = detailMap[position] && typeof detailMap[position] === 'object' && !Array.isArray(detailMap[position])
+        ? detailMap[position]
+        : {};
+      const entry = { position, tireId, index };
+      fields.forEach(field => {
+        entry[field] = details[field] !== undefined ? details[field] : log?.[field];
+      });
+      return entry;
+    });
+  }
+
   function normalizeTireMoves(log) {
     const positions = new Set(tirePositions);
     const rawMoves = Array.isArray(log?.tireMoves) && log.tireMoves.length
@@ -231,6 +269,13 @@
         if (!isNonNegativeNumber(log.cost, { allowEmpty: !['fuel', 'parking'].includes(log.type) })) errors.push('log_invalid_cost');
         if (log.type === 'fuel' && !isNonNegativeNumber(log.liters, { positive: true })) errors.push('log_invalid_fuel_amount');
         if (log.expiryDate && !isValidIsoDate(log.expiryDate)) errors.push('log_invalid_expiry_date');
+        if (log.type === 'tire_replace' && (log.tirePositions !== undefined || log.tirePosition !== undefined)) {
+          const expectedPositions = Array.isArray(log.tirePositions) ? log.tirePositions.length : 1;
+          const replacementEntries = normalizeTireReplacementEntries(log);
+          if (!expectedPositions || replacementEntries.length !== expectedPositions) errors.push('log_invalid_tire_replacement');
+          if (new Set(replacementEntries.map(entry => entry.tireId)).size !== replacementEntries.length) errors.push('log_invalid_tire_ids');
+          if (log.tireIds !== undefined && (!log.tireIds || typeof log.tireIds !== 'object' || Array.isArray(log.tireIds))) errors.push('log_invalid_tire_ids');
+        }
         if (log.type === 'tire_rotation') {
           const hasMoves = Array.isArray(log.tireMoves) && log.tireMoves.length > 0;
           const hasSwaps = Array.isArray(log.tireSwaps) && log.tireSwaps.length > 0;
@@ -254,6 +299,7 @@
     isValidIsoDate,
     isValidIsoDateTime,
     normalizeTireMoves,
+    normalizeTireReplacementEntries,
     pressureFromKpa,
     pressureToKpa,
     supportedLogTypes,
