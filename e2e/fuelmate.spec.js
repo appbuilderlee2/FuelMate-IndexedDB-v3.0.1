@@ -16,6 +16,15 @@ async function createVehicle(page) {
   await expect(page.getByText('E2E Roadster', { exact: false }).first()).toBeVisible();
 }
 
+async function waitForVisualAssets(page) {
+  await page.evaluate(async () => {
+    await document.fonts.load('24px "Material Icons"');
+    await document.fonts.ready;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+  expect(await page.evaluate(() => document.fonts.check('24px "Material Icons"'))).toBe(true);
+}
+
 test('creates a vehicle and keeps the Settings version synchronized', async ({ page }, testInfo) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -30,7 +39,7 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await page.getByTestId('appearance-dark').click();
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'apple-fluid-dark');
   await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'dark');
-  await page.evaluate(() => document.fonts.ready);
+  await waitForVisualAssets(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth));
   await page.screenshot({ path: testInfo.outputPath('apple-fluid-dark.png'), fullPage: true });
   await page.reload();
@@ -38,7 +47,7 @@ test('creates a vehicle and keeps the Settings version synchronized', async ({ p
   await expect(page.getByTestId('appearance-dark')).toHaveAttribute('aria-checked', 'true');
   await page.getByTestId('appearance-light').click();
   await expect(page.locator('html')).toHaveAttribute('data-color-scheme', 'light');
-  await page.evaluate(() => document.fonts.ready);
+  await waitForVisualAssets(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => window.innerWidth));
   await page.screenshot({ path: testInfo.outputPath('apple-fluid-light.png'), fullPage: true });
   await page.getByTestId('appearance-system').click();
