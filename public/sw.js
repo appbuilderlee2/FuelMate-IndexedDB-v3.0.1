@@ -75,6 +75,8 @@ self.addEventListener('fetch', event => {
     const cache = await caches.open(CACHE_NAME);
     const key = request.mode === 'navigate' ? urlFor('index.html') : request;
     // A missing asset must never be filled from a different release or with HTML.
-    return (await cache.match(key)) || Response.error();
+    // The release cache is validated as a complete set. Font requests may carry
+    // an Origin header that differs from the precache request's Vary header.
+    return (await cache.match(key, { ignoreVary: true })) || Response.error();
   })());
 });

@@ -63,6 +63,36 @@ test('offline navigation returns the cached shell without waiting for the networ
   assert.equal(background.length, 0);
 });
 
+test('a cached icon font remains available when its request headers differ from precache', async () => {
+  const listeners = new Map();
+  const matches = [];
+  const fontUrl = 'https://example.test/FuelMate/material-icons/material-icons.woff2';
+  const source = await fs.readFile(new URL('../public/sw.js', import.meta.url), 'utf8');
+  vm.runInNewContext(source, {
+    URL, Response,
+    caches: { open: async () => ({
+      match: async (key, options) => {
+        matches.push({ key, ignoreVary: options?.ignoreVary });
+        return options?.ignoreVary ? new Response('cached font') : undefined;
+      },
+    }) },
+    self: {
+      registration: { scope: 'https://example.test/FuelMate/' },
+      location: { origin: 'https://example.test' },
+      addEventListener(name, handler) { listeners.set(name, handler); },
+    },
+  });
+
+  let responsePromise;
+  listeners.get('fetch')({
+    request: { method: 'GET', mode: 'cors', url: fontUrl, destination: 'font' },
+    respondWith(promise) { responsePromise = promise; },
+  });
+  assert.equal(await (await responsePromise).text(), 'cached font');
+  assert.equal(matches[0].key.url, fontUrl);
+  assert.equal(matches[0].ignoreVary, true);
+});
+
 test('mismatched production release is rejected before cache writes', async () => {
   const { webcrypto } = await import('node:crypto');
   const listeners = new Map();
