@@ -21,6 +21,7 @@
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./icon-192.png" type="image/png">
     <title>FuelMate</title>
+    <link rel="preload" href="./material-icons/material-icons.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="./app.css">
     <link rel="stylesheet" href="./material-icons/material-icons.css">
     <style>
@@ -92,6 +93,11 @@
                 radial-gradient(75% 40% at 100% 18%, rgba(56, 189, 248, 0.09), transparent 70%),
                 var(--bg-main);
             font-optical-sizing: auto;
+        }
+        :root[data-appearance^="apple-fluid"] .material-icons {
+            width: 1em;
+            overflow: hidden;
+            flex-shrink: 0;
         }
         :root[data-appearance^="apple-fluid"] .theme-bg-card,
         :root[data-appearance^="apple-fluid"] .card-shadow {
