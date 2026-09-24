@@ -25,6 +25,14 @@ async function waitForVisualAssets(page) {
   expect(await page.evaluate(() => document.fonts.check('24px "Material Icons"'))).toBe(true);
 }
 
+async function hideTransientStatusForScreenshot(page) {
+  // The update-ready notice belongs to a separate service-worker lifecycle check.
+  await page.evaluate(() => {
+    const banner = document.getElementById('pwa-status-banner');
+    if (banner) banner.style.visibility = 'hidden';
+  });
+}
+
 test('creates a vehicle and keeps the Settings version synchronized', async ({ page }, testInfo) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -81,6 +89,41 @@ test('optional iOS styles preserve mode, records and the original appearance', a
   await expect(page.locator('html')).toHaveAttribute('data-appearance', 'apple-fluid-light');
   await page.getByTestId('nav-dashboard').click();
   await expect(page.getByText('E2E Roadster', { exact: false }).first()).toBeVisible();
+});
+
+test('Apple Fluid dashboard uses saved records and keeps its primary actions usable', async ({ page }, testInfo) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.evaluate(async () => {
+    const today = FuelMateCore.localDateKey();
+    await store.addLog({ id: 'dash-fuel', vehicleId: store.data.settings.activeVehicleId, type: 'fuel', date: today, odometer: 1000, cost: '80', liters: '40' });
+    await store.addLog({ id: 'dash-service', vehicleId: store.data.settings.activeVehicleId, type: 'service', date: today, odometer: 1001, cost: '60', notes: 'Oil change' });
+    ui.render();
+  });
+  const dashboard = page.getByTestId('fluid-dashboard');
+  await expect(dashboard).toBeVisible();
+  await expect(dashboard.getByText('E2E Roadster')).toBeVisible();
+  await expect(dashboard.locator('.fluid-metric').nth(1).getByText('$140.00')).toBeVisible();
+  await expect(page.getByTestId('dashboard-recent')).toHaveCount(2);
+  await waitForVisualAssets(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
+  await hideTransientStatusForScreenshot(page);
+  await page.screenshot({ path: testInfo.outputPath('dashboard-light.png'), fullPage: false });
+  await page.getByTestId('dashboard-add-record').click();
+  await expect(page.getByTestId('modal-overlay')).toBeVisible();
+  await page.locator('#modal-content').getByRole('button', { name: /Add Fuel|新增加油/ }).click();
+  await expect(page.locator('#l_liters')).toBeVisible();
+  await page.getByTestId('modal-overlay').click({ position: { x: 3, y: 3 } });
+  await page.getByTestId('nav-settings').click();
+  await page.getByTestId('appearance-dark').click();
+  await page.getByTestId('nav-dashboard').click();
+  await waitForVisualAssets(page);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
+  await hideTransientStatusForScreenshot(page);
+  await page.screenshot({ path: testInfo.outputPath('dashboard-dark.png'), fullPage: false });
+  await page.getByTestId('dashboard-see-all').click();
+  await expect(page.locator('#modal-content').getByTestId('log-card')).toHaveCount(2);
 });
 
 test('adds a fuel record and renders the saved IndexedDB data', async ({ page }) => {
@@ -169,7 +212,7 @@ test('keeps an unset-tire reminder visible and supports snoozing it', async ({ p
   await dashboardReminder.getByRole('button', { name: /Snooze 7d|延後 7 天/ }).click();
   await expect(dashboardReminder).toBeHidden();
 
-  await page.getByRole('button', { name: /View All|查看全部/ }).first().click();
+  await page.getByTestId('dashboard-reminders-see-all').click();
   await page.getByRole('button', { name: /Snoozed|已延後/ }).click();
   const snoozedReminder = page.locator('[data-testid="reminder-card"][data-reminder-id*="unset:front_left"]');
   await expect(snoozedReminder).toBeVisible();
@@ -180,7 +223,7 @@ test('keeps an unset-tire reminder visible and supports snoozing it', async ({ p
 test('filters reminder categories, opens details, and completes a selection in bulk', async ({ page }) => {
   await openFreshApp(page);
   await createVehicle(page);
-  await page.getByRole('button', { name: /View All|查看全部/ }).first().click();
+  await page.getByTestId('dashboard-reminders-see-all').click();
 
   await expect(page.getByTestId('reminder-summary')).toBeVisible();
   await page.locator('[data-reminder-category="tire"]').click();

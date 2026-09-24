@@ -407,11 +407,11 @@ renderLogCard(log) {
 
 renderBottomNav(active) {
                 const nav = [
-                    { id: 'dashboard', icon: 'dashboard', label: utils.t('dashboard') },
+                    { id: 'dashboard', icon: 'home', label: utils.t('dashboard') },
                     { id: 'fuel', icon: 'local_gas_station', label: utils.t('fuel') },
                     { id: 'parking', icon: 'local_parking', label: utils.t('parking') },
-                    { id: 'maintenance', icon: 'build', label: utils.t('maintenance_plus') },
-                    { id: 'analytics', icon: 'pie_chart', label: utils.t('analytics') },
+                    { id: 'maintenance', icon: 'description', label: utils.t('dashboard_nav_records') },
+                    { id: 'analytics', icon: 'bar_chart', label: utils.t('dashboard_nav_insights') },
                     { id: 'settings', icon: 'settings', label: utils.t('settings') }
                 ];
                 const activeIndex = Math.max(0, nav.findIndex(n => n.id === active));

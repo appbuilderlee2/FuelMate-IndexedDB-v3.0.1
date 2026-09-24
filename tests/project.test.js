@@ -70,9 +70,9 @@ test('service worker uses its GitHub Pages scope for index caching', async () =>
   assert.doesNotMatch(worker, /fetch\('\/index\.html'/);
 });
 
-test('PWA status banner stays below the iOS safe area and remains interactive', async () => {
+test('PWA status banner clears the bottom iOS safe area and remains interactive', async () => {
   const main = await read('src/main.js');
-  assert.match(main, /safe-area-inset-top/);
+  assert.match(main, /safe-area-inset-bottom/);
   assert.match(main, /pointer-events-auto/);
   assert.doesNotMatch(main, /className = 'fixed top-3/);
 });

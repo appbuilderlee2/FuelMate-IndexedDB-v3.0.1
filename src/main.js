@@ -23,8 +23,10 @@ const FuelMateAppearance = (() => {
 const router = {
             currentPage: 'dashboard',
             navigate(page) {
+                const changed = this.currentPage !== page;
                 this.currentPage = page;
                 ui.render();
+                if (changed) window.scrollTo(0, 0);
             }
         };
 
@@ -290,7 +292,8 @@ const router = {
                 banner.id = 'pwa-status-banner';
                 banner.setAttribute('role', 'status');
                 banner.className = 'fixed left-1/2 -translate-x-1/2 z-[100] max-w-[calc(100%-1.5rem)] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold shadow-xl flex items-center gap-3 pointer-events-auto';
-                banner.style.top = 'calc(env(safe-area-inset-top, 0px) + 0.75rem)';
+                banner.style.maxWidth = 'min(360px, calc(100% - 1.5rem))';
+                banner.style.bottom = 'calc(92px + env(safe-area-inset-bottom, 0px))';
                 document.body.appendChild(banner);
             }
             banner.replaceChildren();
