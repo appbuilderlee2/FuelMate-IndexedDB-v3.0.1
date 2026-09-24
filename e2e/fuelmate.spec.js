@@ -102,7 +102,7 @@ test('Apple Fluid dashboard uses saved records and keeps its primary actions usa
   await page.screenshot({ path: testInfo.outputPath('dashboard-light.png'), fullPage: false });
   await page.getByTestId('dashboard-add-record').click();
   await expect(page.getByTestId('modal-overlay')).toBeVisible();
-  await page.getByTestId('modal-content').getByRole('button', { name: /Add Fuel|新增加油/ }).click();
+  await page.locator('#modal-content').getByRole('button', { name: /Add Fuel|新增加油/ }).click();
   await expect(page.locator('#l_liters')).toBeVisible();
   await page.getByTestId('modal-overlay').click({ position: { x: 3, y: 3 } });
   await page.getByTestId('nav-settings').click();
@@ -112,7 +112,7 @@ test('Apple Fluid dashboard uses saved records and keeps its primary actions usa
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
   await page.screenshot({ path: testInfo.outputPath('dashboard-dark.png'), fullPage: false });
   await page.getByTestId('dashboard-see-all').click();
-  await expect(page.getByTestId('modal-content').getByTestId('log-card')).toHaveCount(2);
+  await expect(page.locator('#modal-content').getByTestId('log-card')).toHaveCount(2);
 });
 
 test('adds a fuel record and renders the saved IndexedDB data', async ({ page }) => {
