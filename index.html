@@ -21,6 +21,7 @@
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./icon-192.png" type="image/png">
     <title>FuelMate</title>
+    <link rel="preload" href="./material-icons/material-icons.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="./app.css">
     <link rel="stylesheet" href="./material-icons/material-icons.css">
     <style>
@@ -70,17 +71,21 @@
         .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
         :root[data-appearance^="apple-fluid"] {
             --bg-main: #f4f8fb;
-            --bg-card: rgba(255, 255, 255, 0.72);
+            --bg-card: rgba(255, 255, 255, 0.82);
             --text-heading: #101828;
             --text-sub: #667085;
             --border-color: rgba(148, 163, 184, 0.22);
+            --fluid-field: rgba(255, 255, 255, 0.7);
+            --fluid-opaque: #ffffff;
         }
         :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] {
             --bg-main: #07111f;
-            --bg-card: rgba(17, 30, 48, 0.72);
+            --bg-card: rgba(17, 30, 48, 0.82);
             --text-heading: #f7fafc;
             --text-sub: #9eacbd;
             --border-color: rgba(148, 163, 184, 0.2);
+            --fluid-field: rgba(29, 45, 66, 0.8);
+            --fluid-opaque: #142237;
         }
         :root[data-appearance^="apple-fluid"] body {
             background:
@@ -89,17 +94,48 @@
                 var(--bg-main);
             font-optical-sizing: auto;
         }
+        :root[data-appearance^="apple-fluid"] .material-icons {
+            width: 1em;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
         :root[data-appearance^="apple-fluid"] .theme-bg-card,
         :root[data-appearance^="apple-fluid"] .card-shadow {
             background-color: var(--bg-card);
-            backdrop-filter: blur(22px) saturate(160%);
-            -webkit-backdrop-filter: blur(22px) saturate(160%);
-            border-color: var(--border-color);
-            box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.58);
+            backdrop-filter: blur(24px) saturate(145%);
+            -webkit-backdrop-filter: blur(24px) saturate(145%);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(20, 47, 74, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.72);
         }
         :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .theme-bg-card,
         :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .card-shadow {
-            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        :root[data-appearance^="apple-fluid"] #modal-content {
+            background: var(--bg-card);
+            color: var(--text-heading);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+            padding-bottom: calc(24px + var(--safe-bottom));
+        }
+        :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] #modal-content {
+            box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        :root[data-appearance^="apple-fluid"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) {
+            background-color: var(--fluid-field);
+            color: var(--text-heading);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 16px;
+            accent-color: #0d9488;
+        }
+        :root[data-appearance^="apple-fluid"] :is(input, select, textarea):focus-visible,
+        :root[data-appearance^="apple-fluid"] :is(button, [role="button"]):focus-visible {
+            outline: 2px solid #0d9488;
+            outline-offset: 2px;
         }
         :root[data-appearance^="apple-fluid"] button,
         :root[data-appearance^="apple-fluid"] [role="button"] {
@@ -164,6 +200,46 @@
         .liquid-nav-item:hover { transform: translateY(-2px); }
         .liquid-nav-item:active { transform: translateY(-1px) scale(0.98); }
         .liquid-nav-item.is-active .material-icons { text-shadow: 0 0 12px rgba(20, 184, 166, 0.35); }
+        :root[data-appearance^="apple-fluid"] .liquid-nav {
+            left: 50%;
+            bottom: max(10px, var(--safe-bottom));
+            width: calc(100% - 24px);
+            max-width: 560px;
+            padding: 4px;
+            transform: translateX(-50%);
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            border-radius: 28px;
+            background: rgba(250, 253, 255, 0.78);
+            backdrop-filter: blur(28px) saturate(160%);
+            -webkit-backdrop-filter: blur(28px) saturate(160%);
+            box-shadow: 0 12px 34px rgba(26, 55, 84, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+        }
+        :root[data-appearance^="apple-fluid"] .nav-safe { padding-bottom: 4px; }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-inner { padding-top: 0; }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-item {
+            min-height: 54px;
+            color: var(--text-sub);
+            border-radius: 22px;
+        }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-item.is-active { color: #0f766e; }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-highlight {
+            height: calc(100% - 4px);
+            border-radius: 22px;
+            background: rgba(180, 239, 234, 0.54);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+        }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-bg { opacity: 0.3; }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-gloss { opacity: 0.3; }
+        :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .liquid-nav {
+            background: rgba(15, 29, 47, 0.78);
+            border-color: rgba(181, 205, 224, 0.2);
+            box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .liquid-nav-item.is-active { color: #7be5d5; }
+        :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .liquid-nav-highlight {
+            background: rgba(64, 178, 167, 0.22);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
         @keyframes liquid-drift {
             0% { transform: translate3d(-4%, -2%, 0) scale(1); }
             100% { transform: translate3d(4%, 2%, 0) scale(1.05); }
@@ -204,7 +280,16 @@
         @media (prefers-reduced-transparency: reduce) {
             :root[data-appearance^="apple-fluid"] .theme-bg-card,
             :root[data-appearance^="apple-fluid"] .card-shadow,
-            :root[data-appearance^="apple-fluid"] .liquid-nav { backdrop-filter: none; -webkit-backdrop-filter: none; background-color: var(--bg-card); }
+            :root[data-appearance^="apple-fluid"] .liquid-nav,
+            :root[data-appearance^="apple-fluid"] #modal-content { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--fluid-opaque); }
+        }
+        :root[data-appearance^="apple-fluid"][data-reduce-transparency="true"] :is(.theme-bg-card, .card-shadow, .liquid-nav, #modal-content) {
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            background: var(--fluid-opaque);
+        }
+        @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+            :root[data-appearance^="apple-fluid"] :is(.theme-bg-card, .card-shadow, .liquid-nav, #modal-content) { background: var(--fluid-opaque); }
         }
         /* Hide scrollbar but allow scroll */
         .no-scrollbar::-webkit-scrollbar { display: none; }
