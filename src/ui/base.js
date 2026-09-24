@@ -128,14 +128,9 @@ renderSearchPanel(opts) {
                     pageKey = '',
                     searchKey = '',
                     placeholder = 'Search...',
-                    fromValue = '',
-                    toValue = '',
-                    fromKey = '',
-                    toKey = '',
                     chips = []
                 } = opts || {};
 
-                const hasRange = pageKey && (fromKey || toKey);
                 const hasSearch = pageKey && searchKey;
                 return `
                     <div class="space-y-3 mb-4">
@@ -145,18 +140,6 @@ renderSearchPanel(opts) {
                                 <input type="text" placeholder="${placeholder}" value="${searchValue || ''}" data-input-action="ui" data-ui-method="onSearchInput" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey, searchKey]))}" data-ui-pass-value="true" class="w-full pl-10 pr-10 py-2 rounded-xl theme-bg-card theme-text-heading shadow-sm border-none focus:ring-2 focus:ring-teal-500 text-sm">
                                 ${searchValue ? `<button data-action="ui" data-ui-method="clearSearch" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey, searchKey]))}" class="absolute right-2 top-2 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center"><span class="material-icons text-slate-500 text-base">close</span></button>` : ''}
                             </div>
-                        ` : ''}
-
-                        ${hasRange ? `
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="relative">
-                                    <input type="date" value="${fromValue || ''}" data-change-action="ui" data-ui-method="updatePageFilter" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey, fromKey]))}" data-ui-pass-value="true" class="w-full p-2.5 rounded-xl theme-bg-card theme-text-heading shadow-sm border-none focus:ring-2 focus:ring-teal-500 text-sm">
-                                </div>
-                                <div class="relative">
-                                    <input type="date" value="${toValue || ''}" data-change-action="ui" data-ui-method="updatePageFilter" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey, toKey]))}" data-ui-pass-value="true" class="w-full p-2.5 rounded-xl theme-bg-card theme-text-heading shadow-sm border-none focus:ring-2 focus:ring-teal-500 text-sm">
-                                </div>
-                            </div>
-                            ${(fromValue || toValue) ? `<button data-action="ui" data-ui-method="clearPageRange" data-ui-args="${encodeURIComponent(JSON.stringify([pageKey, fromKey, toKey]))}" class="w-full py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 theme-text-heading">${utils.t('cancel')}</button>` : ''}
                         ` : ''}
 
                         ${chips && chips.length ? `
@@ -173,7 +156,11 @@ renderSearchPanel(opts) {
 renderFilterHeader(page, filter, isColorBg = false) {
                 const isYear = filter.mode === 'year';
                 const isMonth = filter.mode === 'month';
-                const availableYears = utils.getAvailableYears();
+                const hasRange = ['fuel', 'parking', 'maintenance', 'analytics'].includes(page);
+                const isCustom = hasRange && filter.mode === 'custom';
+                const fromKey = `${page}From`;
+                const toKey = `${page}To`;
+                const availableYears = [...new Set([...utils.getAvailableYears(), Number.parseInt(filter.value, 10), new Date().getFullYear()].filter(Number.isFinite))].sort((a, b) => b - a);
 
                 const inputClass = isColorBg
                     ? 'bg-white/20 backdrop-blur-md text-white placeholder-white/70'
@@ -191,29 +178,27 @@ renderFilterHeader(page, filter, isColorBg = false) {
                     ? 'text-white/80 hover:bg-white/10'
                     : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700';
 
-                return `
-                    <div class="flex items-center justify-end gap-2 mb-4 w-full">
-                        <div class="flex-1 flex items-center gap-2">
-                             ${isMonth ? `<input type="month" value="${filter.value}" data-change-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'month']))}" data-ui-pass-value="true" class="text-sm p-1 rounded font-medium outline-none ${inputClass}">` : ''}
-                             ${isYear ? `
-                                <select data-change-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'year']))}" data-ui-pass-value="true" class="text-sm p-1 rounded font-medium outline-none appearance-none pl-2 pr-6 relative ${inputClass}">
-                                    ${availableYears.map(y => `<option value="${y}" ${y == filter.value ? 'selected' : ''} class="text-black">${y}</option>`).join('')}
-                                </select>
-                            ` : ''}
-                        </div>
-
-                        <div class="flex rounded-lg p-1 shrink-0 ${containerClass}">
-                            <button data-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'month']))}" class="px-3 py-1 rounded-md text-xs font-medium transition-all ${filter.mode === 'month' ? activeBtnClass : inactiveBtnClass}">${utils.t('range_month')}</button>
-                            <button data-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'year']))}" class="px-3 py-1 rounded-md text-xs font-medium transition-all ${filter.mode === 'year' ? activeBtnClass : inactiveBtnClass}">${utils.t('range_year')}</button>
-                            <button data-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'all']))}" class="px-3 py-1 rounded-md text-xs font-medium transition-all ${filter.mode === 'all' ? activeBtnClass : inactiveBtnClass}">${utils.t('range_all')}</button>
-                        </div>
+                return `<div class="period-filter mb-4 ${isColorBg ? 'period-filter-on-color' : ''}" data-testid="period-filter-${page}">
+                    <div class="period-modes ${containerClass}" role="group" aria-label="${utils.t('date_filter')}">
+                        ${['month', 'year', 'all', ...(hasRange ? ['custom'] : [])].map(mode => `<button type="button" data-testid="period-mode-${mode}" data-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, mode]))}" aria-pressed="${filter.mode === mode}" class="period-mode ${filter.mode === mode ? activeBtnClass : inactiveBtnClass}">${utils.t(`range_${mode}`)}</button>`).join('')}
                     </div>
-                `;
+                    ${isMonth ? `<label class="period-field"><span>${utils.t('range_month')}</span><input type="month" value="${utils.escapeAttr(filter.value)}" data-testid="period-value" data-change-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'month']))}" data-ui-pass-value="true" class="period-input ${inputClass}"></label>` : ''}
+                    ${isYear ? `<label class="period-field"><span>${utils.t('range_year')}</span><select data-testid="period-value" data-change-action="ui" data-ui-method="setFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, 'year']))}" data-ui-pass-value="true" class="period-input ${inputClass}">${availableYears.map(y => `<option value="${y}" ${y == filter.value ? 'selected' : ''}>${y}</option>`).join('')}</select></label>` : ''}
+                    ${isCustom ? `<div class="period-range">
+                        <label class="period-field"><span>${utils.t('date_from')}</span><input type="date" value="${utils.escapeAttr(store.pageFilters[fromKey] || '')}" data-testid="period-from" data-change-action="ui" data-ui-method="updatePageFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, fromKey]))}" data-ui-pass-value="true" class="period-input ${inputClass}"></label>
+                        <label class="period-field"><span>${utils.t('date_to')}</span><input type="date" value="${utils.escapeAttr(store.pageFilters[toKey] || '')}" data-testid="period-to" data-change-action="ui" data-ui-method="updatePageFilter" data-ui-args="${encodeURIComponent(JSON.stringify([page, toKey]))}" data-ui-pass-value="true" class="period-input ${inputClass}"></label>
+                        ${(store.pageFilters[fromKey] || store.pageFilters[toKey]) ? `<button type="button" data-action="ui" data-ui-method="clearPageRange" data-ui-args="${encodeURIComponent(JSON.stringify([page, fromKey, toKey]))}" class="period-clear">${utils.t('clear_date_range')}</button>` : ''}
+                    </div>` : ''}
+                </div>`;
             },
 
 setFilter(page, mode, value) {
-                if (mode === 'month' && !value) value = FuelMateCore.localDateKey().slice(0, 7);
-                if (mode === 'year' && !value) value = new Date().getFullYear().toString();
+                if (mode === 'month' && !value) value = store.pageFilters[page]?.mode === 'year' && /^\d{4}$/.test(store.pageFilters[page].value) ? `${store.pageFilters[page].value}-${FuelMateCore.localDateKey().slice(5, 7)}` : FuelMateCore.localDateKey().slice(0, 7);
+                if (mode === 'year' && !value) value = store.pageFilters[page]?.mode === 'month' ? store.pageFilters[page].value.slice(0, 4) : FuelMateCore.localDateKey().slice(0, 4);
+                if (mode !== 'custom' && ['fuel', 'parking', 'maintenance', 'analytics'].includes(page)) {
+                    store.pageFilters[`${page}From`] = '';
+                    store.pageFilters[`${page}To`] = '';
+                }
                 store.pageFilters[page] = { mode, value };
                 this.resetPageLimit(page);
                 this.render();
@@ -221,6 +206,12 @@ setFilter(page, mode, value) {
 
 updatePageFilter(pageKey, filterKey, value) {
                 store.pageFilters[filterKey] = value;
+                const fromKey = `${pageKey}From`;
+                const toKey = `${pageKey}To`;
+                if (store.pageFilters[fromKey] && store.pageFilters[toKey] && store.pageFilters[fromKey] > store.pageFilters[toKey]) {
+                    store.pageFilters[filterKey === fromKey ? toKey : fromKey] = value;
+                }
+                store.pageFilters[pageKey] = { mode: 'custom', value: '' };
                 this.resetPageLimit(pageKey);
                 this.render();
             },
@@ -228,6 +219,7 @@ updatePageFilter(pageKey, filterKey, value) {
 clearPageRange(pageKey, fromKey, toKey) {
                 store.pageFilters[fromKey] = '';
                 store.pageFilters[toKey] = '';
+                store.pageFilters[pageKey] = { mode: 'all', value: '' };
                 this.resetPageLimit(pageKey);
                 this.render();
             },
