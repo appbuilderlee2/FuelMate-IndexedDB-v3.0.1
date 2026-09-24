@@ -102,7 +102,7 @@ test('Apple Fluid dashboard uses saved records and keeps its primary actions usa
   });
   const dashboard = page.getByTestId('fluid-dashboard');
   await expect(dashboard).toBeVisible();
-  await expect(dashboard.getByText('E2E Roadster')).toBeVisible();
+  await expect(dashboard.locator('.fluid-hero h2')).toHaveText('E2E Roadster');
   await expect(dashboard.locator('.fluid-metric').nth(1).getByText('$140.00')).toBeVisible();
   await expect(page.getByTestId('dashboard-recent')).toHaveCount(2);
   await waitForVisualAssets(page);
@@ -160,6 +160,8 @@ test('vehicle shortcuts switch between saved cars and date periods stay separate
       await hideTransientStatusForScreenshot(page);
       await page.screenshot({ path: testInfo.outputPath('period-filter-fuel.png'), fullPage: false });
       await expect(page.locator('[data-testid="log-card"][data-log-type="fuel"]')).toHaveCount(1);
+      await page.getByTestId(`period-filter-${nav}`).getByTestId('period-from').fill('2025-06-01');
+      await expect(page.getByTestId(`period-filter-${nav}`).getByTestId('period-to')).toHaveValue('2025-06-01');
       await page.getByTestId(`period-filter-${nav}`).getByTestId('period-mode-year').click();
       await expect(page.locator('[data-testid="log-card"][data-log-type="fuel"]')).toHaveCount(1);
       await expect(page.getByTestId(`period-filter-${nav}`).getByTestId('period-value')).toHaveValue('2026');
