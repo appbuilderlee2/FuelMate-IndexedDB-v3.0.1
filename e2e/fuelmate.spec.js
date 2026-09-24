@@ -171,6 +171,36 @@ test('vehicle shortcuts switch between saved cars and date periods stay separate
   }
 });
 
+test('dashboard car image follows the selected Mazda 2 or Honda CR-V', async ({ page }, testInfo) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await expect(page.getByTestId('dashboard-vehicle-fallback')).toBeVisible();
+
+  for (const car of [{ make: 'Mazda', model: '2', year: '2012' }, { make: 'Honda', model: 'CRV', year: '2018' }]) {
+    await page.getByTestId('dashboard-add-vehicle').click();
+    await page.locator('#v_make').fill(car.make);
+    await page.locator('#v_model').fill(car.model);
+    await page.locator('#v_year').fill(car.year);
+    await page.locator('#v_odo').fill('1000');
+    await page.getByTestId('save-vehicle').click();
+  }
+
+  for (const car of [{ label: 'Mazda 2 2012', file: 'vehicle-hatchback.webp', screenshot: 'vehicle-mazda.png' }, { label: 'Honda CRV 2018', file: 'vehicle-honda-crv.webp', screenshot: 'vehicle-honda.png' }]) {
+    await page.getByTestId('dashboard-vehicle-option').filter({ hasText: car.label }).click();
+    const image = page.getByTestId('dashboard-vehicle-image');
+    await expect(image).toHaveAttribute('src', `./${car.file}`);
+    await expect.poll(() => image.evaluate(node => node.complete && node.naturalWidth > 0)).toBe(true);
+    await expect(page.getByTestId('dashboard-vehicle-fallback')).toHaveCount(0);
+    await waitForVisualAssets(page);
+    await hideTransientStatusForScreenshot(page);
+    await page.screenshot({ path: testInfo.outputPath(car.screenshot), fullPage: false });
+  }
+
+  await page.getByTestId('dashboard-vehicle-option').filter({ hasText: 'E2E Roadster' }).click();
+  await expect(page.getByTestId('dashboard-vehicle-image')).toHaveCount(0);
+  await expect(page.getByTestId('dashboard-vehicle-fallback')).toBeVisible();
+});
+
 test('adds a fuel record and renders the saved IndexedDB data', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));

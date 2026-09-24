@@ -41,3 +41,12 @@ test('trend chart includes partial fuel and renders finite coordinates', async (
   assert.match(chart, />8\.0<\/text>/);
   assert.doesNotMatch(chart, /NaN|Infinity/);
 });
+
+test('dashboard art matches a saved vehicle model and year, never another model', async () => {
+  const { utils } = await loadUtils();
+  assert.equal(utils.getVehicleHeroImage({ make: 'Mazda', model: '2', year: 2012 }), './vehicle-hatchback.webp');
+  assert.equal(utils.getVehicleHeroImage({ make: 'Honda', model: 'CR-V', year: '2018' }), './vehicle-honda-crv.webp');
+  assert.equal(utils.getVehicleHeroImage({ make: 'Honda', model: 'CRV', year: 2018 }), './vehicle-honda-crv.webp');
+  assert.equal(utils.getVehicleHeroImage({ make: 'Honda', model: 'CR-V', year: 2025 }), null);
+  assert.equal(utils.getVehicleHeroImage({ make: 'Toyota', model: 'RAV4', year: 2018 }), null);
+});
