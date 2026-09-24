@@ -198,7 +198,7 @@ renderSettings(vehicle) {
                                     ${(settings.appearance || '').startsWith('ios-') ? `<div class="ios-display-modes mt-4" role="group" aria-label="${settings.language === 'zh' ? '顯示模式' : 'Color scheme'}">
                                         ${['light', 'dark', 'system'].map((mode, i) => `<button data-testid="ios-mode-${mode}" aria-pressed="${settings.appearance.endsWith('-' + mode)}" data-action="ui" data-ui-method="updateAppearance" data-ui-args="${encodeURIComponent(JSON.stringify([settings.appearance.replace(/-(light|dark|system)$/, '-' + mode)]))}">${(settings.language === 'zh' ? ['淺色', '深色', '跟隨系統'] : ['Light', 'Dark', 'System'])[i]}</button>`).join('')}
                                     </div>` : ''}
-                                    <label class="ios-transparency-row"><span>${settings.language === 'zh' ? '減少透明度（iOS 風格）' : 'Reduce transparency (iOS styles)'}</span><input type="checkbox" role="switch" data-testid="reduce-transparency" ${settings.reduceTransparency === true ? 'checked' : ''} data-change-action="ui" data-ui-method="updateTransparency" data-ui-pass-element="true"></label>
+                                    <label class="ios-transparency-row"><span>${settings.language === 'zh' ? '減少透明度' : 'Reduce transparency'}</span><input type="checkbox" role="switch" data-testid="reduce-transparency" ${settings.reduceTransparency === true ? 'checked' : ''} data-change-action="ui" data-ui-method="updateTransparency" data-ui-pass-element="true"></label>
                                 </section>
                             </div>
                         </div>
