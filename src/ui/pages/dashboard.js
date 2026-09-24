@@ -1,6 +1,9 @@
 // FuelMate UI module: pages/dashboard
 Object.assign(ui, {
 renderDashboard(vehicle) {
+                if ((store.data.settings.appearance || 'apple-fluid-system').startsWith('apple-fluid')) {
+                    return this.renderFluidDashboard(vehicle);
+                }
                 const logs = store.getVehicleLogs();
                 const filter = store.pageFilters.dashboard;
                 const filteredLogs = utils.filterLogs(logs, filter);
@@ -205,6 +208,82 @@ renderDashboard(vehicle) {
                         </div>
                     </div>
                 `;
+            },
+
+renderFluidDashboard(vehicle) {
+                const logs = store.getVehicleLogs();
+                const fuelStats = utils.calculateStats(store.getVehicleLogs('fuel'), 'fuel');
+                const thisMonth = FuelMateCore.localDateKey().slice(0, 7);
+                const monthTotal = logs.reduce((total, log) => {
+                    const cost = Number.parseFloat(log.cost);
+                    return log.date?.slice(0, 7) === thisMonth && Number.isFinite(cost) ? total + cost : total;
+                }, 0);
+                const reminderData = this.getReminderData(vehicle, { includeAll: true });
+                const nextReminder = reminderData.activeItems.slice().sort((a, b) => {
+                    const urgency = item => item.remainingDays ?? (item.remainingKm !== null && item.remainingKm !== undefined ? item.remainingKm / 50 : Number.POSITIVE_INFINITY);
+                    return urgency(a) - urgency(b);
+                })[0];
+                const odometer = logs.reduce((highest, log) => Math.max(highest, Number(log.odometer) || 0), Math.max(0, Number(vehicle.currentOdometer) || 0));
+                const distUnit = utils.getDistUnit();
+                const iconFor = log => ({ fuel: 'local_gas_station', parking: 'local_parking', tire_replace: 'tire_repair', tire_rotation: 'tire_repair', service: 'build', repair: 'build' })[log.type] || 'description';
+                const recentRows = logs.slice(0, 2).map(log => {
+                    const sub = [utils.formatDate(log.date), log.type === 'fuel' && log.liters ? `${utils.escapeHtml(log.liters)} ${utils.escapeHtml(vehicle.fuelUnit || 'L')}` : null, utils.formatCurrency(log.cost)].filter(Boolean).join(' · ');
+                    return `<button type="button" data-testid="dashboard-recent" data-action="ui" data-ui-method="openLogEditorById" data-ui-args="${encodeURIComponent(JSON.stringify([log.id]))}" class="fluid-recent-row">
+                        <span class="fluid-icon-box ${log.type === 'fuel' ? 'is-teal' : 'is-blue'}"><span class="material-icons">${iconFor(log)}</span></span>
+                        <span class="fluid-recent-copy"><strong>${utils.escapeHtml(utils.t(log.type))}</strong><small>${sub}</small></span>
+                        <span class="fluid-recent-odo">${Number.isFinite(Number(log.odometer)) && log.odometer !== undefined && log.odometer !== '' ? `${Number(log.odometer).toLocaleString()} ${distUnit}` : ''}</span>
+                        <span class="material-icons fluid-chevron">chevron_right</span>
+                    </button>`;
+                }).join('');
+                const tireStatuses = utils.getTireReplacementStatus(vehicle);
+                const unitLabel = utils.getEfficiencyLabel();
+                const reminderArgs = nextReminder ? encodeURIComponent(JSON.stringify([nextReminder.id])) : '';
+                const remaining = nextReminder?.remainingKm !== null && nextReminder?.remainingKm !== undefined
+                    ? `${Math.abs(Math.round(nextReminder.remainingKm)).toLocaleString()} ${distUnit}`
+                    : nextReminder?.remainingDays !== null && nextReminder?.remainingDays !== undefined
+                        ? `${Math.abs(Math.ceil(nextReminder.remainingDays))} ${utils.t('days')}` : '';
+                return `<main class="fluid-dashboard" data-testid="fluid-dashboard">
+                    <header class="fluid-header">
+                        <h1>FuelMate</h1>
+                        <button type="button" data-testid="dashboard-vehicle-switch" data-action="ui" data-ui-method="openVehicleSelector" class="fluid-vehicle-switch" aria-label="${utils.t('select_vehicle')}"><span class="material-icons">directions_car</span><span class="material-icons">expand_more</span></button>
+                    </header>
+                    <section class="fluid-hero fluid-panel" aria-label="${utils.t('select_vehicle')}">
+                        <div class="fluid-hero-scenery" aria-hidden="true"></div>
+                        <div class="fluid-hero-content"><h2>${utils.escapeHtml(`${vehicle.make} ${vehicle.model}`)}</h2><p>${utils.escapeHtml(vehicle.year)}</p><p>${odometer ? odometer.toLocaleString() : '--'} ${distUnit}</p></div>
+                        <img class="fluid-car-image" src="./vehicle-hatchback.webp" alt="" aria-hidden="true" width="700" height="350">
+                        <button type="button" data-testid="dashboard-add-record" data-action="ui" data-ui-method="openDashboardAddRecord" class="fluid-add-record"><span class="material-icons">add_circle</span>${utils.t('dashboard_add_record')}</button>
+                    </section>
+                    <div class="fluid-metric-grid">
+                        <button type="button" data-action="navigate" data-page="fuel" class="fluid-metric fluid-panel"><span class="fluid-icon-box is-teal"><span class="material-icons">local_gas_station</span></span><span class="fluid-metric-copy"><span class="fluid-metric-title">${utils.t('dashboard_fuel_economy')}</span><strong>${fuelStats.efficiency}</strong><small>${unitLabel}</small></span><span class="material-icons fluid-chevron">chevron_right</span></button>
+                        <button type="button" data-action="navigate" data-page="analytics" class="fluid-metric fluid-panel"><span class="fluid-icon-box is-blue"><span class="material-icons">account_balance_wallet</span></span><span class="fluid-metric-copy"><span class="fluid-metric-title">${utils.t('dashboard_monthly_spend')}</span><strong>${utils.formatCurrency(monthTotal)}</strong><small>${utils.t('dashboard_this_month')}</small></span><span class="material-icons fluid-chevron">chevron_right</span></button>
+                    </div>
+                    <button type="button" data-testid="dashboard-next-up" data-action="${nextReminder ? 'ui' : 'navigate'}" ${nextReminder ? `data-ui-method="openReminderDetails" data-ui-args="${reminderArgs}"` : 'data-page="reminders"'} class="fluid-next fluid-panel">
+                        <span class="fluid-icon-box is-neutral"><span class="material-icons">${nextReminder ? nextReminder.icon : 'check_circle'}</span></span>
+                        <span class="fluid-next-copy"><small>${utils.t('dashboard_next_up')}</small><strong>${nextReminder ? utils.escapeHtml(nextReminder.title) : utils.t('reminder_none')}</strong><span>${nextReminder ? utils.escapeHtml(nextReminder.meta || '') : utils.t('reminder_center')}</span>${remaining ? `<i class="fluid-progress" aria-hidden="true"></i>` : ''}</span>
+                        ${remaining ? `<span class="fluid-due">${nextReminder.remainingDays < 0 || nextReminder.remainingKm < 0 ? utils.t('overdue') : utils.t('due_in')} ${remaining}</span>` : ''}<span class="material-icons fluid-chevron">chevron_right</span>
+                    </button>
+                    <div class="fluid-section-heading"><h2>${utils.t('dashboard_recent_activity')}</h2><button type="button" data-testid="dashboard-see-all" data-action="ui" data-ui-method="openDashboardActivity">${utils.t('view_all')}</button></div>
+                    <div class="fluid-recent fluid-panel">${recentRows || `<div class="fluid-empty">${utils.t('no_records_yet')}</div>`}</div>
+                    <details class="fluid-details"><summary>${utils.t('dashboard_more_details')}<span class="material-icons">expand_more</span></summary>
+                        <div class="fluid-detail-content"><div class="fluid-detail-stats"><span>${utils.t('total_cost')} <strong>${utils.formatCurrency(utils.calculateStats(logs, 'all').totalCost)}</strong></span><span>${utils.t('total_dist')} <strong>${utils.calculateStats(logs, 'all').totalDist.toLocaleString()} ${distUnit}</strong></span></div>
+                        <div class="fluid-detail-actions"><button type="button" data-action="ui" data-ui-method="openAddFuel">${utils.t('add_fuel')}</button><button type="button" data-action="ui" data-ui-method="openAddService">${utils.t('add_service')}</button></div>
+                        <h3>${utils.t('next_tire_change')}</h3><div class="fluid-tire-list">${tireStatuses.map(status => `<button type="button" data-action="${status.isNotSet ? 'ui' : 'navigate'}" ${status.isNotSet ? `data-ui-method="openQuickTireSetup" data-ui-args="${encodeURIComponent(JSON.stringify([status.pos]))}"` : 'data-page="maintenance"'}><span>${utils.t('tire_' + status.pos)}</span><strong>${utils.escapeHtml(status.primary)}</strong></button>`).join('')}</div>
+                        <button type="button" class="fluid-all-reminders" data-action="navigate" data-page="reminders">${utils.t('reminder_center')}<span class="material-icons">arrow_forward</span></button></div>
+                    </details>
+                </main>`;
+            },
+
+openDashboardAddRecord() {
+                this.openModal(`<h2 class="text-xl font-bold mb-5 theme-text-heading">${utils.t('dashboard_add_record')}</h2><div class="space-y-3">
+                    <button type="button" data-action="ui" data-ui-method="openAddFuel" class="w-full rounded-2xl p-4 theme-bg-card flex items-center gap-3"><span class="material-icons text-teal-600">local_gas_station</span>${utils.t('add_fuel')}</button>
+                    <button type="button" data-action="ui" data-ui-method="openAddService" class="w-full rounded-2xl p-4 theme-bg-card flex items-center gap-3"><span class="material-icons text-teal-600">build</span>${utils.t('add_service')}</button>
+                    <button type="button" data-action="ui" data-ui-method="openAddParking" class="w-full rounded-2xl p-4 theme-bg-card flex items-center gap-3"><span class="material-icons text-teal-600">local_parking</span>${utils.t('add_parking')}</button>
+                </div>`);
+            },
+
+openDashboardActivity() {
+                const logs = store.getVehicleLogs();
+                this.openModal(`<h2 class="text-xl font-bold mb-5 theme-text-heading">${utils.t('dashboard_recent_activity')}</h2><div class="space-y-3">${logs.length ? logs.slice(0, 100).map(log => this.renderLogCard(log)).join('') : `<p class="theme-text-sub">${utils.t('no_records_yet')}</p>`}</div>${logs.length > 100 ? `<p class="mt-4 text-center text-xs theme-text-sub">${utils.t('showing')} 100 / ${logs.length}</p>` : ''}`);
             },
 
 getReminderData(vehicle, options = {}) {
