@@ -187,6 +187,7 @@ test('dashboard car image follows the selected Mazda 2 or Honda CR-V', async ({ 
 
   for (const car of [{ label: 'Mazda 2 2012', file: 'vehicle-hatchback.webp', screenshot: 'vehicle-mazda.png' }, { label: 'Honda CRV 2018', file: 'vehicle-honda-crv.webp', screenshot: 'vehicle-honda.png' }]) {
     await page.getByTestId('dashboard-vehicle-option').filter({ hasText: car.label }).click();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
     const image = page.getByTestId('dashboard-vehicle-image');
     await expect(image).toHaveAttribute('src', `./${car.file}`);
     await expect.poll(() => image.evaluate(node => node.complete && node.naturalWidth > 0)).toBe(true);
