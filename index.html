@@ -144,6 +144,133 @@
         }
         :root[data-appearance^="apple-fluid"] button:active,
         :root[data-appearance^="apple-fluid"] [role="button"]:active { transform: scale(0.97); }
+        /* Dashboard concept: quiet vehicle-first layout, shared by light/dark/system. */
+        :root[data-appearance^="apple-fluid"] .fluid-dashboard {
+            --dash-surface: rgba(255, 255, 255, .88);
+            --dash-ink: #172435;
+            --dash-muted: #67778b;
+            --dash-line: rgba(156, 182, 210, .22);
+            --dash-tint: #e8f6f8;
+            width: min(100%, 520px);
+            margin: 0 auto;
+            padding: calc(var(--safe-top) + 24px) 18px calc(124px + var(--safe-bottom));
+            color: var(--dash-ink);
+        }
+        :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .fluid-dashboard {
+            --dash-surface: rgba(30, 43, 58, .84);
+            --dash-ink: #f5f8fc;
+            --dash-muted: #b2bece;
+            --dash-line: rgba(183, 207, 228, .2);
+            --dash-tint: #1c4c57;
+        }
+        .fluid-header { display: flex; align-items: center; justify-content: space-between; margin: 0 6px 18px; }
+        .fluid-header h1 { font-size: 32px; line-height: 1.18; letter-spacing: -.9px; font-weight: 760; }
+        .fluid-vehicle-switch {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 82px; height: 46px; border-radius: 24px;
+            background: var(--dash-surface); border: 1px solid var(--dash-line);
+            box-shadow: 0 5px 16px rgba(32, 75, 117, .06); color: var(--dash-ink);
+        }
+        .fluid-vehicle-switch .material-icons:first-child { font-size: 23px; }
+        .fluid-vehicle-switch .material-icons:last-child { font-size: 19px; }
+        .fluid-panel {
+            background: var(--dash-surface); border: 1px solid var(--dash-line);
+            border-radius: 22px; box-shadow: 0 8px 26px rgba(33, 69, 106, .045), inset 0 1px 0 rgba(255,255,255,.3);
+            backdrop-filter: blur(20px) saturate(130%); -webkit-backdrop-filter: blur(20px) saturate(130%);
+        }
+        :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .fluid-panel { box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 25px rgba(0,0,0,.11); }
+        .fluid-hero { height: 196px; padding: 23px 14px 12px; position: relative; overflow: hidden; margin-bottom: 12px; }
+        .fluid-hero-scenery {
+            position: absolute; inset: 0 0 55px 0; pointer-events: none; opacity: .62;
+            background: radial-gradient(ellipse 46% 36% at 90% 78%, rgba(160,195,229,.28), transparent 95%),
+                radial-gradient(ellipse 30% 26% at 57% 75%, rgba(180,210,236,.25), transparent 95%),
+                linear-gradient(150deg, transparent 48%, rgba(193,219,241,.16) 49%, transparent 62%);
+        }
+        .fluid-hero-content { position: relative; z-index: 2; margin-left: 7px; max-width: 45%; }
+        .fluid-hero h2 { font-weight: 760; font-size: 26px; letter-spacing: -.5px; line-height: 1.12; overflow-wrap: anywhere; }
+        .fluid-hero p { font-size: 16px; color: var(--dash-muted); line-height: 1.46; }
+        .fluid-hero p:first-of-type { margin-top: 7px; }
+        .fluid-car-image { position: absolute; width: 59%; height: auto; right: 2%; top: 22px; z-index: 1; object-fit: contain; pointer-events: none; }
+        .fluid-add-record {
+            position: absolute; z-index: 3; bottom: 12px; left: 12px; right: 12px;
+            height: 48px; border-radius: 16px; color: #fff; background: linear-gradient(120deg, #159ea8, #0d909b);
+            display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 15px; font-weight: 680;
+            box-shadow: 0 7px 16px rgba(16, 151, 157, .13);
+        }
+        .fluid-add-record .material-icons { font-size: 25px; }
+        .fluid-metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; margin-bottom: 12px; }
+        .fluid-metric { position: relative; min-width: 0; height: 116px; text-align: left; padding: 12px; display: flex; align-items: flex-start; gap: 10px; color: var(--dash-ink); }
+        .fluid-icon-box { flex: none; width: 44px; height: 44px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; color: #138f99; background: #e0f6f7; }
+        .fluid-icon-box .material-icons { font-size: 23px; }
+        .fluid-icon-box.is-blue { color: #287db1; background: #e1f2ff; }
+        .fluid-icon-box.is-neutral { color: #506579; background: #edf3f8; }
+        :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .fluid-icon-box { color: #62d4dc; background: #1b515b; }
+        :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .fluid-icon-box.is-blue { color: #7bc5f2; background: #224760; }
+        :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .fluid-icon-box.is-neutral { color: #d3e0eb; background: #334453; }
+        .fluid-metric-copy { min-width: 0; display: flex; flex-direction: column; padding-top: 2px; }
+        .fluid-metric-title { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 104px; }
+        .fluid-metric strong { font-size: 26px; line-height: 1; letter-spacing: -.7px; margin: 17px 0 3px; font-weight: 750; white-space: nowrap; }
+        .fluid-metric small { color: var(--dash-muted); font-size: 12px; line-height: 1.1; white-space: nowrap; }
+        .fluid-chevron { font-size: 20px; color: #97a9bb; flex: none; }
+        .fluid-metric > .fluid-chevron { position: absolute; right: 9px; top: 14px; font-size: 16px; }
+        .fluid-next { display: flex; position: relative; width: 100%; height: 102px; padding: 14px; text-align: left; gap: 12px; margin-bottom: 22px; align-items: center; color: var(--dash-ink); }
+        .fluid-next-copy { min-width: 0; display: flex; flex-direction: column; flex: 1; }
+        .fluid-next-copy small { color: var(--dash-muted); font-size: 12px; margin-bottom: 2px; }
+        .fluid-next-copy strong { font-size: 15px; line-height: 1.25; font-weight: 720; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fluid-next-copy > span { color: var(--dash-muted); font-size: 11px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fluid-due { align-self: flex-start; margin-top: 5px; color: #115c66; background: var(--dash-tint); border-radius: 14px; padding: 5px 8px; font-size: 11px; white-space: nowrap; }
+        :root[data-appearance^="apple-fluid"][data-color-scheme="dark"] .fluid-due { color: #bbf5f3; }
+        .fluid-progress { display: block; width: min(100%, 184px); height: 5px; margin-top: 8px; border-radius: 6px; background: linear-gradient(90deg, #159da7 28%, #dce8f0 28%); }
+        .fluid-next > .fluid-chevron { margin-left: auto; }
+        .fluid-section-heading { display: flex; justify-content: space-between; align-items: baseline; margin: 0 6px 8px; }
+        .fluid-section-heading h2 { font-size: 17px; font-weight: 730; letter-spacing: -.2px; }
+        .fluid-section-heading button { color: #0578b8; font-size: 13px; }
+        .fluid-recent { overflow: hidden; margin-bottom: 15px; padding: 0 13px; }
+        .fluid-recent-row { display: flex; align-items: center; width: 100%; min-height: 66px; text-align: left; gap: 10px; color: var(--dash-ink); }
+        .fluid-recent-row + .fluid-recent-row { border-top: 1px solid var(--dash-line); }
+        .fluid-recent-row .fluid-icon-box { width: 40px; height: 40px; border-radius: 12px; }
+        .fluid-recent-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+        .fluid-recent-copy strong { font-weight: 690; font-size: 13px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .fluid-recent-copy small { color: var(--dash-muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .fluid-recent-odo { font-size: 11px; color: var(--dash-muted); white-space: nowrap; }
+        .fluid-empty { padding: 28px 6px; color: var(--dash-muted); text-align: center; font-size: 13px; }
+        .fluid-details { margin: 18px 5px 0; font-size: 13px; }
+        .fluid-details summary { display: flex; justify-content: space-between; color: var(--dash-muted); cursor: pointer; padding: 12px; list-style: none; }
+        .fluid-details summary::-webkit-details-marker { display: none; }
+        .fluid-details[open] summary .material-icons { transform: rotate(180deg); }
+        .fluid-detail-content { background: var(--dash-surface); border: 1px solid var(--dash-line); border-radius: 20px; padding: 16px; }
+        .fluid-detail-stats, .fluid-detail-actions { display: flex; gap: 10px; justify-content: space-between; margin-bottom: 15px; }
+        .fluid-detail-stats span { display: flex; flex-direction: column; color: var(--dash-muted); }
+        .fluid-detail-stats strong { color: var(--dash-ink); }
+        .fluid-detail-actions button, .fluid-tire-list button { border: 1px solid var(--dash-line); border-radius: 12px; padding: 9px; }
+        .fluid-detail-content h3 { font-weight: 700; margin: 8px 0; }
+        .fluid-tire-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .fluid-tire-list button { display: flex; flex-direction: column; text-align: left; }
+        .fluid-all-reminders { width: 100%; display: flex; align-items: center; justify-content: space-between; margin-top: 16px; color: #07818a; font-weight: 680; }
+        .fluid-reminder-center { margin: 26px 5px 0; }
+        .fluid-reminder-row { display: flex; align-items: center; padding: 12px; gap: 10px; margin-top: 9px; }
+        .fluid-reminder-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .fluid-reminder-copy strong { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .fluid-reminder-copy small { font-size: 11px; color: var(--dash-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fluid-reminder-row > button { font-size: 11px; font-weight: 680; color: #08838c; padding: 8px; border: 1px solid var(--dash-line); border-radius: 12px; white-space: nowrap; }
+        @media (max-width: 390px) {
+            .fluid-dashboard { padding-left: 13px !important; padding-right: 13px !important; }
+            .fluid-header { margin-bottom: 13px; }
+            .fluid-hero { height: 177px; padding-top: 18px; }
+            .fluid-hero h2 { font-size: 23px; }
+            .fluid-car-image { width: 57%; top: 22px; }
+            .fluid-metric { gap: 7px; padding: 10px; height: 105px; }
+            .fluid-metric .fluid-icon-box { width: 37px; height: 37px; }
+            .fluid-metric-title { max-width: 87px; font-size: 11px; }
+            .fluid-metric strong { font-size: 23px; }
+            .fluid-next { height: 92px; margin-bottom: 16px; }
+            .fluid-recent-odo { display: none; }
+            .fluid-due { max-width: 82px; overflow: hidden; text-overflow: ellipsis; }
+        }
+        @media (prefers-reduced-transparency: reduce) {
+            :root[data-appearance^="apple-fluid"] .fluid-panel { background: var(--fluid-opaque); backdrop-filter: none; -webkit-backdrop-filter: none; }
+        }
+        :root[data-appearance^="apple-fluid"][data-reduce-transparency="true"] .fluid-panel { background: var(--fluid-opaque); backdrop-filter: none; -webkit-backdrop-filter: none; }
         .appearance-preview { box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.28), 0 5px 14px rgba(15, 23, 42, 0.08); }
         .appearance-option[aria-checked="true"] { background: rgba(20, 184, 166, 0.1); box-shadow: inset 0 0 0 1px rgba(13, 148, 136, 0.22); }
         .glass-nav { 
@@ -291,6 +418,13 @@
         @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
             :root[data-appearance^="apple-fluid"] :is(.theme-bg-card, .card-shadow, .liquid-nav, #modal-content) { background: var(--fluid-opaque); }
         }
+        :root[data-appearance^="apple-fluid"] .liquid-nav { max-width: 500px; padding: 3px; border-radius: 30px; }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-item { min-height: 62px; border-radius: 26px; gap: 2px; padding: 7px 1px 4px; }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-item .material-icons { font-size: 22px; }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-item span:last-child { margin-top: 0; font-size: 10px; line-height: 1.2; }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-highlight { display: none; }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-bg, :root[data-appearance^="apple-fluid"] .liquid-nav-gloss { display: none; }
+        :root[data-appearance^="apple-fluid"] .liquid-nav-item.is-active::after { content: ''; background: currentColor; height: 4px; width: 4px; border-radius: 50%; position: absolute; bottom: 2px; }
         /* Hide scrollbar but allow scroll */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
