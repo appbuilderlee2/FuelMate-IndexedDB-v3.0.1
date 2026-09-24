@@ -316,6 +316,7 @@ openVehicleSelector() {
                             </button>
                         `).join('')}
                     </div>
+                    <button type="button" data-action="ui" data-ui-method="openAddVehicle" class="w-full mt-4 p-3 rounded-xl border border-dashed border-teal-500 text-teal-600 font-bold flex items-center justify-center gap-2"><span class="material-icons">add</span>${utils.t('add_vehicle')}</button>
                  `);
             }
 });

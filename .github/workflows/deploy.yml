@@ -46,6 +46,7 @@ jobs:
           path: |
             test-results/**/apple-fluid-*.png
             test-results/**/dashboard-*.png
+            test-results/**/period-filter-*.png
           if-no-files-found: ignore
 
       - name: Type check

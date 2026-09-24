@@ -102,16 +102,15 @@ test('Apple Fluid dashboard uses saved records and keeps its primary actions usa
   });
   const dashboard = page.getByTestId('fluid-dashboard');
   await expect(dashboard).toBeVisible();
-  await expect(dashboard.getByText('E2E Roadster')).toBeVisible();
+  await expect(dashboard.locator('.fluid-hero h2')).toHaveText('E2E Roadster');
   await expect(dashboard.locator('.fluid-metric').nth(1).getByText('$140.00')).toBeVisible();
   await expect(page.getByTestId('dashboard-recent')).toHaveCount(2);
   await waitForVisualAssets(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
   await hideTransientStatusForScreenshot(page);
   await page.screenshot({ path: testInfo.outputPath('dashboard-light.png'), fullPage: false });
-  await page.getByTestId('dashboard-add-record').click();
+  await page.getByTestId('dashboard-add-fuel').click();
   await expect(page.getByTestId('modal-overlay')).toBeVisible();
-  await page.locator('#modal-content').getByRole('button', { name: /Add Fuel|新增加油/ }).click();
   await expect(page.locator('#l_liters')).toBeVisible();
   await page.getByTestId('modal-overlay').click({ position: { x: 3, y: 3 } });
   await page.getByTestId('nav-settings').click();
@@ -124,6 +123,52 @@ test('Apple Fluid dashboard uses saved records and keeps its primary actions usa
   await page.screenshot({ path: testInfo.outputPath('dashboard-dark.png'), fullPage: false });
   await page.getByTestId('dashboard-see-all').click();
   await expect(page.locator('#modal-content').getByTestId('log-card')).toHaveCount(2);
+});
+
+test('vehicle shortcuts switch between saved cars and date periods stay separate', async ({ page }, testInfo) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.getByTestId('dashboard-add-vehicle').click();
+  await page.locator('#v_make').fill('Honda');
+  await page.locator('#v_model').fill('CR-V');
+  await page.locator('#v_year').fill('2018');
+  await page.locator('#v_odo').fill('12000');
+  await page.getByTestId('save-vehicle').click();
+  await expect(page.getByTestId('dashboard-vehicle-option')).toHaveCount(2);
+  await page.getByTestId('dashboard-vehicle-option').first().click();
+  await expect(page.getByTestId('fluid-dashboard').locator('.fluid-hero h2')).toHaveText('E2E Roadster');
+  await page.getByTestId('dashboard-vehicle-option').nth(1).click();
+  await expect(page.getByTestId('fluid-dashboard').locator('.fluid-hero h2')).toHaveText('Honda CR-V');
+  await page.evaluate(async () => {
+    const vehicleId = store.data.settings.activeVehicleId;
+    await store.addLog({ id: 'earlier-fuel', vehicleId, type: 'fuel', date: '2025-05-10', odometer: 12100, cost: '30', liters: '15' });
+    await store.addLog({ id: 'later-fuel', vehicleId, type: 'fuel', date: '2026-09-20', odometer: 12300, cost: '40', liters: '20' });
+    ui.render();
+  });
+  for (const nav of ['fuel', 'parking', 'maintenance', 'analytics']) {
+    await page.getByTestId(`nav-${nav}`).click();
+    const period = page.getByTestId(`period-filter-${nav}`);
+    await expect(period.getByTestId('period-mode-year')).toHaveAttribute('aria-pressed', 'true');
+    await period.getByTestId('period-mode-custom').click();
+    await period.getByTestId('period-from').fill('2025-05-01');
+    await expect(period.getByTestId('period-from')).toHaveValue('2025-05-01');
+    await page.getByTestId(`period-filter-${nav}`).getByTestId('period-to').fill('2025-05-31');
+    await expect(page.getByTestId(`period-filter-${nav}`).getByTestId('period-to')).toHaveValue('2025-05-31');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
+    if (nav === 'fuel') {
+      await waitForVisualAssets(page);
+      await hideTransientStatusForScreenshot(page);
+      await page.screenshot({ path: testInfo.outputPath('period-filter-fuel.png'), fullPage: false });
+      await expect(page.locator('[data-testid="log-card"][data-log-type="fuel"]')).toHaveCount(1);
+      await page.getByTestId(`period-filter-${nav}`).getByTestId('period-from').fill('2025-06-01');
+      await expect(page.getByTestId(`period-filter-${nav}`).getByTestId('period-to')).toHaveValue('2025-06-01');
+      await page.getByTestId(`period-filter-${nav}`).getByTestId('period-mode-year').click();
+      await expect(page.locator('[data-testid="log-card"][data-log-type="fuel"]')).toHaveCount(1);
+      await expect(page.getByTestId(`period-filter-${nav}`).getByTestId('period-value')).toHaveValue('2026');
+      await page.getByTestId(`period-filter-${nav}`).getByTestId('period-mode-custom').click();
+      await expect(page.getByTestId(`period-filter-${nav}`).getByTestId('period-from')).toHaveValue('');
+    }
+  }
 });
 
 test('adds a fuel record and renders the saved IndexedDB data', async ({ page }) => {
