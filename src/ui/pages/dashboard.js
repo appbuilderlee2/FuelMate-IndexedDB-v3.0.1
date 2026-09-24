@@ -248,11 +248,15 @@ renderFluidDashboard(vehicle) {
                         <h1>FuelMate</h1>
                         <button type="button" data-testid="dashboard-vehicle-switch" data-action="ui" data-ui-method="openVehicleSelector" class="fluid-vehicle-switch" aria-label="${utils.t('select_vehicle')}"><span class="material-icons">directions_car</span><span class="material-icons">expand_more</span></button>
                     </header>
+                    <nav class="fluid-vehicle-list" aria-label="${utils.t('select_vehicle')}">
+                        ${store.data.vehicles.map(v => `<button type="button" data-testid="dashboard-vehicle-option" data-action="ui" data-ui-method="selectVehicle" data-ui-args="${encodeURIComponent(JSON.stringify([v.id]))}" aria-current="${v.id === vehicle.id ? 'true' : 'false'}" class="fluid-vehicle-option ${v.id === vehicle.id ? 'is-active' : ''}"><span>${utils.escapeHtml(`${v.make} ${v.model} ${v.year}`)}</span></button>`).join('')}
+                        <button type="button" data-testid="dashboard-add-vehicle" data-action="ui" data-ui-method="openAddVehicle" class="fluid-vehicle-option fluid-vehicle-add"><span class="material-icons" aria-hidden="true">add</span>${utils.t('add_vehicle')}</button>
+                    </nav>
                     <section class="fluid-hero fluid-panel" aria-label="${utils.t('select_vehicle')}">
                         <div class="fluid-hero-scenery" aria-hidden="true"></div>
                         <div class="fluid-hero-content"><h2>${utils.escapeHtml(`${vehicle.make} ${vehicle.model}`)}</h2><p>${utils.escapeHtml(vehicle.year)}</p><p>${odometer ? odometer.toLocaleString() : '--'} ${distUnit}</p></div>
                         <img class="fluid-car-image" src="./vehicle-hatchback.webp" alt="" aria-hidden="true" width="700" height="350">
-                        <button type="button" data-testid="dashboard-add-record" data-action="ui" data-ui-method="openDashboardAddRecord" class="fluid-add-record"><span class="material-icons">add_circle</span>${utils.t('dashboard_add_record')}</button>
+                        <button type="button" data-testid="dashboard-add-fuel" data-action="ui" data-ui-method="openAddFuel" class="fluid-add-record"><span class="material-icons">add_circle</span>${utils.t('add_fuel')}</button>
                     </section>
                     <div class="fluid-metric-grid">
                         <button type="button" data-action="navigate" data-page="fuel" class="fluid-metric fluid-panel"><span class="fluid-icon-box is-teal"><span class="material-icons">local_gas_station</span></span><span class="fluid-metric-copy"><span class="fluid-metric-title">${utils.t('dashboard_fuel_economy')}</span><strong>${fuelStats.efficiency}</strong><small>${unitLabel}</small></span><span class="material-icons fluid-chevron">chevron_right</span></button>
@@ -280,14 +284,6 @@ renderFluidDashboard(vehicle) {
                         </div>`).join('') || `<p class="fluid-empty">${utils.t('reminder_none')}</p>`}
                     </section>
                 </main>`;
-            },
-
-openDashboardAddRecord() {
-                this.openModal(`<h2 class="text-xl font-bold mb-5 theme-text-heading">${utils.t('dashboard_add_record')}</h2><div class="space-y-3">
-                    <button type="button" data-action="ui" data-ui-method="openAddFuel" class="w-full rounded-2xl p-4 theme-bg-card flex items-center gap-3"><span class="material-icons text-teal-600">local_gas_station</span>${utils.t('add_fuel')}</button>
-                    <button type="button" data-action="ui" data-ui-method="openAddService" class="w-full rounded-2xl p-4 theme-bg-card flex items-center gap-3"><span class="material-icons text-teal-600">build</span>${utils.t('add_service')}</button>
-                    <button type="button" data-action="ui" data-ui-method="openAddParking" class="w-full rounded-2xl p-4 theme-bg-card flex items-center gap-3"><span class="material-icons text-teal-600">local_parking</span>${utils.t('add_parking')}</button>
-                </div>`);
             },
 
 openDashboardActivity() {
