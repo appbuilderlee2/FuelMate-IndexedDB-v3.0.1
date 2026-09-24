@@ -25,6 +25,14 @@ async function waitForVisualAssets(page) {
   expect(await page.evaluate(() => document.fonts.check('24px "Material Icons"'))).toBe(true);
 }
 
+async function hideTransientStatusForScreenshot(page) {
+  // The update-ready notice belongs to a separate service-worker lifecycle check.
+  await page.evaluate(() => {
+    const banner = document.getElementById('pwa-status-banner');
+    if (banner) banner.style.visibility = 'hidden';
+  });
+}
+
 test('creates a vehicle and keeps the Settings version synchronized', async ({ page }, testInfo) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
@@ -99,6 +107,7 @@ test('Apple Fluid dashboard uses saved records and keeps its primary actions usa
   await expect(page.getByTestId('dashboard-recent')).toHaveCount(2);
   await waitForVisualAssets(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
+  await hideTransientStatusForScreenshot(page);
   await page.screenshot({ path: testInfo.outputPath('dashboard-light.png'), fullPage: false });
   await page.getByTestId('dashboard-add-record').click();
   await expect(page.getByTestId('modal-overlay')).toBeVisible();
@@ -109,7 +118,9 @@ test('Apple Fluid dashboard uses saved records and keeps its primary actions usa
   await page.getByTestId('appearance-dark').click();
   await page.getByTestId('nav-dashboard').click();
   await waitForVisualAssets(page);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
+  await hideTransientStatusForScreenshot(page);
   await page.screenshot({ path: testInfo.outputPath('dashboard-dark.png'), fullPage: false });
   await page.getByTestId('dashboard-see-all').click();
   await expect(page.locator('#modal-content').getByTestId('log-card')).toHaveCount(2);
