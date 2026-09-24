@@ -47,6 +47,7 @@ jobs:
             test-results/**/apple-fluid-*.png
             test-results/**/dashboard-*.png
             test-results/**/period-filter-*.png
+            test-results/**/vehicle-*.png
           if-no-files-found: ignore
 
       - name: Type check

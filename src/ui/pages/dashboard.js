@@ -237,6 +237,7 @@ renderFluidDashboard(vehicle) {
                     </button>`;
                 }).join('');
                 const tireStatuses = utils.getTireReplacementStatus(vehicle);
+                const heroImage = utils.getVehicleHeroImage(vehicle);
                 const unitLabel = utils.getEfficiencyLabel();
                 const reminderArgs = nextReminder ? encodeURIComponent(JSON.stringify([nextReminder.id])) : '';
                 const remaining = nextReminder?.remainingKm !== null && nextReminder?.remainingKm !== undefined
@@ -255,7 +256,7 @@ renderFluidDashboard(vehicle) {
                     <section class="fluid-hero fluid-panel" aria-label="${utils.t('select_vehicle')}">
                         <div class="fluid-hero-scenery" aria-hidden="true"></div>
                         <div class="fluid-hero-content"><h2>${utils.escapeHtml(`${vehicle.make} ${vehicle.model}`)}</h2><p>${utils.escapeHtml(vehicle.year)}</p><p>${odometer ? odometer.toLocaleString() : '--'} ${distUnit}</p></div>
-                        <img class="fluid-car-image" src="./vehicle-hatchback.webp" alt="" aria-hidden="true" width="700" height="350">
+                        ${heroImage ? `<img data-testid="dashboard-vehicle-image" class="fluid-car-image ${heroImage.includes('honda-crv') ? 'is-suv' : ''}" src="${heroImage}" alt="" aria-hidden="true" width="700" height="350">` : `<span data-testid="dashboard-vehicle-fallback" class="fluid-car-fallback" aria-hidden="true"><span class="material-icons">${utils.getCarIcon(vehicle.type)}</span></span>`}
                         <button type="button" data-testid="dashboard-add-fuel" data-action="ui" data-ui-method="openAddFuel" class="fluid-add-record"><span class="material-icons">add_circle</span>${utils.t('add_fuel')}</button>
                     </section>
                     <div class="fluid-metric-grid">

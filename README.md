@@ -1,4 +1,11 @@
-# FuelMate IndexedDB v4.4.1
+# FuelMate IndexedDB v4.4.2
+
+## v4.4.2 更新內容
+
+- 修正首頁切換車輛後仍顯示同一張掀背車圖：2012 Mazda 2 與 2018 Honda CR-V 現各自顯示對應車圖。新 CR-V 圖為透明背景、經壓縮的獨立素材。
+- 未備有對應素材的年份或車型顯示車種圖示，不會誤用 Mazda 2 或 Honda CR-V 照片；切換車輛不修改既有 IndexedDB 紀錄。
+- 切車後首頁返回頂部，確保標題及車圖主卡唔會因前一頁捲動位置而消失。
+- IndexedDB schema 不變。App 版本 4.4.2，離線 cache v31 包含兩張車圖。
 
 ## v4.4.1 更新內容
 

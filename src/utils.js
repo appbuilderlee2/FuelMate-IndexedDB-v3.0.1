@@ -645,6 +645,15 @@ END:VCALENDAR`;
                 };
                 return map[color] || map.teal;
             },
+            getVehicleHeroImage(vehicle) {
+                if (!vehicle) return null;
+                const make = String(vehicle.make || '').trim().toLowerCase();
+                const model = String(vehicle.model || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                const year = Number(vehicle.year);
+                if (make === 'mazda' && year === 2012 && ['2', 'mazda2'].includes(model)) return './vehicle-hatchback.webp';
+                if (make === 'honda' && year === 2018 && ['crv', 'hondacrv'].includes(model)) return './vehicle-honda-crv.webp';
+                return null;
+            },
             getCarIcon(type) {
                 const map = {
                     sedan: 'directions_car',
