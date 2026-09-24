@@ -1,4 +1,9 @@
-# FuelMate IndexedDB v4.4.2
+# FuelMate IndexedDB v4.4.3
+
+## v4.4.3 更新內容
+
+- 依照車輛照片參考色，首頁 Mazda 2 2012 車圖改為深酒紅，Honda CR-V 2018 車圖改為亮面黑色；保留車型、透明背景與切換方式。
+- IndexedDB schema 不變。App 版本 4.4.3，離線 cache v32 會重新取得兩張車圖。
 
 ## v4.4.2 更新內容
 
