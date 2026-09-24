@@ -95,7 +95,7 @@ test('Apple Fluid dashboard uses saved records and keeps its primary actions usa
   const dashboard = page.getByTestId('fluid-dashboard');
   await expect(dashboard).toBeVisible();
   await expect(dashboard.getByText('E2E Roadster')).toBeVisible();
-  await expect(dashboard.getByText('$140.00')).toBeVisible();
+  await expect(dashboard.locator('.fluid-metric').nth(1).getByText('$140.00')).toBeVisible();
   await expect(page.getByTestId('dashboard-recent')).toHaveCount(2);
   await waitForVisualAssets(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
@@ -201,7 +201,7 @@ test('keeps an unset-tire reminder visible and supports snoozing it', async ({ p
   await dashboardReminder.getByRole('button', { name: /Snooze 7d|延後 7 天/ }).click();
   await expect(dashboardReminder).toBeHidden();
 
-  await page.getByRole('button', { name: /View All|查看全部/ }).first().click();
+  await page.getByTestId('dashboard-reminders-see-all').click();
   await page.getByRole('button', { name: /Snoozed|已延後/ }).click();
   const snoozedReminder = page.locator('[data-testid="reminder-card"][data-reminder-id*="unset:front_left"]');
   await expect(snoozedReminder).toBeVisible();
@@ -212,7 +212,7 @@ test('keeps an unset-tire reminder visible and supports snoozing it', async ({ p
 test('filters reminder categories, opens details, and completes a selection in bulk', async ({ page }) => {
   await openFreshApp(page);
   await createVehicle(page);
-  await page.getByRole('button', { name: /View All|查看全部/ }).first().click();
+  await page.getByTestId('dashboard-reminders-see-all').click();
 
   await expect(page.getByTestId('reminder-summary')).toBeVisible();
   await page.locator('[data-reminder-category="tire"]').click();

@@ -219,6 +219,7 @@ renderFluidDashboard(vehicle) {
                     return log.date?.slice(0, 7) === thisMonth && Number.isFinite(cost) ? total + cost : total;
                 }, 0);
                 const reminderData = this.getReminderData(vehicle, { includeAll: true });
+                const dashboardReminders = this.getReminderData(vehicle).activeItems.slice(0, 3);
                 const nextReminder = reminderData.activeItems.slice().sort((a, b) => {
                     const urgency = item => item.remainingDays ?? (item.remainingKm !== null && item.remainingKm !== undefined ? item.remainingKm / 50 : Number.POSITIVE_INFINITY);
                     return urgency(a) - urgency(b);
@@ -270,6 +271,14 @@ renderFluidDashboard(vehicle) {
                         <h3>${utils.t('next_tire_change')}</h3><div class="fluid-tire-list">${tireStatuses.map(status => `<button type="button" data-action="${status.isNotSet ? 'ui' : 'navigate'}" ${status.isNotSet ? `data-ui-method="openQuickTireSetup" data-ui-args="${encodeURIComponent(JSON.stringify([status.pos]))}"` : 'data-page="maintenance"'}><span>${utils.t('tire_' + status.pos)}</span><strong>${utils.escapeHtml(status.primary)}</strong></button>`).join('')}</div>
                         <button type="button" class="fluid-all-reminders" data-action="navigate" data-page="reminders">${utils.t('reminder_center')}<span class="material-icons">arrow_forward</span></button></div>
                     </details>
+                    <section class="fluid-reminder-center" aria-label="${utils.t('reminder_center')}">
+                        <div class="fluid-section-heading"><h2>${utils.t('reminder_center')}</h2><button type="button" data-testid="dashboard-reminders-see-all" data-action="navigate" data-page="reminders">${utils.t('view_all')}</button></div>
+                        ${dashboardReminders.map(item => `<div data-testid="dashboard-reminder" data-reminder-id="${utils.escapeAttr(item.id)}" class="fluid-reminder-row fluid-panel">
+                            <span class="fluid-icon-box is-neutral"><span class="material-icons">${item.icon}</span></span>
+                            <span class="fluid-reminder-copy"><strong>${utils.escapeHtml(item.title)}</strong><small>${utils.escapeHtml(item.meta || '')}</small></span>
+                            <button type="button" data-action="ui" data-ui-method="snoozeReminder" data-ui-args="${encodeURIComponent(JSON.stringify([item.id, 7]))}">${utils.t('snooze_7d')}</button>
+                        </div>`).join('') || `<p class="fluid-empty">${utils.t('reminder_none')}</p>`}
+                    </section>
                 </main>`;
             },
 
