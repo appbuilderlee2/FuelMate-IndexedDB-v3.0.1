@@ -293,10 +293,12 @@ async addDemoCar() {
             },
 
 async selectVehicle(id) {
+                if (!store.data.vehicles.some(v => v.id === id)) return;
                 store.data.settings.activeVehicleId = id;
                 await store.saveData();
                 this.closeModal();
                 this.render();
+                window.scrollTo(0, 0);
             },
 
 openVehicleSelector() {

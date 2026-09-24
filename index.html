@@ -212,6 +212,10 @@
         .fluid-hero p { font-size: 16px; color: var(--dash-muted); line-height: 1.46; }
         .fluid-hero p:first-of-type { margin-top: 7px; }
         .fluid-car-image { position: absolute; width: 59%; height: auto; right: 2%; top: 22px; z-index: 1; object-fit: contain; pointer-events: none; }
+        .fluid-car-image.is-suv { width: 56%; right: 1%; top: 23px; }
+        .fluid-car-fallback { position: absolute; z-index: 1; right: 7%; top: 23px; width: 43%; height: 116px; border-radius: 23px; display: flex; align-items: center; justify-content: center; color: #8db6bb; background: linear-gradient(145deg, rgba(196,226,234,.47), rgba(228,241,247,.15)); pointer-events: none; }
+        .fluid-car-fallback .material-icons { font-size: 75px; }
+        :root[data-color-scheme="dark"] .fluid-car-fallback { color: #79aeba; background: linear-gradient(145deg, rgba(93,136,152,.28), rgba(63,92,110,.1)); }
         .fluid-add-record {
             position: absolute; z-index: 3; bottom: 12px; left: 12px; right: 12px;
             height: 48px; border-radius: 16px; color: #fff; background: linear-gradient(120deg, #159ea8, #0d909b);
