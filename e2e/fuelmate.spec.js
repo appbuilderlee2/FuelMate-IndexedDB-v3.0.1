@@ -308,6 +308,32 @@ test('recognizes an invoice with a user key and saves one reviewed expense', asy
   expect(await page.evaluate(() => JSON.stringify(store.data.settings))).not.toContain('test-user-key');
 });
 
+test('invoice review leaves unreadable date, odometer, and total empty until confirmed', async ({ page }) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.evaluate(() => {
+    ui._invoiceDraft = {
+      date: null, odometer: null, total: null, subtotal: null, tax: null,
+      supplier: 'Test Workshop', invoiceNumber: '', currency: 'A$', documentType: 'receipt',
+      lineItems: [{ description: 'Tyre inspection', amount: null, category: 'tire', status: 'completed', selected: true }],
+      confidence: 0.5, warnings: [], hash: 'test-null-invoice', fileName: 'test.png', provider: 'openai', model: 'mock',
+    };
+    ui.renderInvoiceReview();
+  });
+  await expect(page.locator('#inv_date')).toHaveValue('');
+  await expect(page.locator('#inv_odometer')).toHaveValue('');
+  await expect(page.locator('#inv_total')).toHaveValue('');
+  await expect(page.locator('#inv_amount_0')).toHaveValue('');
+  await page.locator('#inv_date').fill('2026-09-26');
+  await page.locator('#inv_odometer').fill('1200');
+  await page.locator('#inv_total').fill('30');
+  await page.getByTestId('save-invoice-record').click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  const saved = await page.evaluate(() => store.data.logs.find(log => log.invoiceHash === 'test-null-invoice'));
+  expect(saved).toMatchObject({ date: '2026-09-26', odometer: 1200, cost: '30' });
+  expect(saved.invoiceItems[0].amount).toBeNull();
+});
+
 test('keeps an unset-tire reminder visible and supports snoozing it', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));

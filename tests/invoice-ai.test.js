@@ -31,6 +31,22 @@ test('invoice AI sanitizes structured output and never trusts selected recommend
   assert.throws(() => core.parseJson('{broken'), /invalid_ai_response/);
 });
 
+test('unreadable invoice amounts and odometer stay blank rather than becoming zero', async () => {
+  const { core } = await loadCore();
+  const result = core.parseJson(JSON.stringify({
+    date: '2026-02-30', odometer: null, total: null, subtotal: '', tax: null,
+    lineItems: [{ description: 'Repair', status: 'completed', amount: null }],
+  }));
+  assert.equal(result.date, null);
+  assert.equal(result.odometer, null);
+  assert.equal(result.total, null);
+  assert.equal(result.subtotal, null);
+  assert.equal(result.tax, null);
+  assert.equal(result.lineItems[0].amount, null);
+  assert.equal(core.parseJson('{"date":"2026-99-99"}').date, null);
+  assert.equal(core.parseJson('{"odometer":0,"total":0}').total, 0);
+});
+
 test('invoice keys use session storage by default and remain outside app settings', async () => {
   const { core, session, local } = await loadCore();
   core.setKey('openai', 'session-secret', false);

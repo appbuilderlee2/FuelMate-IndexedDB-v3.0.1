@@ -38,8 +38,12 @@
             },
             formatDate(isoString) {
                 if (!isoString) return '';
-                const date = new Date(isoString);
                 const lang = store.data.settings.language;
+                if (FuelMateCore.isValidIsoDate(isoString)) {
+                    const [year, month, day] = isoString.split('-').map(Number);
+                    return lang === 'zh' ? `${year}年${month}月${day}日` : `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+                }
+                const date = new Date(isoString);
                 if (lang === 'zh') return `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日`;
                 return date.toLocaleDateString('en-GB'); // DD/MM/YYYY
             },
@@ -97,17 +101,9 @@
             },
             filterByDateRange(logs, fromIso, toIso) {
                 if (!fromIso && !toIso) return logs;
-                const from = fromIso ? new Date(fromIso) : null;
-                const to = toIso ? new Date(toIso) : null;
                 return logs.filter(l => {
-                    const d = new Date(l.date);
-                    if (from && d < from) return false;
-                    if (to) {
-                        const end = new Date(to);
-                        end.setHours(23, 59, 59, 999);
-                        if (d > end) return false;
-                    }
-                    return true;
+                    const day = String(l.date || '').slice(0, 10);
+                    return (!fromIso || day >= fromIso) && (!toIso || day <= toIso);
                 });
             },
             getTirePositions() { return ['front_left','front_right','rear_left','rear_right']; },
@@ -147,7 +143,7 @@
                         odo: parseFloat(l.odometer) || 0,
                         dateMs: l.date ? new Date(l.date).getTime() : 0
                     }))
-                    .sort((a, b) => (a.dateMs - b.dateMs) || (a.odo - b.odo));
+                    .sort(utils.compareTireEvents);
 
                 const posToTireId = new Map(utils.getTirePositions().map(p => [p, `init:${vehicle?.id}:${p}`]));
                 const tireLastReplace = new Map(); // tireId -> { odo, dateMs, logId, log }
@@ -172,7 +168,6 @@
                     }
 
                     const lastOdo = latest.odo;
-                    const lastDate = latest.dateMs ? new Date(latest.dateMs) : null;
                     const reminderKey = Array.isArray(latest.log?.tirePositions) && latest.log.tirePositions.length > 1
                         ? `${latest.logId}:${tireId}`
                         : latest.logId;
@@ -187,7 +182,7 @@
                     if (remainingDistSeed !== null || remainingDaysSeed !== null) {
                         const distUsed = Math.max(0, currentOdo - lastOdo);
                         const remainingKm = remainingDistSeed === null ? null : (remainingDistSeed - distUsed);
-                        const daysElapsed = latest.dateMs ? Math.floor((now.getTime() - latest.dateMs) / 86400000) : 0;
+                        const daysElapsed = latest.log?.date ? -FuelMateCore.daysUntilCalendarDate(latest.log.date, now) : 0;
                         const remainingDays = remainingDaysSeed === null ? null : (remainingDaysSeed - daysElapsed);
 
                         const overdueDist = remainingKm !== null && remainingKm <= 0;
@@ -208,11 +203,11 @@
                         const secondary = secondaryParts.length ? `${utils.t('due_in')} ${secondaryParts.join(' / ')}` : '';
 
                         const dueOdo = remainingDistSeed === null ? null : (lastOdo + remainingDistSeed);
-                        const dueDate = (remainingDaysSeed !== null && lastDate)
-                            ? new Date(lastDate.getTime() + remainingDaysSeed * 86400000)
+                        const dueDate = remainingDaysSeed !== null && latest.log?.date
+                            ? FuelMateCore.addCalendarDays(latest.log.date, remainingDaysSeed)
                             : null;
 
-                        return { pos, tireId, editLogId: latest.logId || null, reminderKey: reminderKey || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate ? dueDate.toISOString() : null, dueOdo, isNotSet: false };
+                        return { pos, tireId, editLogId: latest.logId || null, reminderKey: reminderKey || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate, dueOdo, isNotSet: false };
                     }
 
                     const dueOdo = distInt > 0 ? (lastOdo + distInt) : null;
@@ -220,10 +215,9 @@
 
                     let dueDate = null;
                     let remainingDays = null;
-                    if (yearsInt > 0 && lastDate) {
-                        dueDate = new Date(lastDate);
-                        dueDate.setFullYear(dueDate.getFullYear() + yearsInt);
-                        remainingDays = Math.ceil((dueDate - now) / 86400000);
+                    if (yearsInt > 0 && latest.log?.date) {
+                        dueDate = FuelMateCore.addCalendarMonths(latest.log.date, yearsInt * 12);
+                        remainingDays = FuelMateCore.daysUntilCalendarDate(dueDate, now);
                     }
 
                     const overdueDist = remainingKm !== null && remainingKm <= 0;
@@ -243,8 +237,19 @@
                     if (!isOverdue && timeText && primaryIsDist) secondaryParts.push(timeText);
                     const secondary = secondaryParts.length ? `${utils.t('due_in')} ${secondaryParts.join(' / ')}` : '';
 
-                    return { pos, tireId, editLogId: latest.logId || null, reminderKey: reminderKey || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate ? dueDate.toISOString() : null, dueOdo, isNotSet: false };
+                    return { pos, tireId, editLogId: latest.logId || null, reminderKey: reminderKey || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate, dueOdo, isNotSet: false };
                 });
+            },
+
+            compareTireEvents(a, b) {
+                const byDateOrDistance = (a.dateMs - b.dateMs) || (a.odo - b.odo);
+                if (byDateOrDistance) return byDateOrDistance;
+                const aCreated = Date.parse(a.log.createdAt || '');
+                const bCreated = Date.parse(b.log.createdAt || '');
+                if (Number.isFinite(aCreated) && Number.isFinite(bCreated) && aCreated !== bCreated) return aCreated - bCreated;
+                // Legacy entries lack a timestamp. Replay replacement before rotation consistently.
+                const rank = log => log.type === 'tire_replace' ? 0 : 1;
+                return (rank(a.log) - rank(b.log)) || String(a.log.id).localeCompare(String(b.log.id));
             },
 
             getTireTimeline(vehicle) {
@@ -255,7 +260,7 @@
                         odo: parseFloat(l.odometer) || 0,
                         dateMs: l.date ? new Date(l.date).getTime() : 0
                     }))
-                    .sort((a, b) => (a.dateMs - b.dateMs) || (a.odo - b.odo));
+                    .sort(utils.compareTireEvents);
 
                 const posToTireId = new Map(utils.getTirePositions().map(p => [p, `init:${vehicle?.id}:${p}`]));
                 const tires = new Map(); // tireId -> { tireId, currentPos, lastReplace, events: [] }
@@ -301,7 +306,7 @@
                 const logs = store.getVehicleLogs();
                 const years = new Set(
                     logs
-                        .map(l => new Date(l.date).getFullYear())
+                        .map(l => /^\d{4}-/.test(l.date || '') ? Number(l.date.slice(0, 4)) : NaN)
                         .filter(y => Number.isFinite(y))
                 );
                 if (!years.size) years.add(new Date().getFullYear());
@@ -310,12 +315,10 @@
             filterLogs(logs, filter) {
                 if (!filter) return logs;
                 return logs.filter(l => {
-                    const d = new Date(l.date);
                     if (filter.mode === 'month') {
-                        const [y, m] = filter.value.split('-');
-                        return d.getFullYear() == y && (d.getMonth() + 1) == m;
+                        return l.date?.slice(0, 7) === filter.value;
                     } else if (filter.mode === 'year') {
-                         return d.getFullYear() == filter.value;
+                         return l.date?.slice(0, 4) === String(filter.value);
                     }
                     return true; 
                 });
