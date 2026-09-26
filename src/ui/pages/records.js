@@ -131,7 +131,7 @@ renderMaintenance(vehicle) {
 
                         <div class="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-3">
                             <button onclick="store.pageFilters.maintenanceView='all'; store.pageFilters.maintenanceTypes=[]; ui.resetPageLimit('maintenance'); ui.render()" class="flex-1 py-2 text-xs font-bold rounded-lg ${view==='all'?'bg-white dark:bg-slate-700 shadow':''}">${utils.t('all')}</button>
-                            <button onclick="store.pageFilters.maintenanceView='tires'; ui.resetPageLimit('maintenance'); ui.render()" class="flex-1 py-2 text-xs font-bold rounded-lg ${view==='tires'?'bg-white dark:bg-slate-700 shadow':''}">${utils.t('tire_replace')}</button>
+                            <button data-testid="maintenance-view-tires" onclick="store.pageFilters.maintenanceView='tires'; ui.resetPageLimit('maintenance'); ui.render()" class="flex-1 py-2 text-xs font-bold rounded-lg ${view==='tires'?'bg-white dark:bg-slate-700 shadow':''}">${utils.t('tire_replace')}</button>
                         </div>
 
                         ${view === 'all' ? `

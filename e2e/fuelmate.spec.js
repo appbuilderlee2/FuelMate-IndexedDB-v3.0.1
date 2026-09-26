@@ -396,6 +396,7 @@ test('a tire reminder opens its source editor without being hidden by the closin
   await openFreshApp(page);
   await createVehicle(page);
   await page.getByTestId('nav-maintenance').click();
+  await page.getByTestId('maintenance-view-tires').click();
   await page.getByRole('button', { name: 'Quick Setup', exact: true }).click();
   await page.locator('#qs_remaining_months').fill('12');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
