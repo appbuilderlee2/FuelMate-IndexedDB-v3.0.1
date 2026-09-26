@@ -29,6 +29,13 @@
     return date.toISOString().slice(0, 10);
   }
 
+  function calendarDaysForMonths(value, months) {
+    if (!isValidIsoDate(value) || !Number.isInteger(months) || months < 0) return null;
+    const dueDate = addCalendarMonths(value, months);
+    if (!isValidIsoDate(dueDate)) return null;
+    return Math.round((Date.parse(`${dueDate}T00:00:00.000Z`) - Date.parse(`${value}T00:00:00.000Z`)) / 86400000);
+  }
+
   function daysUntilCalendarDate(value, now = new Date()) {
     if (!isValidIsoDate(value)) return null;
     return (Date.parse(`${value}T00:00:00.000Z`) - Date.parse(`${localDateKey(now)}T00:00:00.000Z`)) / 86400000;
@@ -63,7 +70,7 @@
     const detailMap = log?.tireDetails && typeof log.tireDetails === 'object' && !Array.isArray(log.tireDetails)
       ? log.tireDetails
       : {};
-    const fields = ['tireBrand', 'tireTread', 'tirePressureKpa', 'tireAlignment', 'tireBalancing', 'tireRemainingDist', 'tireRemainingDays'];
+    const fields = ['tireBrand', 'tireTread', 'tirePressureKpa', 'tireAlignment', 'tireBalancing', 'tireRemainingDist', 'tireRemainingDays', 'tireRemainingMonths'];
     const legacyId = typeof log?.tireId === 'string' ? log.tireId.trim() : (log?.tireId == null ? '' : String(log.tireId).trim());
 
     return positions.map((position, index) => {
@@ -234,6 +241,22 @@
       if (settings.aiModel !== undefined && (typeof settings.aiModel !== 'string' || !/^[\w./:@+-]{1,160}$/.test(settings.aiModel))) errors.push('settings_invalid_ai_model');
       if (settings.aiEndpoint !== undefined && (typeof settings.aiEndpoint !== 'string' || settings.aiEndpoint.length > 500 || /[<>\x00-\x1f]/.test(settings.aiEndpoint))) errors.push('settings_invalid_ai_endpoint');
       if (settings.aiApiKey !== undefined) errors.push('settings_contains_ai_key');
+      if (settings.reminders !== undefined) {
+        const reminders = settings.reminders;
+        if (!reminders || typeof reminders !== 'object' || Array.isArray(reminders)) {
+          errors.push('settings_invalid_reminders');
+        } else {
+          for (const type of ['license', 'insurance', 'registration']) {
+            const entry = reminders[type];
+            if (entry === undefined) continue;
+            if (!entry || typeof entry !== 'object' || Array.isArray(entry)
+                || (entry.enabled !== undefined && typeof entry.enabled !== 'boolean')
+                || (entry.days !== undefined && ![7, 30, '7', '30'].includes(entry.days))) {
+              errors.push('settings_invalid_reminders');
+            }
+          }
+        }
+      }
       const snoozedUntil = settings.reminderCenter?.snoozedUntil;
       const done = settings.reminderCenter?.done;
       if (snoozedUntil !== undefined && (!snoozedUntil || typeof snoozedUntil !== 'object' || Array.isArray(snoozedUntil))) {
@@ -295,6 +318,9 @@
           if (!expectedPositions || replacementEntries.length !== expectedPositions) errors.push('log_invalid_tire_replacement');
           if (new Set(replacementEntries.map(entry => entry.tireId)).size !== replacementEntries.length) errors.push('log_invalid_tire_ids');
           if (log.tireIds !== undefined && (!log.tireIds || typeof log.tireIds !== 'object' || Array.isArray(log.tireIds))) errors.push('log_invalid_tire_ids');
+          if (log.tireRemainingMonths !== undefined && log.tireRemainingMonths !== null
+              && (!isNonNegativeNumber(log.tireRemainingMonths) || !Number.isInteger(Number(log.tireRemainingMonths))
+                  || calendarDaysForMonths(log.date, Number(log.tireRemainingMonths)) === null)) errors.push('log_invalid_tire_months');
         }
         if (log.type === 'tire_rotation') {
           const hasMoves = Array.isArray(log.tireMoves) && log.tireMoves.length > 0;
@@ -315,6 +341,7 @@
   global.FuelMateCore = Object.freeze({
     addCalendarDays,
     addCalendarMonths,
+    calendarDaysForMonths,
     daysUntilCalendarDate,
     localDateKey,
     buildFuelEfficiencySegments,

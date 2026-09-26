@@ -33,7 +33,7 @@ renderSettings(vehicle) {
                         </div>
 
                         <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 card-shadow mb-6">
-                            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Vehicle Management</div>
+                            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">${utils.t('vehicle_management')}</div>
                             ${store.data.vehicles.map(v => `
                                 <div class="flex items-center justify-between py-3 border-b theme-border last:border-0">
                                     <div class="flex items-center gap-3">
@@ -133,7 +133,7 @@ renderSettings(vehicle) {
                         </div>
 
                         <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 card-shadow mb-6">
-                            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">App Settings</div>
+                            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">${utils.t('app_settings')}</div>
                             <div class="space-y-4">
                                 <div>
                                     <label class="text-xs theme-text-sub block mb-1">${utils.t('units')}</label>
@@ -276,16 +276,20 @@ renderSettings(vehicle) {
 async updateReminderDays(type, value) {
                 const allowed = ['license', 'insurance', 'registration'];
                 if (!allowed.includes(type)) return;
-                const current = store.data.settings.reminders[type] || { enabled: true };
-                store.data.settings.reminders[type] = { ...current, days: value };
+                const reminders = store.data.settings.reminders && typeof store.data.settings.reminders === 'object' && !Array.isArray(store.data.settings.reminders)
+                    ? store.data.settings.reminders : (store.data.settings.reminders = {});
+                const current = reminders[type] || { enabled: true };
+                reminders[type] = { ...current, days: value };
                 await store.saveData();
             },
 
 async toggleReminderSetting(type) {
                 const allowed = ['license', 'insurance', 'registration'];
                 if (!allowed.includes(type)) return;
-                const current = store.data.settings.reminders[type] || { days: 30, enabled: true };
-                store.data.settings.reminders[type] = { ...current, enabled: !current.enabled };
+                const reminders = store.data.settings.reminders && typeof store.data.settings.reminders === 'object' && !Array.isArray(store.data.settings.reminders)
+                    ? store.data.settings.reminders : (store.data.settings.reminders = {});
+                const current = reminders[type] || { days: 30, enabled: true };
+                reminders[type] = { ...current, enabled: !current.enabled };
                 await store.saveData();
                 this.render();
             },
