@@ -143,3 +143,39 @@ test('queue continues after a rejected save', async () => {
   assert.equal(results[1].status, 'fulfilled');
   assert.ok(store.data.logs.some(l => l.id === 'good'));
 });
+
+test('distance unit changes convert every stored distance atomically and round-trip', async () => {
+  const store = await createStore();
+  store.data.vehicles[0].maintenanceBaselineOdometer = 1000;
+  store.data.vehicles[0].maintenanceDist = '10000';
+  store.data.vehicles[0].tireReplaceDist = 40000;
+  store.data.settings.tireReplaceDist = 40000;
+  store.data.logs[0].tireRemainingDist = 20000;
+  store.data.logs[0].tireDetails = { front_left: { tireRemainingDist: 10000 } };
+
+  await store.changeDistanceUnits('imperial');
+  assert.equal(store.data.settings.units, 'imperial');
+  assert.ok(Math.abs(store.data.vehicles[0].currentOdometer - 932.057) < 0.001);
+  assert.equal(store.data.vehicles[0].maintenanceBaselineOdometer, 621.371);
+  assert.equal(store.data.vehicles[0].maintenanceDist, '6213.712');
+  assert.equal(store.data.logs[0].tireRemainingDist, 12427.424);
+  assert.equal(store.data.logs[0].tireDetails.front_left.tireRemainingDist, 6213.712);
+  assert.equal(store.data.settings.tireReplaceDist, 24854.848);
+
+  await store.changeDistanceUnits('metric');
+  assert.equal(store.data.settings.units, 'metric');
+  assert.ok(Math.abs(store.data.vehicles[0].currentOdometer - 1500) < 0.002);
+  assert.ok(Math.abs(Number(store.data.vehicles[0].maintenanceDist) - 10000) < 0.002);
+});
+
+test('failed distance conversion preserves records and units in memory', async () => {
+  const store = await createStore();
+  const before = JSON.stringify(store.data);
+  store.db.transaction = () => {
+    const tx = { error: new Error('write failed'), objectStore: () => ({ put() {} }) };
+    queueMicrotask(() => tx.onabort());
+    return tx;
+  };
+  await assert.rejects(() => store.changeDistanceUnits('imperial'), /write failed/);
+  assert.equal(JSON.stringify(store.data), before);
+});

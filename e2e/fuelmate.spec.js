@@ -226,6 +226,37 @@ test('adds a fuel record and renders the saved IndexedDB data', async ({ page })
   expect(pageErrors).toEqual([]);
 });
 
+test('unit switch preserves physical mileage and filtered analytics charts', async ({ page }, testInfo) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.evaluate(async () => {
+    const vehicleId = store.data.settings.activeVehicleId;
+    await store.addLog({ id: 'year-2025', vehicleId, type: 'fuel', date: '2025-11-10', odometer: 1000, liters: 40, cost: 25, isPartial: false });
+    await store.addLog({ id: 'year-2025-end', vehicleId, type: 'fuel', date: '2025-12-10', odometer: 1500, liters: 40, cost: 35, isPartial: false });
+    await store.addLog({ id: 'year-2026', vehicleId, type: 'fuel', date: '2026-09-10', odometer: 2000, liters: 50, cost: 90, isPartial: false });
+    ui.render();
+  });
+  await page.getByTestId('nav-analytics').click();
+  await page.getByTestId('period-filter-analytics').getByTestId('period-value').selectOption('2025');
+  await expect(page.getByText('$60.00').first()).toBeVisible();
+  const chart = page.locator('svg:has(rect[data-series="fuel"])');
+  await expect(chart.locator('rect[data-series="fuel"][data-month="11"]')).toHaveAttribute('data-value', '$25');
+  await expect(chart.locator('rect[data-series="fuel"][data-month="12"]')).toHaveAttribute('data-value', '$35');
+  await expect(page.locator('.h-32 svg')).toContainText('8.0');
+  await waitForVisualAssets(page);
+  await hideTransientStatusForScreenshot(page);
+  await page.screenshot({ path: testInfo.outputPath('analytics-filtered.png'), fullPage: false });
+
+  await page.getByTestId('nav-settings').click();
+  await page.evaluate(() => ui.updateGlobalSetting('units', 'imperial'));
+  await expect.poll(() => page.evaluate(() => store.getActiveVehicle().currentOdometer)).toBeCloseTo(1242.742, 2);
+  await expect(page.getByText(/1242\.742 mi/).first()).toBeVisible();
+  await page.reload();
+  const persisted = await page.evaluate(() => ({ units: store.data.settings.units, odometer: store.getActiveVehicle().currentOdometer }));
+  expect(persisted.units).toBe('imperial');
+  expect(persisted.odometer).toBeCloseTo(1242.742, 2);
+});
+
 test('recognizes an invoice with a user key and saves one reviewed expense', async ({ page }) => {
   await page.route('https://api.openai.com/v1/models', async route => {
     expect(route.request().headers().authorization).toBe('Bearer test-user-key');

@@ -104,6 +104,7 @@ renderSettings(vehicle) {
                                             <option value="none" ${(vehicle?.maintenanceDist ?? settings.maintenanceDist)==='none'?'selected':''}>${utils.t('int_none')}</option>
                                             <option value="5000" ${(vehicle?.maintenanceDist ?? settings.maintenanceDist)==='5000'?'selected':''}>${utils.t('int_5k')}</option>
                                             <option value="10000" ${(vehicle?.maintenanceDist ?? settings.maintenanceDist)==='10000'?'selected':''}>${utils.t('int_10k')}</option>
+                                            ${!['none', '5000', '10000'].includes(String(vehicle?.maintenanceDist ?? settings.maintenanceDist)) ? `<option value="${utils.escapeAttr(vehicle?.maintenanceDist ?? settings.maintenanceDist)}" selected>${utils.escapeHtml(vehicle?.maintenanceDist ?? settings.maintenanceDist)} ${utils.getDistUnit()}</option>` : ''}
                                         </select>
                                     </div>
                                     <div>
@@ -310,6 +311,11 @@ async updateActiveVehicleSetting(key, valueType, value) {
 async updateGlobalSetting(key, value) {
                 const allowed = ['units', 'pressureUnit', 'currency', 'language'];
                 if (!allowed.includes(key)) return;
+                if (key === 'units') {
+                    await store.changeDistanceUnits(value);
+                    this.render();
+                    return;
+                }
                 store.data.settings[key] = value;
                 await store.saveData();
                 this.render();

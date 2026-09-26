@@ -77,6 +77,7 @@ openAddVehicle(id = null) {
                                         <option value="none" ${(v.maintenanceDist ?? store.data.settings.maintenanceDist)==='none'?'selected':''}>${utils.t('int_none')}</option>
                                         <option value="5000" ${(v.maintenanceDist ?? store.data.settings.maintenanceDist)==='5000'?'selected':''}>${utils.t('int_5k')}</option>
                                         <option value="10000" ${(v.maintenanceDist ?? store.data.settings.maintenanceDist)==='10000'?'selected':''}>${utils.t('int_10k')}</option>
+                                        ${!['none', '5000', '10000'].includes(String(v.maintenanceDist ?? store.data.settings.maintenanceDist)) ? `<option value="${utils.escapeAttr(v.maintenanceDist ?? store.data.settings.maintenanceDist)}" selected>${utils.escapeHtml(v.maintenanceDist ?? store.data.settings.maintenanceDist)} ${utils.getDistUnit()}</option>` : ''}
                                     </select>
                                     <label class="text-xs theme-text-sub block mb-1 mt-2">${utils.t('service_interval_time')}</label>
                                     <select id="v_maint_time" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-700 theme-text-heading text-sm">
@@ -117,7 +118,10 @@ async saveVehicle(id) {
                 if (year.number < 1886 || year.number > new Date().getFullYear() + 1) return alert(utils.t('validation_year'));
                 const existing = id ? store.data.vehicles.find(v => v.id === id) : null;
 
+                const hasPeriodicService = id && store.getVehicleLogs('periodic_maintenance', id).length > 0;
+
                 const vehicle = {
+                    ...(existing || {}),
                     id: id || utils.newId(),
                     make, model,
                     year: String(year.number),
@@ -131,6 +135,13 @@ async saveVehicle(id) {
                     tireReplaceDist: tireDistance.number ?? 0,
                     tireReplaceYears: parseInt(document.getElementById('v_tire_years').value) || 0
                 };
+
+                if (!hasPeriodicService && parseFloat(vehicle.maintenanceDist) > 0 && !Number.isFinite(parseFloat(vehicle.maintenanceBaselineOdometer))) {
+                    vehicle.maintenanceBaselineOdometer = vehicle.currentOdometer;
+                }
+                if (!hasPeriodicService && parseFloat(vehicle.maintenanceTime) > 0 && !vehicle.maintenanceBaselineDate) {
+                    vehicle.maintenanceBaselineDate = FuelMateCore.localDateKey();
+                }
 
                 if (id) await store.updateVehicle(vehicle);
                 else await store.addVehicle(vehicle);

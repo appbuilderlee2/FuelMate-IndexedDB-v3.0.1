@@ -181,3 +181,41 @@ test('fuel editing saves notes and preserves extra existing fields', async () =>
   await ui.submitFuel('old');
   assert.equal(saved.notes, 'Previous note');
 });
+
+test('parking edit keeps the original vehicle and extra fields', async () => {
+  const { ui, getElement, saved } = await createUiHarness();
+  const existing = { id: 'park-1', vehicleId: 'other-car', type: 'parking', receiptId: 'receipt-1' };
+  // The active vehicle can differ when a saved record is opened by ID.
+  const context = vm.createContext({
+    ui,
+    store: { data: { logs: [existing], settings: { activeVehicleId: 'vehicle-1' } }, updateLog: async log => saved.push(log) },
+    document: { getElementById: getElement },
+    utils: { newId: () => 'new', t: key => key },
+  });
+  vm.runInContext(await fs.readFile(new URL('../src/ui/actions/records.js', import.meta.url), 'utf8'), context);
+  getElement('p_date').value = '2026-09-26';
+  getElement('p_cost').value = '12';
+  await ui.submitParking('park-1');
+  assert.equal(saved.at(-1).vehicleId, 'other-car');
+  assert.equal(saved.at(-1).receiptId, 'receipt-1');
+});
+
+test('vehicle edit preserves service baselines and new vehicles establish them', async () => {
+  const elements = new Map(Object.entries({ v_make: 'Mazda', v_model: '2', v_year: '2012', v_odo: '110000', v_tire_dist: '40000', v_type: 'hatch', v_unit: 'L', v_drive: 'fwd', v_maint_dist: '10000', v_maint_time: '12', v_tire_years: '4' }).map(([key, value]) => [key, { value }]));
+  const saved = [];
+  const existing = { id: 'car-1', maintenanceBaselineOdometer: 95000, maintenanceBaselineDate: '2026-01-01', customField: 'keep' };
+  const ui = { validateNumberField: id => ({ ok: true, number: Number(elements.get(id).value) }), closeModal() {}, render() {} };
+  const context = vm.createContext({
+    ui, document: { getElementById: id => elements.get(id), querySelector: () => ({ value: 'red' }) },
+    store: { data: { vehicles: [existing], settings: { activeVehicleId: 'car-1' } }, getVehicleLogs: () => [], updateVehicle: async v => saved.push(v), addVehicle: async v => saved.push(v) },
+    utils: { newId: () => 'car-2', t: key => key }, FuelMateCore: { localDateKey: () => '2026-09-26' }, alert: () => {},
+  });
+  vm.runInContext(await fs.readFile(new URL('../src/ui/actions/vehicles.js', import.meta.url), 'utf8'), context);
+  await ui.saveVehicle('car-1');
+  assert.equal(saved[0].maintenanceBaselineOdometer, 95000);
+  assert.equal(saved[0].maintenanceBaselineDate, '2026-01-01');
+  assert.equal(saved[0].customField, 'keep');
+  await ui.saveVehicle('');
+  assert.equal(saved[1].maintenanceBaselineOdometer, 110000);
+  assert.equal(saved[1].maintenanceBaselineDate, '2026-09-26');
+});

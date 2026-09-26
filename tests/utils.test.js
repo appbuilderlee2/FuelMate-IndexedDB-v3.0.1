@@ -42,6 +42,16 @@ test('trend chart includes partial fuel and renders finite coordinates', async (
   assert.doesNotMatch(chart, /NaN|Infinity/);
 });
 
+test('monthly spend chart uses the selected period endpoint and only supplied logs', async () => {
+  const { utils } = await loadUtils();
+  const chart = utils.generateMonthlyBarChart([
+    { type: 'fuel', date: '2025-11-01', cost: 25 },
+  ], '2025-12');
+  assert.match(chart, /data-value="\$25" data-month="11"/);
+  assert.match(chart, /data-value="\$0" data-month="12"/);
+  assert.doesNotMatch(chart, /data-month="01"/);
+});
+
 test('dashboard art matches a saved vehicle model and year, never another model', async () => {
   const { utils } = await loadUtils();
   assert.equal(utils.getVehicleHeroImage({ make: 'Mazda', model: '2', year: 2012 }), './vehicle-hatchback.webp');

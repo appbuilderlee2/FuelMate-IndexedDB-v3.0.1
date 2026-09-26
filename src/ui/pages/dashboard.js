@@ -307,7 +307,7 @@ getReminderData(vehicle, options = {}) {
 
                 // Tires
                 const tireThresholdKm = (() => {
-                    const dist = parseInt(vehicle?.tireReplaceDist ?? store.data.settings.tireReplaceDist) || 0;
+                    const dist = parseFloat(vehicle?.tireReplaceDist ?? store.data.settings.tireReplaceDist) || 0;
                     if (dist <= 0) return 2000;
                     return Math.max(500, Math.min(5000, Math.round(dist * 0.1)));
                 })();
@@ -401,7 +401,7 @@ getReminderData(vehicle, options = {}) {
                 });
 
                 // Periodic maintenance
-                const distInt = parseInt(vehicle?.maintenanceDist ?? store.data.settings.maintenanceDist) || 0;
+                const distInt = parseFloat(vehicle?.maintenanceDist ?? store.data.settings.maintenanceDist) || 0;
                 const timeInt = parseInt(vehicle?.maintenanceTime ?? store.data.settings.maintenanceTime) || 0;
                 const lastService = store.getVehicleLogs('periodic_maintenance', vehicle.id)[0];
                 const baselineOdo = Number.isFinite(parseFloat(vehicle.maintenanceBaselineOdometer))
