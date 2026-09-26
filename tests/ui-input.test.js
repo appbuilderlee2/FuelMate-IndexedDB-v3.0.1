@@ -62,7 +62,7 @@ async function createUiHarness() {
   vm.runInContext('globalThis.__ui = ui;', context);
   context.__ui.closeModal = () => {};
   context.__ui.render = () => {};
-  return { ui: context.__ui, getElement, saved, alerts, tireInputs };
+  return { ui: context.__ui, core: context.FuelMateCore, getElement, saved, alerts, tireInputs };
 }
 
 test('fuel input calculates the third value from the last two fields', async () => {
@@ -122,6 +122,69 @@ test('trip mode converts once and returns to odometer mode', async () => {
   assert.equal(input.dataset.mode, 'odo');
   ui.normalizeTripOdometer(input);
   assert.equal(input.value, '1250');
+});
+
+test('switching from a typed trip and saving a trip both preserve the converted odometer', async () => {
+  const { ui, getElement, saved } = await createUiHarness();
+  const input = getElement('l_odo');
+  const button = getElement('l_odo_mode');
+  input.value = '1000';
+  input.dataset.mode = 'odo';
+  ui.toggleTripMode(button);
+  input.value = '100';
+  ui.toggleTripMode(button);
+  assert.equal(input.value, '1100');
+  assert.equal(input.dataset.mode, 'odo');
+  assert.equal(button.innerText, 'ODO');
+
+  ui.toggleTripMode(button);
+  input.value = '250';
+  getElement('l_date').value = '2026-09-26';
+  getElement('l_liters').value = '40';
+  getElement('l_cost').value = '80';
+  await ui.submitFuel('');
+  assert.equal(saved[0].odometer, 1250);
+  assert.equal(input.dataset.mode, 'odo');
+});
+
+test('invalid trip distance cannot silently become an absolute odometer', async () => {
+  const { ui, getElement } = await createUiHarness();
+  const input = getElement('l_odo');
+  const button = getElement('l_odo_mode');
+  input.value = '1000';
+  input.dataset.mode = 'odo';
+  ui.toggleTripMode(button);
+  input.value = '-5';
+  ui.toggleTripMode(button);
+  assert.equal(input.value, '-5');
+  assert.equal(input.dataset.mode, 'trip');
+});
+
+test('quick tire setup saves a calendar-month interval', async () => {
+  const { ui, core, getElement, saved } = await createUiHarness();
+  getElement('qs_tire_pos').value = 'front_left';
+  getElement('qs_remaining_dist').value = '';
+  getElement('qs_remaining_months').value = '12';
+  getElement('qs_tire_tread').value = '';
+  await ui.submitQuickTireSetup();
+  assert.equal(saved[0].tireRemainingMonths, 12);
+  const dueDate = core.addCalendarMonths(saved[0].date, 12);
+  assert.equal(saved[0].tireRemainingDays, core.calendarDaysForMonths(saved[0].date, 12));
+  assert.notEqual(dueDate, core.addCalendarDays(saved[0].date, 360));
+});
+
+test('reminder settings recover from an older malformed backup value', async () => {
+  let writes = 0;
+  const context = vm.createContext({
+    ui: { render() {} },
+    store: { data: { settings: { reminders: null } }, async saveData() { writes += 1; } },
+  });
+  vm.runInContext(await fs.readFile(new URL('../src/ui/pages/settings.js', import.meta.url), 'utf8'), context);
+  await context.ui.toggleReminderSetting('license');
+  assert.equal(context.store.data.settings.reminders.license.enabled, false);
+  await context.ui.updateReminderDays('license', '7');
+  assert.equal(context.store.data.settings.reminders.license.days, '7');
+  assert.equal(writes, 2);
 });
 
 test('service and parking submissions reject negative values', async () => {

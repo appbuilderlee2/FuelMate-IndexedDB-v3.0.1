@@ -275,7 +275,8 @@ async addDemoCar() {
                         tireTread: String(treadMm),
                         tirePressureKpa: String(pressureKpa),
                         tireRemainingDist: remDist === null ? null : Math.max(0, remDist),
-                        tireRemainingDays: remMonths === null ? null : Math.max(0, Math.round(remMonths * 30)),
+                        tireRemainingMonths: remMonths,
+                        tireRemainingDays: remMonths === null ? null : FuelMateCore.calendarDaysForMonths(isoDaysAgo(daysAgo), remMonths),
                         tireAlignment: pos === 'front_left',
                         tireBalancing: true,
                         tireId: utils.newId()

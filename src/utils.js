@@ -179,11 +179,23 @@
                     const remainingDaysSeed = Number.isFinite(parseFloat(source.tireRemainingDays))
                         ? parseFloat(source.tireRemainingDays)
                         : null;
-                    if (remainingDistSeed !== null || remainingDaysSeed !== null) {
+                    const explicitMonths = source.tireRemainingMonths !== null && source.tireRemainingMonths !== undefined && source.tireRemainingMonths !== ''
+                        ? Number(source.tireRemainingMonths) : null;
+                    // Older forms stored entered months as months * 30. Recover those
+                    // app-created intervals without rewriting the IndexedDB record.
+                    const legacyMonths = remainingDaysSeed !== null && remainingDaysSeed >= 0 && Number.isInteger(remainingDaysSeed / 30)
+                        ? remainingDaysSeed / 30 : null;
+                    const monthsSeed = Number.isInteger(explicitMonths) && explicitMonths >= 0 ? explicitMonths : legacyMonths;
+                    const customDueDate = latest.log?.date
+                        ? (monthsSeed !== null ? FuelMateCore.addCalendarMonths(latest.log.date, monthsSeed)
+                            : remainingDaysSeed !== null ? FuelMateCore.addCalendarDays(latest.log.date, remainingDaysSeed) : null)
+                        : null;
+                    const totalDaysSeed = monthsSeed !== null && latest.log?.date
+                        ? FuelMateCore.calendarDaysForMonths(latest.log.date, monthsSeed) : remainingDaysSeed;
+                    if (remainingDistSeed !== null || customDueDate !== null) {
                         const distUsed = Math.max(0, currentOdo - lastOdo);
                         const remainingKm = remainingDistSeed === null ? null : (remainingDistSeed - distUsed);
-                        const daysElapsed = latest.log?.date ? -FuelMateCore.daysUntilCalendarDate(latest.log.date, now) : 0;
-                        const remainingDays = remainingDaysSeed === null ? null : (remainingDaysSeed - daysElapsed);
+                        const remainingDays = customDueDate === null ? null : FuelMateCore.daysUntilCalendarDate(customDueDate, now);
 
                         const overdueDist = remainingKm !== null && remainingKm <= 0;
                         const overdueTime = remainingDays !== null && remainingDays <= 0;
@@ -193,7 +205,7 @@
                         const timeText = remainingDays === null ? '' : utils.formatDaysShort(remainingDays);
 
                         const distFrac = remainingKm === null || !remainingDistSeed ? Number.POSITIVE_INFINITY : (remainingKm / Math.max(1, remainingDistSeed));
-                        const timeFrac = remainingDays === null || !remainingDaysSeed ? Number.POSITIVE_INFINITY : (remainingDays / Math.max(1, remainingDaysSeed));
+                        const timeFrac = remainingDays === null || !totalDaysSeed ? Number.POSITIVE_INFINITY : (remainingDays / Math.max(1, totalDaysSeed));
                         const primaryIsDist = distFrac <= timeFrac;
 
                         const primary = isOverdue ? utils.t('overdue') : (primaryIsDist ? (distText || timeText) : (timeText || distText));
@@ -203,11 +215,7 @@
                         const secondary = secondaryParts.length ? `${utils.t('due_in')} ${secondaryParts.join(' / ')}` : '';
 
                         const dueOdo = remainingDistSeed === null ? null : (lastOdo + remainingDistSeed);
-                        const dueDate = remainingDaysSeed !== null && latest.log?.date
-                            ? FuelMateCore.addCalendarDays(latest.log.date, remainingDaysSeed)
-                            : null;
-
-                        return { pos, tireId, editLogId: latest.logId || null, reminderKey: reminderKey || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: dueDate, dueOdo, isNotSet: false };
+                        return { pos, tireId, editLogId: latest.logId || null, reminderKey: reminderKey || null, isOverdue, primary, secondary, remainingKm, remainingDays, dueDateIso: customDueDate, dueOdo, isNotSet: false };
                     }
 
                     const dueOdo = distInt > 0 ? (lastOdo + distInt) : null;

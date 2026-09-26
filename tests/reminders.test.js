@@ -134,6 +134,19 @@ test('maintenance due date clamps at February end and calendar export uses that 
   }
 });
 
+test('tire remaining months use calendar dates for both new and old app-created records', async () => {
+  const { store, utils, vehicle } = await createHarness();
+  store.data.logs = [{
+    id: 'rep1', vehicleId: 'v1', type: 'tire_replace', date: '2026-09-26',
+    odometer: 10000, tirePosition: 'front_left', tireId: 't1', tireRemainingDays: 360,
+  }];
+  let status = utils.getTireReplacementStatus(vehicle).find(item => item.pos === 'front_left');
+  assert.equal(status.dueDateIso, '2027-09-26');
+  store.data.logs[0].tireRemainingMonths = 12;
+  status = utils.getTireReplacementStatus(vehicle).find(item => item.pos === 'front_left');
+  assert.equal(status.dueDateIso, '2027-09-26');
+});
+
 test('reminders expose category and urgency for the upgraded center', async () => {
   const { ui, vehicle } = await createHarness();
   const data = ui.getReminderData(vehicle, { includeAll: true, now: '2026-07-14T00:00:00.000Z' });

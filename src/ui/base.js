@@ -381,7 +381,7 @@ renderLogCard(log) {
                                 <div>
                                     <div class="font-bold text-sm theme-text-heading">${date}</div>
                                     <div class="text-xs theme-text-heading font-semibold mt-0.5">${utils.escapeHtml(title)} ${log.isPartial ? `<span class="text-amber-500 text-[10px] border border-amber-500 px-1 rounded ml-1">${utils.t('partial')}</span>` : ''}</div>
-                                    <div class="text-xs theme-text-sub mt-0.5">${utils.escapeHtml(log.odometer)} ${utils.getDistUnit()}</div>
+                                    ${log.odometer !== '' && log.odometer !== null && log.odometer !== undefined ? `<div class="text-xs theme-text-sub mt-0.5">${utils.escapeHtml(log.odometer)} ${utils.getDistUnit()}</div>` : ''}
                                     ${extraInfoHtml}
                                     ${locHtml}
                                 </div>
@@ -427,6 +427,9 @@ renderBottomNav(active) {
 openModal(html) {
                 const overlay = document.getElementById('modal-overlay');
                 const content = document.getElementById('modal-content');
+                clearTimeout(this._modalHideTimer);
+                clearTimeout(this._modalShowTimer);
+                this._modalHideTimer = null;
                 content.innerHTML = html;
                 if ((store.data.settings.appearance || '').startsWith('ios-')) {
                     const title = content.querySelector('h2');
@@ -451,18 +454,25 @@ openModal(html) {
                     }
                 }
                 overlay.classList.remove('hidden');
-                setTimeout(() => {
+                this._modalShowTimer = setTimeout(() => {
                     overlay.classList.remove('opacity-0');
                     content.classList.remove('translate-y-full');
+                    this._modalShowTimer = null;
                 }, 10);
             },
 
 closeModal() {
                 const overlay = document.getElementById('modal-overlay');
                 const content = document.getElementById('modal-content');
+                clearTimeout(this._modalShowTimer);
+                clearTimeout(this._modalHideTimer);
+                this._modalShowTimer = null;
                 overlay.classList.add('opacity-0');
                 content.classList.add('translate-y-full');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
+                this._modalHideTimer = setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    this._modalHideTimer = null;
+                }, 300);
             },
 
 validateDateField(id, messageKey = 'validation_date') {

@@ -33,7 +33,10 @@ test('calendar intervals clamp month ends and count local days across daylight s
   try {
     assert.equal(addCalendarMonths('2026-08-31', 6), '2027-02-28');
     assert.equal(addCalendarMonths('2024-02-29', 12), '2025-02-28');
-    assert.equal(addCalendarDays('2026-12-31', 1), '2027-01-01');
+  assert.equal(addCalendarDays('2026-12-31', 1), '2027-01-01');
+    assert.equal(FuelMateCore.calendarDaysForMonths('2026-09-26', 12), 365);
+    assert.equal(FuelMateCore.calendarDaysForMonths('2024-02-29', 48), 1461);
+    assert.equal(FuelMateCore.calendarDaysForMonths('2026-09-26', 1_000_000_000), null);
     assert.equal(daysUntilCalendarDate('2026-10-04', new Date('2026-10-03T23:00:00Z')), 0);
   } finally {
     if (previous === undefined) delete process.env.TZ; else process.env.TZ = previous;
@@ -44,6 +47,14 @@ test('import settings reject markup and unsupported enums but retain legacy curr
   const validate = settings => validateImportPayload({ vehicles: [], logs: [], settings }, () => true);
   assert.equal(validate({ currency: 'AUD ', units: 'metric', language: 'zh' }).errors.length, 0);
   assert.equal(validate({ currency: '<b>bad</b>', units: 'invalid', language: 'invalid' }).errors.length, 3);
+});
+
+test('import rejects malformed reminder settings without rejecting legacy valid values', () => {
+  const validate = reminders => validateImportPayload({ vehicles: [], logs: [], settings: { reminders } }, () => true);
+  assert.deepEqual(validate({ license: { enabled: true, days: '7' }, insurance: { days: 30 } }).errors, []);
+  for (const reminders of [null, [], 'invalid', { license: null }, { insurance: { enabled: 'yes' } }, { registration: { days: '<script>' } }]) {
+    assert.ok(validate(reminders).errors.includes('settings_invalid_reminders'));
+  }
 });
 
 test('import validates AI configuration and rejects API keys in backups', () => {

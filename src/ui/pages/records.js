@@ -33,14 +33,14 @@ renderFuel(vehicle) {
                             pageKey: 'fuel',
                             searchKey: 'fuelSearch',
                             searchValue: store.pageFilters.fuelSearch,
-                            placeholder: "Search notes/location...",
+                            placeholder: utils.t('search_placeholder'),
                             fromKey: 'fuelFrom',
                             fromValue: store.pageFilters.fuelFrom,
                             toKey: 'fuelTo',
                             toValue: store.pageFilters.fuelTo,
                             chips: [
-                                { label: "Full", active: !!fuelFlags.full, method: 'togglePageFlag', args: ['fuel', 'fuelFlags', 'full'] },
-                                { label: "Partial", active: !!fuelFlags.partial, method: 'togglePageFlag', args: ['fuel', 'fuelFlags', 'partial'] }
+                                { label: utils.t('full'), active: !!fuelFlags.full, method: 'togglePageFlag', args: ['fuel', 'fuelFlags', 'full'] },
+                                { label: utils.t('partial'), active: !!fuelFlags.partial, method: 'togglePageFlag', args: ['fuel', 'fuelFlags', 'partial'] }
                             ]
                         })}
 
@@ -122,7 +122,7 @@ renderMaintenance(vehicle) {
                             pageKey: 'maintenance',
                             searchKey: 'maintenanceSearch',
                             searchValue: store.pageFilters.maintenanceSearch,
-                            placeholder: "Search notes/location/brand...",
+                            placeholder: utils.t('search_brand_placeholder'),
                             fromKey: 'maintenanceFrom',
                             fromValue: store.pageFilters.maintenanceFrom,
                             toKey: 'maintenanceTo',
@@ -131,7 +131,7 @@ renderMaintenance(vehicle) {
 
                         <div class="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-3">
                             <button onclick="store.pageFilters.maintenanceView='all'; store.pageFilters.maintenanceTypes=[]; ui.resetPageLimit('maintenance'); ui.render()" class="flex-1 py-2 text-xs font-bold rounded-lg ${view==='all'?'bg-white dark:bg-slate-700 shadow':''}">${utils.t('all')}</button>
-                            <button onclick="store.pageFilters.maintenanceView='tires'; ui.resetPageLimit('maintenance'); ui.render()" class="flex-1 py-2 text-xs font-bold rounded-lg ${view==='tires'?'bg-white dark:bg-slate-700 shadow':''}">${utils.t('tire_replace')}</button>
+                            <button data-testid="maintenance-view-tires" onclick="store.pageFilters.maintenanceView='tires'; ui.resetPageLimit('maintenance'); ui.render()" class="flex-1 py-2 text-xs font-bold rounded-lg ${view==='tires'?'bg-white dark:bg-slate-700 shadow':''}">${utils.t('tire_replace')}</button>
                         </div>
 
                         ${view === 'all' ? `
@@ -139,7 +139,7 @@ renderMaintenance(vehicle) {
                                 <button onclick="store.pageFilters.maintenanceTypes=[]; ui.resetPageLimit('maintenance'); ui.render()" class="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${selectedTypes.length ? 'bg-slate-50 dark:bg-slate-800 theme-border theme-text-sub' : 'bg-teal-600 text-white border-teal-600'}">${utils.t('all')}</button>
                                 ${['service','repair','tire_replace','tire_rotation','periodic_maintenance','car_wash','car_accessories','fine','license','insurance','registration'].map(t => {
                                     const active = selectedTypes.includes(t);
-                                    return `<button onclick="const s=store.pageFilters.maintenanceTypes||[]; store.pageFilters.maintenanceTypes = s.includes('${t}') ? s.filter(x=>x!=='${t}') : [...s,'${t}']; ui.resetPageLimit('maintenance'); ui.render()" class="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${active ? 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/20' : 'bg-slate-50 dark:bg-slate-800 theme-border theme-text-sub'}">${utils.t(t)}</button>`;
+                                    return `<button onclick="const s=store.pageFilters.maintenanceTypes||[]; store.pageFilters.maintenanceTypes = s.includes('${t}') ? s.filter(x=>x!=='${t}') : [...s,'${t}']; ui.resetPageLimit('maintenance'); ui.render()" class="shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${active ? 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/20' : 'bg-slate-50 dark:bg-slate-800 theme-border theme-text-sub'}">${utils.t(t === 'fine' ? 'traffic_fine' : t)}</button>`;
                                 }).join('')}
                             </div>
                         ` : ''}
@@ -174,7 +174,7 @@ renderMaintenance(vehicle) {
                                             <div class="flex items-start justify-between gap-3">
                                                 <div>
                                                     <div class="text-xs theme-text-sub font-bold">${t.currentPos ? utils.t('tire_' + t.currentPos) : utils.t('tire_positions')}</div>
-                                                    <div class="text-lg font-black theme-text-heading">${utils.escapeHtml(t.lastReplace?.brand || utils.t('tire_not_set'))}</div>
+                                                    <div class="text-lg font-black theme-text-heading">${utils.escapeHtml(t.lastReplace ? (t.lastReplace.brand || utils.t('tire_brand_unspecified')) : utils.t('tire_not_set'))}</div>
                                                     <div class="text-xs theme-text-sub mt-0.5">${t.lastReplace ? `${utils.formatDate(t.lastReplace.date)} • ${t.lastReplace.odometer} ${utils.getDistUnit()}` : '&nbsp;'}</div>
                                                 </div>
                                                 <div class="flex gap-2">
@@ -252,14 +252,14 @@ renderParking(vehicle) {
                             pageKey: 'parking',
                             searchKey: 'parkingSearch',
                             searchValue: store.pageFilters.parkingSearch,
-                            placeholder: "Search notes/location...",
+                            placeholder: utils.t('search_placeholder'),
                             fromKey: 'parkingFrom',
                             fromValue: store.pageFilters.parkingFrom,
                             toKey: 'parkingTo',
                             toValue: store.pageFilters.parkingTo,
                             chips: [
-                                { label: "Has Location", active: !!parkingFlags.withLocation, method: 'togglePageFlag', args: ['parking', 'parkingFlags', 'withLocation'] },
-                                { label: "Has Notes", active: !!parkingFlags.withNotes, method: 'togglePageFlag', args: ['parking', 'parkingFlags', 'withNotes'] }
+                                { label: utils.t('has_location'), active: !!parkingFlags.withLocation, method: 'togglePageFlag', args: ['parking', 'parkingFlags', 'withLocation'] },
+                                { label: utils.t('has_notes'), active: !!parkingFlags.withNotes, method: 'togglePageFlag', args: ['parking', 'parkingFlags', 'withNotes'] }
                             ]
                         })}
 
@@ -390,7 +390,7 @@ renderAnalytics(vehicle) {
                         </div>
 
                         <div class="theme-bg-card p-6 rounded-2xl card-shadow mb-24">
-                            <div class="text-xs font-bold theme-text-sub uppercase mb-4">Fuel Efficiency Trend</div>
+                            <div class="text-xs font-bold theme-text-sub uppercase mb-4">${utils.t('fuel_efficiency_trend')}</div>
                             <div class="h-32">
                                 ${utils.generateTrendChart(filteredLogs)}
                             </div>
