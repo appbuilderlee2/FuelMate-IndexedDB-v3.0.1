@@ -222,6 +222,63 @@
                 await this.runTransaction('settings', 'readwrite', s => s.put({ id: 'global', ...this.data.settings }));
             },
 
+            changeDistanceUnits(units) {
+                const operation = this._logWriteQueue.then(() => this._changeDistanceUnits(units));
+                this._logWriteQueue = operation.catch(() => {});
+                return operation;
+            },
+
+            async _changeDistanceUnits(units) {
+                if (!['metric', 'imperial'].includes(units)) throw new Error('Invalid distance units');
+                const previous = this.data.settings.units === 'imperial' ? 'imperial' : 'metric';
+                if (previous === units) return;
+                const factor = units === 'imperial' ? 0.621371192237334 : 1 / 0.621371192237334;
+                const convert = (value) => {
+                    if (value === '' || value === null || value === undefined || value === 'none') return value;
+                    const number = typeof value === 'number' ? value : Number(value);
+                    if (!Number.isFinite(number)) return value;
+                    const result = Math.round(number * factor * 1000) / 1000;
+                    return typeof value === 'string' ? String(result) : result;
+                };
+                const nextVehicles = this.data.vehicles.map(vehicle => ({
+                    ...vehicle,
+                    currentOdometer: convert(vehicle.currentOdometer),
+                    maintenanceBaselineOdometer: convert(vehicle.maintenanceBaselineOdometer),
+                    maintenanceDist: convert(vehicle.maintenanceDist),
+                    tireReplaceDist: convert(vehicle.tireReplaceDist),
+                }));
+                const nextLogs = this.data.logs.map(log => ({
+                    ...log,
+                    odometer: convert(log.odometer),
+                    tireRemainingDist: convert(log.tireRemainingDist),
+                    ...(log.tireDetails && typeof log.tireDetails === 'object' && !Array.isArray(log.tireDetails)
+                        ? { tireDetails: Object.fromEntries(Object.entries(log.tireDetails).map(([position, details]) => [position,
+                            details && typeof details === 'object' && !Array.isArray(details)
+                                ? { ...details, tireRemainingDist: convert(details.tireRemainingDist) }
+                                : details,
+                        ])) } : {}),
+                }));
+                const nextSettings = {
+                    ...this.data.settings,
+                    units,
+                    maintenanceDist: convert(this.data.settings.maintenanceDist),
+                    tireReplaceDist: convert(this.data.settings.tireReplaceDist),
+                };
+                await new Promise((resolve, reject) => {
+                    const tx = this.db.transaction(['vehicles', 'logs', 'settings'], 'readwrite');
+                    nextVehicles.forEach(vehicle => tx.objectStore('vehicles').put(vehicle));
+                    nextLogs.forEach(log => tx.objectStore('logs').put(log));
+                    tx.objectStore('settings').put({ id: 'global', ...nextSettings });
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error || new Error('Unit conversion failed'));
+                    tx.onabort = () => reject(tx.error || new Error('Unit conversion aborted'));
+                });
+                this.data.vehicles = nextVehicles;
+                this.data.logs = nextLogs;
+                this.data.settings = nextSettings;
+                this._invalidateLogsCache();
+            },
+
             async addVehicle(vehicle) {
                 const shouldActivate = !this.data.settings.activeVehicleId;
                 const nextSettings = shouldActivate ? { ...this.data.settings, activeVehicleId: vehicle.id } : this.data.settings;
