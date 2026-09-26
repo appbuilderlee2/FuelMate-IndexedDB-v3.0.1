@@ -102,7 +102,7 @@ async submitQuickTireSetup() {
                 const applyMode = document.getElementById('qs_apply_mode_value')?.value || 'unset';
                 const pos = document.getElementById('qs_tire_pos').value;
                 const remainingDistanceResult = this.validateNumberField('qs_remaining_dist', { required: false });
-                const remainingMonthsResult = this.validateNumberField('qs_remaining_months', { required: false });
+                const remainingMonthsResult = this.validateNumberField('qs_remaining_months', { required: false, integer: true });
                 const treadResult = this.validateNumberField('qs_tire_tread', { required: false });
                 if (!remainingDistanceResult.ok || !remainingMonthsResult.ok || !treadResult.ok) return;
                 const remainingDist = remainingDistanceResult.number;
@@ -117,6 +117,9 @@ async submitQuickTireSetup() {
                 if (!vehicle) return;
                 const currentOdo = parseFloat(vehicle.currentOdometer) || 0;
                 const now = new Date();
+                const date = FuelMateCore.localDateKey(now);
+                const remainingDays = remainingMonths === null ? null : FuelMateCore.calendarDaysForMonths(date, remainingMonths);
+                if (remainingMonths !== null && remainingDays === null) return alert(utils.t('validation_nonnegative'));
 
                 const positions = (() => {
                     if (!applyAll) return [pos];
@@ -132,7 +135,7 @@ async submitQuickTireSetup() {
                     createdAt: now.toISOString(),
                     vehicleId: vehicle.id,
                     type: 'tire_replace',
-                    date: FuelMateCore.localDateKey(now),
+                    date,
                     odometer: currentOdo,
                     cost: '',
                     location: '',
@@ -144,7 +147,8 @@ async submitQuickTireSetup() {
                     tireBrand: '',
                     tireTread: tread === null ? '' : tread,
                     tireRemainingDist: remainingDist,
-                    tireRemainingDays: remainingMonths === null ? null : Math.round(remainingMonths * 30)
+                    tireRemainingMonths: remainingMonths,
+                    tireRemainingDays: remainingDays
                 });
                 this.closeModal();
                 this.render();
@@ -301,7 +305,7 @@ openAddService(id = null, defaultType = 'service') {
                                     </div>
                                     <div>
                                         <label class="text-xs theme-text-sub block mb-1">${utils.t('remaining_months')}</label>
-                                        <input id="l_tire_remaining_months" type="number" min="0" step="1" value="${Number.isFinite(parseFloat(log.tireRemainingDays)) ? Math.round(parseFloat(log.tireRemainingDays) / 30) : ''}" class="w-full p-3 rounded-xl text-sm" placeholder="e.g. 24">
+                                        <input id="l_tire_remaining_months" type="number" min="0" step="1" value="${Number.isInteger(Number(log.tireRemainingMonths)) && log.tireRemainingMonths !== null && log.tireRemainingMonths !== undefined ? log.tireRemainingMonths : (Number.isFinite(parseFloat(log.tireRemainingDays)) ? Math.round(parseFloat(log.tireRemainingDays) / 30) : '')}" class="w-full p-3 rounded-xl text-sm" placeholder="e.g. 24">
                                     </div>
                                 </div>
                             </div>
@@ -484,9 +488,12 @@ async submitService(id) {
                     ? this.validateNumberField('l_tire_remaining_dist', { required: false, messageKey: 'validation_nonnegative' })
                     : { ok: true, number: null };
                 const tireRemainingMonths = isTireReplace
-                    ? this.validateNumberField('l_tire_remaining_months', { required: false, messageKey: 'validation_nonnegative' })
+                    ? this.validateNumberField('l_tire_remaining_months', { required: false, integer: true, messageKey: 'validation_nonnegative' })
                     : { ok: true, number: null };
                 if (!tireTread.ok || !tirePressure.ok || !tireRemainingDistance.ok || !tireRemainingMonths.ok) return;
+                const tireRemainingDays = isTireReplace && tireRemainingMonths.number !== null
+                    ? FuelMateCore.calendarDaysForMonths(date, tireRemainingMonths.number) : null;
+                if (isTireReplace && tireRemainingMonths.number !== null && tireRemainingDays === null) return alert(utils.t('validation_nonnegative'));
 
                 let tireSwaps;
                 let tireMoves;
@@ -553,7 +560,8 @@ async submitService(id) {
                     tireId: isTireReplace ? tireIds[selectedTirePositions[0]] : undefined,
                     tireIds: isTireReplace ? tireIds : undefined,
                     tireRemainingDist: isTireReplace ? tireRemainingDistance.number : undefined,
-                    tireRemainingDays: isTireReplace ? (tireRemainingMonths.number === null ? null : Math.round(tireRemainingMonths.number * 30)) : undefined,
+                    tireRemainingMonths: isTireReplace ? tireRemainingMonths.number : undefined,
+                    tireRemainingDays: isTireReplace ? tireRemainingDays : undefined,
                     tireMoves: isTireRotation ? tireMoves : undefined,
                     tireSwaps: isTireRotation ? tireSwaps : undefined,
                     tireSwapA: isTireRotation ? tireSwapA : undefined,

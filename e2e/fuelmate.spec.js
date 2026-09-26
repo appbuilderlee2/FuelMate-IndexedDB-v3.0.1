@@ -226,6 +226,25 @@ test('adds a fuel record and renders the saved IndexedDB data', async ({ page })
   expect(pageErrors).toEqual([]);
 });
 
+test('trip odometer survives mode switching and saving', async ({ page }, testInfo) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.getByTestId('nav-fuel').click();
+  await page.getByTestId('add-fuel').click();
+  await page.locator('#l_odo_mode').click();
+  await page.locator('#l_odo').fill('100');
+  await page.locator('#l_odo_mode').click();
+  await expect(page.locator('#l_odo')).toHaveValue('1100');
+  await expect(page.locator('#l_odo_mode')).toHaveText('ODO');
+  await page.locator('#l_odo_mode').click();
+  await page.locator('#l_odo').fill('250');
+  await page.locator('#l_liters').fill('40');
+  await page.locator('#l_price').fill('2');
+  await page.getByTestId('save-fuel').click();
+  await expect(page.locator('[data-testid="log-card"][data-log-type="fuel"]')).toContainText('1250');
+  await page.screenshot({ path: testInfo.outputPath('trip-odometer.png'), fullPage: false });
+});
+
 test('unit switch preserves physical mileage and filtered analytics charts', async ({ page }, testInfo) => {
   await openFreshApp(page);
   await createVehicle(page);
@@ -371,6 +390,30 @@ test('filters reminder categories, opens details, and completes a selection in b
   await page.getByTestId('reminder-bulk-done').click();
   await page.getByTestId('reminder-tab-done').click();
   await expect(page.locator('[data-testid="reminder-card"]')).not.toHaveCount(0);
+});
+
+test('a tire reminder opens its source editor without being hidden by the closing sheet', async ({ page }, testInfo) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.getByTestId('nav-maintenance').click();
+  await page.getByRole('button', { name: 'Quick Setup', exact: true }).click();
+  await page.locator('#qs_remaining_months').fill('12');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  const expectedDate = await page.evaluate(() => {
+    const log = store.data.logs.find(item => item.type === 'tire_replace');
+    return utils.formatDate(FuelMateCore.addCalendarMonths(log.date, 12));
+  });
+  await page.getByTestId('nav-settings').click();
+  await page.getByRole('button', { name: /View All|查看全部/ }).click();
+  const sourceReminder = page.locator('[data-testid="reminder-card"][data-reminder-id*="asset:"]');
+  await sourceReminder.getByRole('button').last().click();
+  await expect(page.getByTestId('reminder-detail')).toContainText(expectedDate);
+  await page.getByRole('button', { name: /View source record|查看來源記錄/ }).click();
+  await expect(page.locator('#l_type')).toHaveValue('tire_replace');
+  await page.waitForTimeout(400);
+  await expect(page.locator('#l_type')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('reminder-source-editor.png'), fullPage: false });
 });
 
 test('reloads the cached app shell while the browser is offline', async ({ page, context }) => {

@@ -16,7 +16,7 @@ openAddFuel(id = null) {
                                 <label class="text-xs theme-text-sub">${utils.t('odometer')}</label>
                                 <button id="l_odo_mode" data-action="ui" data-ui-method="toggleTripMode" data-ui-pass-element="true" class="text-[10px] bg-slate-200 px-2 py-0.5 rounded font-bold">ODO</button>
                             </div>
-                            <input id="l_odo" type="number" min="0" value="${utils.escapeAttr(log.odometer)}" data-mode="odo" data-blur-action="ui" data-ui-method="normalizeTripOdometer" data-ui-pass-element="true" class="w-full p-3 rounded-xl">
+                            <input id="l_odo" type="number" min="0" value="${utils.escapeAttr(log.odometer)}" data-mode="odo" class="w-full p-3 rounded-xl">
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
@@ -57,17 +57,24 @@ detectLocationFor(targetId) {
 toggleTripMode(button) {
                 const input = document.getElementById('l_odo');
                 if (!input) return;
-                const enteringTrip = input.dataset.mode !== 'trip';
-                input.dataset.mode = enteringTrip ? 'trip' : 'odo';
-                button.innerText = enteringTrip ? 'TRIP' : 'ODO';
-                input.placeholder = enteringTrip ? 'Trip Dist (e.g. 400)' : 'Total Odo';
-                if (enteringTrip) {
-                    input.dataset.previousOdometer = input.value;
-                    input.value = '';
-                    input.focus();
-                } else if (!input.value) {
-                    input.value = input.dataset.previousOdometer || store.getActiveVehicle()?.currentOdometer || '';
+                if (input.dataset.mode === 'trip') {
+                    if (input.value && (!Number.isFinite(Number(input.value)) || Number(input.value) < 0)) {
+                        input.reportValidity?.();
+                        return;
+                    }
+                    if (input.value) this.normalizeTripOdometer(input);
+                    else input.value = input.dataset.previousOdometer || store.getActiveVehicle()?.currentOdometer || '';
+                    input.dataset.mode = 'odo';
+                    input.placeholder = 'Total Odo';
+                    button.innerText = 'ODO';
+                    return;
                 }
+                input.dataset.previousOdometer = input.value;
+                input.dataset.mode = 'trip';
+                button.innerText = 'TRIP';
+                input.placeholder = 'Trip Dist (e.g. 400)';
+                input.value = '';
+                input.focus();
             },
 
 normalizeTripOdometer(input) {
@@ -128,6 +135,7 @@ async submitFuel(id) {
                 if (this._savingFuel) return;
                 const date = this.validateDateField('l_date');
                 if (!date) return;
+                this.normalizeTripOdometer(document.getElementById('l_odo'));
                 const odometer = this.validateNumberField('l_odo', { messageKey: 'validation_odometer' });
                 if (!odometer.ok) return;
                 const fuel = this.validateNumberField('l_liters', { positive: true, messageKey: 'validation_fuel' });

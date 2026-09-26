@@ -438,6 +438,9 @@
                     const nextLogs = overwrite ? [...incomingLogs] : mergeById(this.data.logs, incomingLogs);
                     const settingsBase = overwrite ? this.defaultSettings : this.data.settings;
                     const nextSettings = { ...settingsBase, ...(importedData.settings || {}) };
+                    if (!nextSettings.reminders || typeof nextSettings.reminders !== 'object' || Array.isArray(nextSettings.reminders)) {
+                        nextSettings.reminders = {};
+                    }
                     if (!['apple-fluid-light', 'apple-fluid-dark', 'apple-fluid-system', 'ios-native-light', 'ios-native-dark', 'ios-native-system', 'ios-glass-light', 'ios-glass-dark', 'ios-glass-system'].includes(nextSettings.appearance)) {
                         nextSettings.appearance = 'apple-fluid-system';
                     }
