@@ -8,22 +8,21 @@ downloadBackup(filenamePrefix = 'fuelmate_backup') {
                 a.href = url;
                 const ts = new Date().toISOString().replace(/[:]/g, '').slice(0, 15);
                 a.download = `${filenamePrefix}_${ts}.json`;
+                document.body.append(a);
                 a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
                 return a.download;
             },
 
-exportData() {
-                const json = JSON.stringify(store.data);
-                const blob = new Blob([json], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `fuelmate_backup_${FuelMateCore.localDateKey()}.json`;
-                a.click();
-
-                // Update backup date
+async exportData() {
+                this.downloadBackup();
+                // A browser download request cannot prove that iOS saved the file.
+                if (!confirm(utils.t('confirm_backup_saved'))) return;
+                const previous = store.data.settings.lastBackupDate;
                 store.data.settings.lastBackupDate = new Date().toISOString();
-                store.saveData();
+                try { await store.saveData(); }
+                catch (error) { store.data.settings.lastBackupDate = previous; throw error; }
                 this.render();
             },
 
@@ -42,7 +41,8 @@ importData(input) {
                         const data = JSON.parse(e.target.result);
                         const validation = utils.validateImportData(data);
                         if (!validation.ok) {
-                            alert(utils.t('import_invalid'));
+                            const orphan = validation.warnings?.find(w => w.code === 'orphan_logs');
+                            alert(orphan ? utils.t('import_orphan_vehicle').replace('{n}', orphan.count) : utils.t('import_invalid'));
                             input.value = '';
                             return;
                         }
@@ -104,8 +104,7 @@ importData(input) {
                         document.getElementById('confirm_import_btn').onclick = async () => {
                             try {
                                 const backupName = ui.downloadBackup('fuelmate_autobackup');
-                                store.data.settings.lastBackupDate = new Date().toISOString();
-                                await store.saveData();
+                                if (!confirm(utils.t('confirm_import_backup_saved').replace('{name}', backupName))) return;
 
                                 await store.importData(data, { overwrite: true });
                                 alert(`${utils.t('import_autobackup')} ${backupName}\n${utils.t('success_import')}`);

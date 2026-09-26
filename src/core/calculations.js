@@ -14,6 +14,26 @@
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
   }
 
+  function addCalendarMonths(value, months) {
+    if (!isValidIsoDate(value) || !Number.isInteger(months)) return null;
+    const [year, month, day] = value.split('-').map(Number);
+    const first = new Date(Date.UTC(year, month - 1 + months, 1));
+    const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+    return `${first.getUTCFullYear()}-${String(first.getUTCMonth() + 1).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
+  }
+
+  function addCalendarDays(value, days) {
+    if (!isValidIsoDate(value) || !Number.isFinite(days)) return null;
+    const date = new Date(`${value}T00:00:00.000Z`);
+    date.setUTCDate(date.getUTCDate() + Math.round(days));
+    return date.toISOString().slice(0, 10);
+  }
+
+  function daysUntilCalendarDate(value, now = new Date()) {
+    if (!isValidIsoDate(value)) return null;
+    return (Date.parse(`${value}T00:00:00.000Z`) - Date.parse(`${localDateKey(now)}T00:00:00.000Z`)) / 86400000;
+  }
+
   function isValidIsoDateTime(value) {
     if (typeof value !== 'string' || !value.trim()) return false;
     const parsed = new Date(value);
@@ -285,11 +305,17 @@
       }
     }
 
-    if (orphanLogs > 0) warnings.push({ code: 'orphan_logs', count: orphanLogs });
+    if (orphanLogs > 0) {
+      errors.push('log_orphan_vehicle');
+      warnings.push({ code: 'orphan_logs', count: orphanLogs });
+    }
     return { errors: [...new Set(errors)], warnings };
   }
 
   global.FuelMateCore = Object.freeze({
+    addCalendarDays,
+    addCalendarMonths,
+    daysUntilCalendarDate,
     localDateKey,
     buildFuelEfficiencySegments,
     calculateFuelEfficiencyFromLogs,

@@ -69,7 +69,11 @@ const FuelMateInvoiceAI = (() => {
     let value;
     try { value = JSON.parse(cleaned); } catch (_) { throw new Error('invalid_ai_response'); }
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid_ai_response');
-    const number = value => Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+    const number = value => {
+      if (value === null || value === undefined || typeof value === 'boolean' || String(value).trim() === '') return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+    };
     const textValue = value => typeof value === 'string' ? value.slice(0, 300).trim() : '';
     const lineItems = Array.isArray(value.lineItems) ? value.lineItems.slice(0, 80).map(item => ({
       description: textValue(item?.description),
@@ -78,7 +82,10 @@ const FuelMateInvoiceAI = (() => {
       status: STATUSES.has(item?.status) ? item.status : 'unknown',
       selected: item?.status === 'completed' && item?.selected !== false,
     })).filter(item => item.description) : [];
-    const date = /^\d{4}-\d{2}-\d{2}$/.test(value.date || '') ? value.date : null;
+    const dateTimestamp = typeof value.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.date)
+      ? Date.parse(`${value.date}T00:00:00.000Z`) : NaN;
+    const date = Number.isFinite(dateTimestamp) && new Date(dateTimestamp).toISOString().slice(0, 10) === value.date
+      ? value.date : null;
     return {
       documentType: ['invoice', 'receipt', 'quote', 'unknown'].includes(value.documentType) ? value.documentType : 'unknown',
       date, supplier: textValue(value.supplier), invoiceNumber: textValue(value.invoiceNumber),
