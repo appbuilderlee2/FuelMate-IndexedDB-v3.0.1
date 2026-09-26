@@ -48,6 +48,7 @@ jobs:
             test-results/**/dashboard-*.png
             test-results/**/period-filter-*.png
             test-results/**/vehicle-*.png
+            test-results/**/analytics-*.png
           if-no-files-found: ignore
 
       - name: Type check
