@@ -129,6 +129,7 @@ async submitQuickTireSetup() {
                 const tireIds = this._getTireIdsForPositions(null, positions);
                 await store.addLog({
                     id: utils.newId(),
+                    createdAt: now.toISOString(),
                     vehicleId: vehicle.id,
                     type: 'tire_replace',
                     date: FuelMateCore.localDateKey(now),
@@ -531,6 +532,7 @@ async submitService(id) {
                 const log = {
                     ...(existing || {}),
                     id: id || utils.newId(),
+                    ...((isTireReplace || isTireRotation) && !existing ? { createdAt: new Date().toISOString() } : {}),
                     vehicleId: existing?.vehicleId || store.data.settings.activeVehicleId,
                     type,
                     date,

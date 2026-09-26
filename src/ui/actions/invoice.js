@@ -172,12 +172,12 @@ Object.assign(ui, {
         ${warnings.length ? `<div class="p-3 rounded-xl bg-amber-50 text-amber-900 text-xs font-semibold space-y-1">${warnings.map(warning => `<div>• ${utils.escapeHtml(warning)}</div>`).join('')}</div>` : ''}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><label class="text-xs theme-text-sub block mb-1">${this._aiText('Document', '文件類型')}</label><select id="inv_document_type" class="w-full p-3 rounded-xl">${['invoice','receipt','quote','unknown'].map(type => `<option value="${type}" ${draft.documentType === type ? 'selected' : ''}>${type}</option>`).join('')}</select></div>
-          <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="inv_date" type="date" value="${utils.escapeAttr(draft.date || FuelMateCore.localDateKey())}" class="w-full p-3 rounded-xl"></div>
+          <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="inv_date" type="date" value="${utils.escapeAttr(draft.date || '')}" class="w-full p-3 rounded-xl"></div>
         </div>
         <div><label class="text-xs theme-text-sub block mb-1">${this._aiText('Supplier', '商戶／車房')}</label><input id="inv_supplier" value="${utils.escapeAttr(draft.supplier)}" maxlength="300" class="w-full p-3 rounded-xl"></div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="text-xs theme-text-sub block mb-1">Invoice #</label><input id="inv_number" value="${utils.escapeAttr(draft.invoiceNumber)}" maxlength="300" class="w-full p-3 rounded-xl"></div>
-          <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="inv_odometer" type="number" min="0" value="${draft.odometer ?? store.getActiveVehicle()?.currentOdometer ?? ''}" class="w-full p-3 rounded-xl"></div>
+          <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="inv_odometer" type="number" min="0" value="${draft.odometer ?? ''}" class="w-full p-3 rounded-xl"></div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="text-xs theme-text-sub block mb-1">${this._aiText('Record type', '記錄類型')}</label><select id="inv_log_type" class="w-full p-3 rounded-xl"><option value="service" ${this._invoiceSuggestedType(draft.lineItems)==='service'?'selected':''}>${utils.t('service')}</option><option value="repair" ${this._invoiceSuggestedType(draft.lineItems)==='repair'?'selected':''}>${utils.t('repair')}</option><option value="periodic_maintenance" ${this._invoiceSuggestedType(draft.lineItems)==='periodic_maintenance'?'selected':''}>${utils.t('periodic_maintenance')}</option></select></div>

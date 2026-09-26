@@ -117,6 +117,23 @@ test('maintenance reminder needs a saved baseline when no service exists', async
   assert.equal(data.items.some(item => item.id === 'svc:v1:dist:100000'), true);
 });
 
+test('maintenance due date clamps at February end and calendar export uses that same date', async () => {
+  const previous = process.env.TZ;
+  process.env.TZ = 'Australia/Adelaide';
+  try {
+    const { ui, vehicle, utils } = await createHarness();
+    vehicle.maintenanceTime = '6';
+    vehicle.maintenanceBaselineDate = '2026-08-31';
+    const item = ui.getReminderData(vehicle, { includeAll: true, now: '2027-02-20T00:00:00Z' }).items.find(reminder => reminder.id.startsWith('svc:v1:time:'));
+    assert.equal(item.id, 'svc:v1:time:2027-02-28');
+    assert.equal(item.dueDateIso, '2027-02-28');
+    assert.equal(utils.formatDate(item.dueDateIso), '28/02/2027');
+    assert.match(item.calendarAction, /2027-02-28/);
+  } finally {
+    if (previous === undefined) delete process.env.TZ; else process.env.TZ = previous;
+  }
+});
+
 test('reminders expose category and urgency for the upgraded center', async () => {
   const { ui, vehicle } = await createHarness();
   const data = ui.getReminderData(vehicle, { includeAll: true, now: '2026-07-14T00:00:00.000Z' });

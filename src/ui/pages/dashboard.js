@@ -381,7 +381,7 @@ getReminderData(vehicle, options = {}) {
                     if (setting && !setting.enabled) return;
                     const latest = store.getVehicleLogs(type, vehicle.id)[0];
                     if (!latest || !latest.expiryDate) return;
-                    const days = Math.ceil((new Date(latest.expiryDate) - now) / 86400000);
+                    const days = FuelMateCore.daysUntilCalendarDate(latest.expiryDate, now);
                     if (!includeAll && days > (setting?.days || 30)) return;
                     const id = `doc:${vehicle.id}:${type}:${latest.expiryDate}`;
                     items.push({
@@ -389,7 +389,7 @@ getReminderData(vehicle, options = {}) {
                         icon: 'assignment',
                         title: utils.t(type),
                         meta: days <= 0 ? utils.t('overdue') : `${utils.t('due_in')} ${utils.formatDaysShort(days)}`,
-                        dueDateIso: new Date(latest.expiryDate).toISOString(),
+                        dueDateIso: latest.expiryDate,
                         remainingDays: days,
                         sourceLogId: latest.id,
                         repeatLabel: `${setting?.days || 30} ${utils.t('days_before')}`,
@@ -408,8 +408,7 @@ getReminderData(vehicle, options = {}) {
                     ? parseFloat(vehicle.maintenanceBaselineOdometer)
                     : null;
                 const lastOdo = lastService ? parseFloat(lastService.odometer) || 0 : baselineOdo;
-                const baselineDate = vehicle.maintenanceBaselineDate ? new Date(vehicle.maintenanceBaselineDate) : null;
-                const lastDate = lastService ? new Date(lastService.date) : baselineDate;
+                const lastDate = lastService?.date || vehicle.maintenanceBaselineDate;
                 if (distInt > 0 && lastOdo !== null) {
                     const nextOdo = lastOdo + distInt;
                     const remaining = nextOdo - (parseFloat(vehicle.currentOdometer) || 0);
@@ -429,23 +428,22 @@ getReminderData(vehicle, options = {}) {
                     }
                 }
                 if (timeInt > 0 && lastDate) {
-                    const nextDate = new Date(lastDate);
-                    nextDate.setMonth(nextDate.getMonth() + timeInt);
-                    const remainingDays = Math.ceil((nextDate - now) / 86400000);
+                    const nextDate = FuelMateCore.addCalendarMonths(lastDate, timeInt);
+                    const remainingDays = FuelMateCore.daysUntilCalendarDate(nextDate, now);
                     if (includeAll || remainingDays <= 30) {
-                        const id = `svc:${vehicle.id}:time:${nextDate.toISOString().slice(0,10)}`;
+                        const id = `svc:${vehicle.id}:time:${nextDate}`;
                         items.push({
                             id,
                             icon: 'build',
                             title: utils.t('due_service'),
                             meta: remainingDays <= 0 ? utils.t('overdue') : `${utils.t('due_in')} ${utils.formatDaysShort(remainingDays)}`,
-                            dueDateIso: nextDate.toISOString(),
+                            dueDateIso: nextDate,
                             remainingDays,
                             sourceLogId: lastService?.id || null,
                             repeatLabel: `${timeInt} ${utils.t('months')}`,
                             calendarTitle: `${utils.t('due_service')}: ${vehicleLabel}`,
                             editAction: `ui.openAddService(null,'periodic_maintenance')`,
-                            calendarAction: `utils.exportDateCalendar('${utils.t('due_service')}: ${vehicleLabel}', '${nextDate.toISOString()}', 0)`
+                            calendarAction: `utils.exportDateCalendar('${utils.t('due_service')}: ${vehicleLabel}', '${nextDate}', 0)`
                         });
                     }
                 }

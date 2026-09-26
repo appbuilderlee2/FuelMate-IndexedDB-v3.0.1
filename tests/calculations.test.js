@@ -3,8 +3,11 @@ import test from 'node:test';
 
 await import('../src/core/calculations.js');
 const {
+  addCalendarDays,
+  addCalendarMonths,
   calculateFuelEfficiencyFromLogs,
   calcEfficiencyValue,
+  daysUntilCalendarDate,
   isNonNegativeNumber,
   isValidIsoDate,
   normalizeTireReplacementEntries,
@@ -19,6 +22,19 @@ test('local date keys preserve Adelaide date and month boundaries', () => {
   try {
     assert.equal(FuelMateCore.localDateKey(new Date(2026, 8, 11, 8)), '2026-09-11');
     assert.equal(FuelMateCore.localDateKey(new Date(2026, 8, 1)).slice(0, 7), '2026-09');
+  } finally {
+    if (previous === undefined) delete process.env.TZ; else process.env.TZ = previous;
+  }
+});
+
+test('calendar intervals clamp month ends and count local days across daylight saving', () => {
+  const previous = process.env.TZ;
+  process.env.TZ = 'Australia/Adelaide';
+  try {
+    assert.equal(addCalendarMonths('2026-08-31', 6), '2027-02-28');
+    assert.equal(addCalendarMonths('2024-02-29', 12), '2025-02-28');
+    assert.equal(addCalendarDays('2026-12-31', 1), '2027-01-01');
+    assert.equal(daysUntilCalendarDate('2026-10-04', new Date('2026-10-03T23:00:00Z')), 0);
   } finally {
     if (previous === undefined) delete process.env.TZ; else process.env.TZ = previous;
   }
@@ -103,6 +119,16 @@ test('rejects malformed imported values, types, and duplicate IDs', () => {
   assert.ok(invalid.errors.includes('log_invalid_fuel_amount'));
   assert.ok(invalid.errors.includes('log_invalid_cost'));
   assert.ok(invalid.errors.includes('settings_not_object'));
+});
+
+test('backup import rejects records belonging to absent vehicles', () => {
+  const result = validateImportPayload({
+    vehicles: [{ id: 'v1', currentOdometer: 1000 }],
+    logs: [{ id: 'orphan', vehicleId: 'missing', type: 'parking', date: '2026-09-26', cost: 8 }],
+    settings: {},
+  }, value => /^[a-z0-9]+$/.test(value));
+  assert.ok(result.errors.includes('log_orphan_vehicle'));
+  assert.equal(result.warnings.find(warning => warning.code === 'orphan_logs').count, 1);
 });
 
 test('validates reminder dates and directional tire rotations in imports', () => {
