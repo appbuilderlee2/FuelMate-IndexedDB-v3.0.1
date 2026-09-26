@@ -301,6 +301,10 @@ renderAnalytics(vehicle) {
                 const fineCost = filteredLogs.filter(l => l.type === 'fine').reduce((s,l) => s + (Number.isFinite(parseFloat(l.cost)) ? parseFloat(l.cost) : 0), 0);
                 const docsCost = filteredLogs.filter(l => ['license', 'insurance', 'registration'].includes(l.type)).reduce((sum, l) => sum + (Number.isFinite(parseFloat(l.cost)) ? parseFloat(l.cost) : 0), 0);
                 const total = fuelCost + maintenanceCost + parkingCost + fineCost + docsCost;
+                const chartEndMonth = filter.mode === 'year' ? `${filter.value}-12`
+                    : filter.mode === 'month' ? filter.value
+                    : filter.mode === 'custom' ? (to || filteredLogs[0]?.date || '').slice(0, 7)
+                    : '';
 
                 let pieHtml = '';
                 if (total > 0) {
@@ -361,7 +365,7 @@ renderAnalytics(vehicle) {
                         <div class="theme-bg-card p-4 rounded-2xl card-shadow mb-6">
                             <div class="text-sm font-black theme-text-heading uppercase tracking-wider mb-4">${utils.t('monthly_spend')} (6 Months)</div>
                             <div class="h-56">
-                                ${utils.generateMonthlyBarChart(logs)}
+                                ${utils.generateMonthlyBarChart(filteredLogs, chartEndMonth)}
                             </div>
                             <div class="flex flex-wrap justify-center gap-3 mt-3 text-[11px] font-semibold theme-text-heading">
                                 <div class="flex items-center gap-1" data-series="fuel"><div class="w-2.5 h-2.5 rounded-full bg-teal-500"></div>${utils.t('fuel')}</div>
@@ -388,7 +392,7 @@ renderAnalytics(vehicle) {
                         <div class="theme-bg-card p-6 rounded-2xl card-shadow mb-24">
                             <div class="text-xs font-bold theme-text-sub uppercase mb-4">Fuel Efficiency Trend</div>
                             <div class="h-32">
-                                ${utils.generateTrendChart(logs)}
+                                ${utils.generateTrendChart(filteredLogs)}
                             </div>
                         </div>
                     </div>

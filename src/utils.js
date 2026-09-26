@@ -136,7 +136,7 @@
                 return (store.data.settings.language === 'zh') ? `${d}天` : `${d}d`;
             },
             getTireReplacementStatus(vehicle) {
-                const distInt = parseInt(vehicle?.tireReplaceDist ?? store.data.settings.tireReplaceDist) || 0;
+                const distInt = parseFloat(vehicle?.tireReplaceDist ?? store.data.settings.tireReplaceDist) || 0;
                 const yearsInt = parseInt(vehicle?.tireReplaceYears ?? store.data.settings.tireReplaceYears) || 0;
                 const now = new Date();
                 const currentOdo = parseFloat(vehicle?.currentOdometer) || 0;
@@ -447,9 +447,11 @@
                 `;
             },
             
-            generateMonthlyBarChart(logs) {
+            generateMonthlyBarChart(logs, endMonth = '') {
                 const months = [];
-                const now = new Date();
+                const now = /^\d{4}-(0[1-9]|1[0-2])$/.test(endMonth)
+                    ? new Date(`${endMonth}-01T12:00:00`)
+                    : new Date();
                 for (let i=5; i>=0; i--) {
                     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
                     months.push(FuelMateCore.localDateKey(d).slice(0, 7));

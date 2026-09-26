@@ -25,9 +25,11 @@ async submitParking(id) {
                 const date = this.validateDateField('p_date');
                 const cost = this.validateNumberField('p_cost', { messageKey: 'validation_cost' });
                 if (!date || !cost.ok) return;
+                const existing = id ? store.data.logs.find(item => String(item.id) === String(id)) : null;
                 const log = {
+                    ...(existing || {}),
                     id: id || utils.newId(),
-                    vehicleId: store.data.settings.activeVehicleId,
+                    vehicleId: existing?.vehicleId || store.data.settings.activeVehicleId,
                     type: 'parking',
                     date,
                     cost: cost.value,
