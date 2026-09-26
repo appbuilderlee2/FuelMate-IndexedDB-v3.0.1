@@ -397,7 +397,7 @@ test('a tire reminder opens its source editor without being hidden by the closin
   await createVehicle(page);
   await page.getByTestId('nav-maintenance').click();
   await page.getByTestId('maintenance-view-tires').click();
-  await page.getByRole('button', { name: 'Quick Setup', exact: true }).click();
+  await page.getByRole('button', { name: 'Quick Setup', exact: true }).first().click();
   await page.locator('#qs_remaining_months').fill('12');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByTestId('modal-overlay')).toBeHidden();
