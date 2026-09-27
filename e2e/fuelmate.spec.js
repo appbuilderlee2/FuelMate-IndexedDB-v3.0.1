@@ -268,6 +268,11 @@ test('missing fuel fills persist, break calculations and recover after backfill'
   await page.locator(`[data-testid="log-card"][data-log-id="${gapId}"] button`).first().click();
   await expect(page.locator('#l_missed_fuel')).toBeChecked();
   await page.locator('#l_missed_fuel').uncheck();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeVisible();
+  expect(await page.evaluate(id => store.data.logs.find(l => l.id === id).missedFuel, gapId)).toBe(true);
+  await page.locator('#l_gap_confirm').check();
   await page.getByTestId('save-fuel').click();
   await expect(page.getByTestId('fuel-gap-notice')).toHaveCount(0);
   expect(await page.evaluate(() => store.getActiveVehicle().currentOdometer)).toBe(2300);

@@ -45,14 +45,17 @@ renderFuel(vehicle) {
                         })}
 
                         ${utils.fuelGapNotice(filteredLogs)}
+                        <p data-testid="fuel-stat-scope" class="text-xs theme-text-sub mb-3">${utils.t('fuel_stat_scope')} ${stats.cycleCount || 0} ${utils.t('complete_cycles')} · ${stats.cycleDistance || 0} ${utils.getDistUnit()}</p>
                         <div data-testid="fuel-summary" class="grid grid-cols-2 gap-3 mb-6">
                             <div class="theme-bg-card p-3 rounded-xl card-shadow border-l-4 border-teal-500">
                                 <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t('efficiency')}</div>
                                 <div class="text-lg font-bold text-teal-600">${stats.efficiency} <span class="text-[10px] font-normal">${utils.getEfficiencyLabel()}</span></div>
+                                ${stats.efficiency === '--' ? `<p class="text-xs theme-text-sub">${utils.t('fuel_data_insufficient')}</p>` : ''}
                             </div>
                             <div class="theme-bg-card p-3 rounded-xl card-shadow border-l-4 border-blue-500">
-                                <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.getCostPerDistLabel()}</div>
+                                <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t('complete_cycle_fuel_cost')} / ${utils.getDistUnit()}</div>
                                 <div class="text-lg font-bold text-blue-600">${stats.costKm}</div>
+                                ${stats.costKm === '--' ? `<p class="text-xs theme-text-sub">${utils.t('fuel_data_insufficient')}</p>` : ''}
                             </div>
                              <div class="theme-bg-card p-3 rounded-xl card-shadow">
                                 <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t(stats.hasFuelGap ? 'recorded_spend' : 'total_cost')}</div>
@@ -394,6 +397,7 @@ renderAnalytics(vehicle) {
                         <div class="theme-bg-card p-6 rounded-2xl card-shadow mb-24">
                             <div class="text-xs font-bold theme-text-sub uppercase mb-4">${utils.t('fuel_efficiency_trend')}</div>
                             <div class="h-32">
+                                <p class="text-xs theme-text-sub mb-3">${utils.t('fuel_stat_scope')}</p>
                                 ${utils.generateTrendChart(filteredLogs)}
                             </div>
                         </div>

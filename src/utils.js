@@ -348,6 +348,24 @@
                 return [...byId.values()];
             },
 
+            fuelSegmentsForSelection(logs) {
+                const selected = logs.filter(l => l.type === 'fuel');
+                const groups = new Map();
+                for (const log of selected) {
+                    if (!groups.has(log.vehicleId)) groups.set(log.vehicleId, []);
+                    groups.get(log.vehicleId).push(log);
+                }
+                return [...groups].flatMap(([vehicleId, chosen]) => {
+                    const history = new Map(chosen.map(l => [l.id || l, l]));
+                    for (const log of store.data.logs || []) {
+                        if (log.type === 'fuel' && log.vehicleId === vehicleId && !history.has(log.id || log)) history.set(log.id || log, log);
+                    }
+                    const ids = new Set(chosen.map(l => l.id || l));
+                    return FuelMateCore.buildFuelEfficiencySegments([...history.values()])
+                        .filter(segment => ids.has(segment.logId || segment.endLog));
+                });
+            },
+
             fuelGapNotice(logs) {
                 return utils.fuelHistoryForSelection(logs).some(l => l.missedFuel === true)
                     ? `<p data-testid="fuel-gap-notice" class="text-sm theme-text-sub p-3 mb-4 rounded-xl border theme-border">${utils.t('fuel_gap_summary')}</p>` : '';
@@ -374,6 +392,10 @@
                 let costKm = '--';
                 const calculationLogs = utils.fuelHistoryForSelection(logs);
                 const hasFuelGap = calculationLogs.some(l => l.missedFuel === true);
+                const segments = utils.fuelSegmentsForSelection(logs);
+                const cycleDistance = segments.reduce((sum, s) => sum + s.distance, 0);
+                const cycleFuel = segments.reduce((sum, s) => sum + s.fuel, 0);
+                const cycleCost = segments.reduce((sum, s) => sum + s.cost, 0);
                 
                 if (category === 'fuel' || category === 'all') {
                     // Filter specifically for fuel logs to calculate efficiency
@@ -384,18 +406,20 @@
                     const distUnit = utils.getDistUnit();
                     const fuelUnit = v && v.fuelUnit ? v.fuelUnit : (isImperial ? 'Gal' : 'L');
                     
-                    if (fuelLogs.length > 1) {
-                        const eff = FuelMateCore.calculateFuelEfficiencyFromLogs(fuelLogs, fuelUnit, distUnit);
+                    if (segments.length) {
+                        const eff = FuelMateCore.calcEfficiencyValue(cycleFuel, cycleDistance, fuelUnit, distUnit);
                         if (eff !== null) efficiency = eff.toFixed(1);
                     }
                 }
                 
                 // 4. Cost per KM (Total)
-                if (totalDist > 0 && totalCost > 0 && !hasFuelGap) {
+                if (category === 'fuel') {
+                    if (cycleDistance > 0) costKm = (cycleCost / cycleDistance).toFixed(2);
+                } else if (totalDist > 0 && totalCost > 0 && !hasFuelGap) {
                     costKm = (totalCost / totalDist).toFixed(2);
                 }
 
-                return { efficiency, costKm, totalCost, totalDist, totalDistCount: sorted.length, hasFuelGap };
+                return { efficiency, costKm, totalCost, totalDist, totalDistCount: sorted.length, hasFuelGap, cycleCount: segments.length, cycleDistance };
             },
             
             detectLocation(callback) {
@@ -417,7 +441,7 @@
                 const isImperial = store.data.settings.units === 'imperial';
                 const distUnit = utils.getDistUnit();
                 const fuelUnit = v && v.fuelUnit ? v.fuelUnit : (isImperial ? 'Gal' : 'L');
-                const segments = FuelMateCore.buildFuelEfficiencySegments(utils.fuelHistoryForSelection(logs));
+                const segments = utils.fuelSegmentsForSelection(logs);
                 if (!segments.length) return '';
 
                 const monthly = new Map();
