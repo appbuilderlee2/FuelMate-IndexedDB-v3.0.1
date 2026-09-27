@@ -50,6 +50,7 @@ jobs:
             test-results/**/vehicle-*.png
             test-results/**/analytics-*.png
             test-results/**/trip-*.png
+            test-results/**/fuel-gap-*.png
             test-results/**/reminder-*.png
           if-no-files-found: ignore
 

@@ -44,7 +44,8 @@ renderFuel(vehicle) {
                             ]
                         })}
 
-                        <div class="grid grid-cols-2 gap-3 mb-6">
+                        ${utils.fuelGapNotice(filteredLogs)}
+                        <div data-testid="fuel-summary" class="grid grid-cols-2 gap-3 mb-6">
                             <div class="theme-bg-card p-3 rounded-xl card-shadow border-l-4 border-teal-500">
                                 <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t('efficiency')}</div>
                                 <div class="text-lg font-bold text-teal-600">${stats.efficiency} <span class="text-[10px] font-normal">${utils.getEfficiencyLabel()}</span></div>
@@ -54,7 +55,7 @@ renderFuel(vehicle) {
                                 <div class="text-lg font-bold text-blue-600">${stats.costKm}</div>
                             </div>
                              <div class="theme-bg-card p-3 rounded-xl card-shadow">
-                                <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t('total_cost')}</div>
+                                <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t(stats.hasFuelGap ? 'recorded_spend' : 'total_cost')}</div>
                                 <div class="text-lg font-bold theme-text-heading">${utils.formatCurrency(stats.totalCost)}</div>
                             </div>
                              <div class="theme-bg-card p-3 rounded-xl card-shadow">
@@ -351,9 +352,10 @@ renderAnalytics(vehicle) {
                             toValue: store.pageFilters.analyticsTo,
                         })}
 
+                        ${utils.fuelGapNotice(filteredLogs)}
                         <div class="grid grid-cols-2 gap-4 mb-6">
                             <div class="theme-bg-card p-4 rounded-2xl card-shadow">
-                                <div class="text-xs theme-text-sub uppercase mb-2">Total Spend</div>
+                                <div class="text-xs theme-text-sub uppercase mb-2">${utils.t('recorded_spend')}</div>
                                 <div class="text-2xl font-black theme-text-heading">${utils.formatCurrency(total)}</div>
                             </div>
                             <div class="theme-bg-card p-4 rounded-2xl card-shadow">

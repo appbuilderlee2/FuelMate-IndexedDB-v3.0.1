@@ -31,6 +31,13 @@ openAddFuel(id = null) {
                         </div>
 
                         <div class="relative">
+                            <label class="flex items-start gap-2 p-3 rounded-xl border theme-border">
+                                <input id="l_missed_fuel" type="checkbox" class="w-5 h-5 shrink-0" ${log.missedFuel ? 'checked' : ''}>
+                                <span class="text-sm theme-text-heading">${utils.t('missed_fuel')}<span class="block text-xs theme-text-sub mt-1">${utils.t('missed_fuel_help')}</span></span>
+                            </label>
+                        </div>
+
+                        <div class="relative">
                              <label class="text-xs theme-text-sub block mb-1">${utils.t('location')}</label>
                              <input id="l_loc" type="text" value="${utils.escapeAttr(log.location || '')}" class="w-full p-3 rounded-xl pr-10">
                              <button data-action="ui" data-ui-method="detectLocationFor" data-ui-args="${encodeURIComponent(JSON.stringify(['l_loc']))}" class="absolute right-3 top-8 text-teal-500"><span class="material-icons">my_location</span></button>
@@ -155,6 +162,7 @@ async submitFuel(id) {
                     cost: cost.value,
                     location: document.getElementById('l_loc').value.trim(),
                     isPartial: document.getElementById('l_partial').checked,
+                    missedFuel: !!document.getElementById('l_missed_fuel')?.checked,
                     notes: document.getElementById('l_notes')?.value ?? existing?.notes ?? ''
                 };
 

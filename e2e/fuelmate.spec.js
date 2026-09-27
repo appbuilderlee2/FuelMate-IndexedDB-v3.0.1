@@ -226,6 +226,55 @@ test('adds a fuel record and renders the saved IndexedDB data', async ({ page })
   expect(pageErrors).toEqual([]);
 });
 
+test('missing fuel fills persist, break calculations and recover after backfill', async ({ page }, testInfo) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.evaluate(async () => {
+    await store.addLog({ id: 'baseline-fill', vehicleId: store.data.settings.activeVehicleId, type: 'fuel', date: FuelMateCore.localDateKey(), odometer: 1000, liters: 40, cost: 80 });
+  });
+  await page.getByTestId('nav-fuel').click();
+  await page.getByTestId('add-fuel').click();
+  await page.locator('#l_odo').fill('1800');
+  await page.locator('#l_liters').fill('35');
+  await page.locator('#l_cost').fill('70');
+  await page.locator('#l_missed_fuel').check();
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  await expect(page.getByTestId('fuel-gap-notice')).toBeVisible();
+  await expect(page.getByTestId('fuel-summary')).toContainText('800');
+  expect(await page.evaluate(() => utils.calculateStats(store.getVehicleLogs('fuel'), 'fuel').efficiency)).toBe('--');
+  await page.reload();
+  await page.getByTestId('nav-fuel').click();
+  const gapId = await page.evaluate(() => store.data.logs.find(l => l.missedFuel).id);
+  expect(await page.evaluate(() => store.getActiveVehicle().currentOdometer)).toBe(1800);
+  await page.getByTestId('add-fuel').click();
+  await page.locator('#l_odo').fill('2300');
+  await page.locator('#l_liters').fill('40');
+  await page.locator('#l_cost').fill('80');
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  await expect(page.getByTestId('fuel-summary')).toContainText('8.0');
+  await page.screenshot({ path: testInfo.outputPath('fuel-gap-summary.png'), fullPage: false });
+  // Backfill through the form, then explicitly clear the still-persistent marker.
+  await page.getByTestId('add-fuel').click();
+  await page.locator('#l_odo').fill('1400');
+  await page.locator('#l_liters').fill('30');
+  await page.locator('#l_cost').fill('60');
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  await expect(page.getByTestId('fuel-gap-notice')).toBeVisible();
+  await page.locator(`[data-testid="log-card"][data-log-id="${gapId}"] button`).first().click();
+  await expect(page.locator('#l_missed_fuel')).toBeChecked();
+  await page.locator('#l_missed_fuel').uncheck();
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('fuel-gap-notice')).toHaveCount(0);
+  expect(await page.evaluate(() => store.getActiveVehicle().currentOdometer)).toBe(2300);
+  expect(await page.evaluate(() => FuelMateCore.buildFuelEfficiencySegments(store.getVehicleLogs('fuel')).length)).toBe(3);
+  expect(errors).toEqual([]);
+});
+
 test('trip odometer survives mode switching and saving', async ({ page }, testInfo) => {
   await openFreshApp(page);
   await createVehicle(page);

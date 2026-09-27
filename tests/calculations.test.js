@@ -3,6 +3,7 @@ import test from 'node:test';
 
 await import('../src/core/calculations.js');
 const {
+  buildFuelEfficiencySegments,
   addCalendarDays,
   addCalendarMonths,
   calculateFuelEfficiencyFromLogs,
@@ -15,6 +16,42 @@ const {
   pressureToKpa,
   validateImportPayload,
 } = globalThis.FuelMateCore;
+
+test('missing fills break intervals without changing odometers and recover after full tanks', () => {
+  const fill = (id, odometer, liters, extra = {}) => ({ id, type: 'fuel', date: '2026-09-01', odometer, liters, cost: liters * 2, ...extra });
+  const logs = [fill('a', 1000, 40), fill('b', 1800, 35, { missedFuel: true }), fill('c', 2300, 40)];
+  assert.equal(calculateFuelEfficiencyFromLogs(logs.slice(0, 2), 'L', 'km'), null);
+  assert.deepEqual(buildFuelEfficiencySegments(logs).map(s => [s.logId, s.distance, s.fuel, s.cost]), [['c', 500, 40, 80]]);
+  assert.equal(logs[1].odometer, 1800);
+  assert.equal(calculateFuelEfficiencyFromLogs(logs, 'L', 'km'), 8);
+  logs[1].isPartial = true;
+  assert.equal(calculateFuelEfficiencyFromLogs(logs, 'L', 'km'), null);
+  logs.push(fill('d', 2500, 10, { isPartial: true }), fill('e', 2800, 30));
+  assert.equal(calculateFuelEfficiencyFromLogs(logs, 'L', 'km'), 8);
+  logs.push(fill('f', 3200, 30, { missedFuel: true }), fill('g', 3700, 45));
+  assert.deepEqual(buildFuelEfficiencySegments(logs).map(s => s.logId), ['e', 'g']);
+});
+
+test('backfill plus explicitly clearing the marker restores chronological fuel calculations', () => {
+  const logs = [
+    { id: 'c', type: 'fuel', odometer: 1800, liters: 35, missedFuel: true },
+    { id: 'a', type: 'fuel', odometer: 1000, liters: 40 },
+    { id: 'b', type: 'fuel', odometer: 1400, liters: 30 },
+  ];
+  assert.equal(buildFuelEfficiencySegments(logs).length, 1);
+  logs[0].missedFuel = false;
+  assert.equal(calculateFuelEfficiencyFromLogs(logs, 'L', 'km'), 8.125);
+  assert.equal(buildFuelEfficiencySegments(logs).length, 2);
+});
+
+test('backup import accepts old fuel logs and boolean missing markers but rejects strings', () => {
+  const payload = { vehicles: [{ id: 'v1' }], logs: [{ id: 'l1', vehicleId: 'v1', type: 'fuel', date: '2026-09-01', odometer: 1000, liters: 40, cost: 80 }], settings: {} };
+  assert.equal(validateImportPayload(payload, () => true).errors.length, 0);
+  payload.logs[0].missedFuel = true;
+  assert.equal(validateImportPayload(payload, () => true).errors.length, 0);
+  payload.logs[0].missedFuel = 'false';
+  assert.ok(validateImportPayload(payload, () => true).errors.includes('log_invalid_missed_fuel'));
+});
 
 test('local date keys preserve Adelaide date and month boundaries', () => {
   const previous = process.env.TZ;

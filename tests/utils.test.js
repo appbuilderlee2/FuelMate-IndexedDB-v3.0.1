@@ -31,6 +31,22 @@ test('one odometer point does not imply distance travelled', async () => {
   assert.equal(stats.totalDistCount, 1);
 });
 
+test('filtered fuel statistics retain hidden gap markers and partial fills', async () => {
+  const { utils, store } = await loadUtils();
+  const log = (id, odometer, liters, extra = {}) => ({ id, vehicleId: 'v1', type: 'fuel', date: '2026-09-01', odometer, liters, cost: liters * 2, ...extra });
+  const logs = [log('a', 1000, 40), log('b', 1500, 10, { missedFuel: true, isPartial: true }), log('c', 1800, 35), log('d', 2300, 40)];
+  store.data.logs = logs;
+  const stats = utils.calculateStats(logs.filter(l => !l.isPartial), 'fuel');
+  assert.equal(stats.efficiency, '8.0');
+  assert.equal(stats.costKm, '--');
+  assert.equal(stats.totalDist, 1300);
+  assert.equal(stats.totalCost, 230);
+  assert.equal(stats.hasFuelGap, true);
+  assert.match(utils.fuelGapNotice([logs[0], logs[3]]), /Incomplete fuel history/);
+  assert.match(utils.generateTrendChart([logs[0], logs[3]]), />8\.0<\/text>/);
+  assert.equal(utils.calculateStats(logs.slice(2), 'fuel').hasFuelGap, false);
+});
+
 test('date-only records display and filter by calendar day west of UTC', async () => {
   const previous = process.env.TZ;
   process.env.TZ = 'America/Los_Angeles';
