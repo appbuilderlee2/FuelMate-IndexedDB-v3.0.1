@@ -3,13 +3,14 @@ Object.assign(ui, {
 openAddFuel(id = null) {
                 const log = id ? store.data.logs.find(l => String(l.id) === String(id)) : { date: FuelMateCore.localDateKey(), odometer: store.getActiveVehicle()?.currentOdometer || '', liters: '', cost: '', location: '', notes: '', isPartial: false };
                 this._fuelCalcLast = [];
+                this._fuelEditingId = id;
                 const fuelUnit = utils.getFuelUnit();
                 const volLabel = fuelUnit === 'kWh' ? utils.t('kwh') : (fuelUnit === 'Gal' ? utils.t('gallons') : utils.t('liters'));
 
                 this.openModal(`
                     <h2 class="text-xl font-bold mb-4 theme-text-heading flex items-center gap-2"><span class="material-icons text-teal-600">local_gas_station</span> ${utils.t('add_fuel')}</h2>
                     <div class="space-y-4">
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="l_date" type="date" value="${utils.escapeAttr(log.date)}" class="w-full p-3 rounded-xl"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="l_date" type="date" value="${utils.escapeAttr(log.date)}" data-input-action="ui" data-ui-method="refreshFuelTripMode" class="w-full p-3 rounded-xl"></div>
 
                          <div>
                             <div class="flex justify-between items-center mb-1">
@@ -17,6 +18,7 @@ openAddFuel(id = null) {
                                 <button id="l_odo_mode" data-action="ui" data-ui-method="toggleTripMode" data-ui-pass-element="true" class="text-[10px] bg-slate-200 px-2 py-0.5 rounded font-bold">ODO</button>
                             </div>
                             <input id="l_odo" type="number" min="0" value="${utils.escapeAttr(log.odometer)}" data-mode="odo" class="w-full p-3 rounded-xl">
+                            <p id="l_trip_help" class="text-xs theme-text-sub mt-2">${utils.t('trip_history_help')}</p>
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
@@ -44,6 +46,7 @@ openAddFuel(id = null) {
                         </div>
 
                         <div><label for="l_notes" class="text-xs theme-text-sub">${utils.t('notes')}</label><textarea id="l_notes" class="w-full p-3 rounded-xl">${utils.escapeHtml(log.notes || '')}</textarea></div>
+                        ${log.missedFuel ? `<label class="flex items-start gap-2 p-3 rounded-xl border theme-border"><input id="l_gap_confirm" type="checkbox" class="w-5 h-5 shrink-0"><span class="text-sm theme-text-heading">${utils.t('gap_clear_confirm')}<span class="block text-xs theme-text-sub mt-1">${utils.t('gap_clear_help')}</span></span></label>` : ''}
                         <div class="flex gap-3 mt-4">
                             ${id ? `<button data-action="ui" data-ui-method="deleteLog" data-ui-args="${encodeURIComponent(JSON.stringify([id]))}" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold">${utils.t('delete')}</button>` : ''}
                             <button data-testid="save-fuel" data-action="ui" data-ui-method="submitFuel" data-ui-args="${encodeURIComponent(JSON.stringify([id || '']))}" class="flex-1 grad-teal text-white py-3 rounded-xl font-bold shadow-lg">${utils.t('save')}</button>
@@ -51,6 +54,7 @@ openAddFuel(id = null) {
                     </div>
                 `);
                 // Init calc
+                this.refreshFuelTripMode();
                 setTimeout(() => ui.calcFuel('init'), 100);
             },
 
@@ -61,9 +65,34 @@ detectLocationFor(targetId) {
                 });
             },
 
+fuelTripAllowed() {
+                const date = document.getElementById('l_date')?.value;
+                return !this._fuelEditingId && (!date || date === FuelMateCore.localDateKey());
+            },
+
+refreshFuelTripMode() {
+                const input = document.getElementById('l_odo');
+                const button = document.getElementById('l_odo_mode');
+                const allowed = this.fuelTripAllowed();
+                if (!allowed && input?.dataset.mode === 'trip') {
+                    input.value = '';
+                    input.dataset.mode = 'odo';
+                    input.placeholder = 'ODO';
+                }
+                if (button) {
+                    button.disabled = !allowed;
+                    button.innerText = input?.dataset.mode === 'trip' ? 'TRIP' : 'ODO';
+                }
+                const help = document.getElementById('l_trip_help');
+                if (help) help.textContent = input?.dataset.mode === 'trip'
+                    ? `${utils.t('trip_base')}: ${input.dataset.tripBase} ${utils.getDistUnit()}`
+                    : utils.t('trip_history_help');
+            },
+
 toggleTripMode(button) {
                 const input = document.getElementById('l_odo');
                 if (!input) return;
+                if (!this.fuelTripAllowed()) { this.refreshFuelTripMode(); return; }
                 if (input.dataset.mode === 'trip') {
                     if (input.value && (!Number.isFinite(Number(input.value)) || Number(input.value) < 0)) {
                         input.reportValidity?.();
@@ -74,26 +103,31 @@ toggleTripMode(button) {
                     input.dataset.mode = 'odo';
                     input.placeholder = 'Total Odo';
                     button.innerText = 'ODO';
+                    this.refreshFuelTripMode();
                     return;
                 }
                 input.dataset.previousOdometer = input.value;
+                input.dataset.tripBase = String(store.getActiveVehicle()?.currentOdometer || 0);
                 input.dataset.mode = 'trip';
                 button.innerText = 'TRIP';
                 input.placeholder = 'Trip Dist (e.g. 400)';
                 input.value = '';
                 input.focus();
+                this.refreshFuelTripMode();
             },
 
 normalizeTripOdometer(input) {
                 if (input?.dataset?.mode !== 'trip' || input.value === '') return;
+                if (!this.fuelTripAllowed()) { this.refreshFuelTripMode(); return; }
                 const trip = Number(input.value);
                 if (!Number.isFinite(trip) || trip < 0) return;
-                const current = Number(store.getActiveVehicle()?.currentOdometer) || 0;
+                const current = Number(input.dataset.tripBase ?? store.getActiveVehicle()?.currentOdometer) || 0;
                 input.value = String(current + trip);
                 input.dataset.mode = 'odo';
                 input.placeholder = 'Total Odo';
                 const button = document.getElementById('l_odo_mode');
                 if (button) button.innerText = 'ODO';
+                this.refreshFuelTripMode();
             },
 
 calcFuel(trigger) {
@@ -151,6 +185,11 @@ async submitFuel(id) {
                 if (!cost.ok) return;
 
                 const existing = id ? store.data.logs.find(item => item.id === id) : null;
+                if (existing?.missedFuel && !document.getElementById('l_missed_fuel')?.checked
+                    && !document.getElementById('l_gap_confirm')?.checked) {
+                    alert(utils.t('gap_clear_required'));
+                    return;
+                }
                 const log = {
                     ...existing,
                     id: id || utils.newId(),

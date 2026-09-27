@@ -150,7 +150,7 @@ renderDashboard(vehicle) {
                                 <div class="theme-bg-card p-4 rounded-2xl card-shadow">
                                     <div class="theme-text-sub text-[10px] font-bold uppercase tracking-wider mb-1">${utils.getCostPerDistLabel()}</div>
                                     <div class="text-2xl font-black text-blue-600">${stats.costKm}</div>
-                                    <div class="text-[10px] theme-text-sub">&nbsp;</div>
+                                    <div class="text-[10px] theme-text-sub">${stats.hasFuelGap ? utils.t('overall_cost_gap') : ''}</div>
                                 </div>
                                 <div class="theme-bg-card p-4 rounded-2xl card-shadow">
                                     <div class="theme-text-sub text-[10px] font-bold uppercase tracking-wider mb-1">${utils.t('total_cost')}</div>

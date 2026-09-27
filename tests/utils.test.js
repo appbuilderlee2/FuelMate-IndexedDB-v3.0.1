@@ -38,13 +38,20 @@ test('filtered fuel statistics retain hidden gap markers and partial fills', asy
   store.data.logs = logs;
   const stats = utils.calculateStats(logs.filter(l => !l.isPartial), 'fuel');
   assert.equal(stats.efficiency, '8.0');
-  assert.equal(stats.costKm, '--');
+  assert.equal(stats.costKm, '0.16');
+  assert.equal(stats.cycleCount, 1);
+  assert.equal(stats.cycleDistance, 500);
   assert.equal(stats.totalDist, 1300);
   assert.equal(stats.totalCost, 230);
   assert.equal(stats.hasFuelGap, true);
   assert.match(utils.fuelGapNotice([logs[0], logs[3]]), /Incomplete fuel history/);
   assert.match(utils.generateTrendChart([logs[0], logs[3]]), />8\.0<\/text>/);
   assert.equal(utils.calculateStats(logs.slice(2), 'fuel').hasFuelGap, false);
+  const single = utils.calculateStats([logs[3]], 'fuel');
+  assert.equal(single.efficiency, '8.0');
+  assert.equal(single.costKm, '0.16');
+  assert.equal(single.totalCost, 80);
+  assert.equal(single.totalDist, 0);
 });
 
 test('date-only records display and filter by calendar day west of UTC', async () => {

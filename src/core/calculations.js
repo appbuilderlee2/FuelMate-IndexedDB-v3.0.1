@@ -195,6 +195,7 @@
       if (distance > 0 && intervalFuel > 0) {
         segments.push({
           logId: log.id,
+          endLog: log,
           startOdometer: previousFullOdometer,
           cost: intervalCost,
           date: isValidIsoDate(log.date) ? log.date : '',

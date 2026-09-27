@@ -62,7 +62,7 @@ async function createUiHarness() {
   vm.runInContext('globalThis.__ui = ui;', context);
   context.__ui.closeModal = () => {};
   context.__ui.render = () => {};
-  return { ui: context.__ui, core: context.FuelMateCore, getElement, saved, alerts, tireInputs };
+  return { ui: context.__ui, core: context.FuelMateCore, store: context.store, getElement, saved, alerts, tireInputs };
 }
 
 test('fuel input calculates the third value from the last two fields', async () => {
@@ -126,7 +126,7 @@ test('trip mode converts once and returns to odometer mode', async () => {
 });
 
 test('switching from a typed trip and saving a trip both preserve the converted odometer', async () => {
-  const { ui, getElement, saved } = await createUiHarness();
+  const { ui, core, getElement, saved } = await createUiHarness();
   const input = getElement('l_odo');
   const button = getElement('l_odo_mode');
   input.value = '1000';
@@ -140,12 +140,43 @@ test('switching from a typed trip and saving a trip both preserve the converted 
 
   ui.toggleTripMode(button);
   input.value = '250';
-  getElement('l_date').value = '2026-09-26';
+  getElement('l_date').value = core.localDateKey();
   getElement('l_liters').value = '40';
   getElement('l_cost').value = '80';
   await ui.submitFuel('');
   assert.equal(saved[0].odometer, 1250);
   assert.equal(input.dataset.mode, 'odo');
+});
+
+test('historical and edited fuel records cannot use the current TRIP baseline', async () => {
+  const { ui, core, getElement } = await createUiHarness();
+  getElement('l_date').value = core.localDateKey();
+  ui.toggleTripMode(getElement('l_odo_mode'));
+  getElement('l_odo').value = '250';
+  getElement('l_date').value = '2020-01-01';
+  ui.refreshFuelTripMode();
+  assert.equal(getElement('l_odo').value, '');
+  assert.equal(getElement('l_odo').dataset.mode, 'odo');
+  assert.equal(getElement('l_odo_mode').disabled, true);
+  getElement('l_date').value = core.localDateKey();
+  ui._fuelEditingId = 'existing';
+  ui.refreshFuelTripMode();
+  assert.equal(getElement('l_odo_mode').disabled, true);
+});
+
+test('removing a missing-fill marker requires explicit completeness confirmation', async () => {
+  const { ui, store, getElement, saved, alerts } = await createUiHarness();
+  store.data.logs = [{ id: 'gap', vehicleId: 'vehicle-1', missedFuel: true }];
+  getElement('l_date').value = '2026-01-01';
+  getElement('l_odo').value = '1200';
+  getElement('l_liters').value = '40';
+  getElement('l_cost').value = '80';
+  await ui.submitFuel('gap');
+  assert.equal(saved.length, 0);
+  assert.equal(alerts.at(-1), 'gap_clear_required');
+  getElement('l_gap_confirm').checked = true;
+  await ui.submitFuel('gap');
+  assert.equal(saved[0].missedFuel, false);
 });
 
 test('invalid trip distance cannot silently become an absolute odometer', async () => {
