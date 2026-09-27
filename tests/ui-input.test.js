@@ -105,6 +105,7 @@ test('valid fuel submission preserves the IndexedDB-compatible record shape', as
     cost: '80',
     location: 'Station',
     isPartial: true,
+    missedFuel: false,
     notes: '',
   });
 });

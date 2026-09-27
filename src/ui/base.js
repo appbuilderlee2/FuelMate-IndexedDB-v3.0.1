@@ -288,56 +288,17 @@ renderLogCard(log) {
                 let fuelStatsHtml = '';
                 if (log.type === 'fuel') {
                     const allFuel = store.getVehicleLogs('fuel');
-                    const idx = allFuel.findIndex(l => l.id === log.id);
+                    const segment = FuelMateCore.buildFuelEfficiencySegments(allFuel).find(item => item.logId === log.id);
                     let effVal = '--', costKm = '--';
-                    const v = store.getActiveVehicle();
-                    const isImperial = store.data.settings.units === 'imperial';
-                    const isEV = v && v.fuelUnit === 'kWh';
-                    const distUnit = utils.getDistUnit();
-                    const fuelUnit = v && v.fuelUnit ? v.fuelUnit : (isImperial ? 'Gal' : 'L');
-
-                    // Logic to span over Partial logs
-                    if (!log.isPartial) {
-                         let foundPrevFull = false;
-                         let prevLog = null;
-                         let accumulatedLiters = 0;
-                         let accumulatedCost = 0;
-
-                         // Look backwards from the current log
-                         for (let i = idx + 1; i < allFuel.length; i++) {
-                             const p = allFuel[i];
-                             if (p.isPartial) {
-                                 const partialFuel = parseFloat(p.liters);
-                                 const partialCost = parseFloat(p.cost);
-                                 if (Number.isFinite(partialFuel) && partialFuel > 0) accumulatedLiters += partialFuel;
-                                 if (Number.isFinite(partialCost) && partialCost >= 0) accumulatedCost += partialCost;
-                             } else {
-                                 foundPrevFull = true;
-                                 prevLog = p;
-                                 break;
-                             }
-                         }
-
-                         if (foundPrevFull && prevLog) {
-                             // Current log liters + accumulated partials
-                             // Distance is from Prev Full to Current Full
-                             const dist = log.odometer - prevLog.odometer;
-                             const currentFuel = parseFloat(log.liters);
-                             const currentCost = parseFloat(log.cost);
-                             const totalFuel = (Number.isFinite(currentFuel) ? currentFuel : 0) + accumulatedLiters;
-                             const totalCost = (Number.isFinite(currentCost) ? currentCost : 0) + accumulatedCost;
-
-                             if (dist > 0) {
-                                 if (totalFuel > 0) {
-                                     const eff = utils.calcEfficiencyValue(totalFuel, dist, fuelUnit, distUnit);
-                                     if (eff !== null) effVal = eff.toFixed(1);
-                                 }
-                                 costKm = (totalCost / dist).toFixed(2);
-                             }
-                         }
+                    if (segment) {
+                        const eff = utils.calcEfficiencyValue(segment.fuel, segment.distance, utils.getFuelUnit(), utils.getDistUnit());
+                        if (eff !== null) effVal = eff.toFixed(1);
+                        costKm = (segment.cost / segment.distance).toFixed(2);
                     }
 
                     fuelStatsHtml = `
+                        ${log.missedFuel ? `<p class="text-xs theme-text-sub mt-2">${utils.t('missed_fuel')}</p>` : ''}
+                        ${!segment ? `<p class="text-xs theme-text-sub mt-2">${utils.t('fuel_data_insufficient')}</p>` : ''}
                         <div class="mt-3 pt-3 border-t theme-border flex justify-between text-xs">
                             <div>
                                 <div class="theme-text-sub mb-0.5 uppercase tracking-wider text-[10px]">${utils.getEfficiencyLabel()}</div>
@@ -372,7 +333,7 @@ renderLogCard(log) {
                 }
 
                 return `
-                    <div data-testid="log-card" data-log-type="${utils.escapeAttr(log.type)}" class="theme-bg-card p-4 rounded-2xl card-shadow relative group">
+                    <div data-testid="log-card" data-log-id="${utils.escapeAttr(log.id)}" data-log-type="${utils.escapeAttr(log.type)}" class="theme-bg-card p-4 rounded-2xl card-shadow relative group">
                         <div class="flex justify-between items-start">
                             <div class="flex gap-3">
                                 <div class="w-10 h-10 rounded-xl flex items-center justify-center ${colorClass}">

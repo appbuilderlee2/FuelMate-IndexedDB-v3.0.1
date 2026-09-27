@@ -168,11 +168,19 @@
 
     let previousFullOdometer = null;
     let intervalFuel = 0;
+    let intervalCost = 0;
     const segments = [];
 
     for (const log of fuelLogs) {
       const odometer = toFiniteNumber(log.odometer);
       const fuel = toFiniteNumber(log.liters);
+
+      // A missing fill breaks the measurement interval, never the actual odometer.
+      if (log.missedFuel === true) {
+        previousFullOdometer = null;
+        intervalFuel = 0;
+        intervalCost = 0;
+      }
 
       if (previousFullOdometer === null) {
         if (!log.isPartial) previousFullOdometer = odometer;
@@ -180,11 +188,15 @@
       }
 
       if (fuel !== null && fuel > 0) intervalFuel += fuel;
+      intervalCost += toFiniteNumber(log.cost) || 0;
       if (log.isPartial) continue;
 
       const distance = odometer - previousFullOdometer;
       if (distance > 0 && intervalFuel > 0) {
         segments.push({
+          logId: log.id,
+          startOdometer: previousFullOdometer,
+          cost: intervalCost,
           date: isValidIsoDate(log.date) ? log.date : '',
           distance,
           fuel: intervalFuel,
@@ -193,6 +205,7 @@
       }
       previousFullOdometer = odometer;
       intervalFuel = 0;
+      intervalCost = 0;
     }
 
     return segments;
@@ -311,6 +324,7 @@
         }
         if (!isNonNegativeNumber(log.cost, { allowEmpty: !['fuel', 'parking'].includes(log.type) })) errors.push('log_invalid_cost');
         if (log.type === 'fuel' && !isNonNegativeNumber(log.liters, { positive: true })) errors.push('log_invalid_fuel_amount');
+        if (log.missedFuel !== undefined && typeof log.missedFuel !== 'boolean') errors.push('log_invalid_missed_fuel');
         if (log.expiryDate && !isValidIsoDate(log.expiryDate)) errors.push('log_invalid_expiry_date');
         if (log.type === 'tire_replace' && (log.tirePositions !== undefined || log.tirePosition !== undefined)) {
           const expectedPositions = Array.isArray(log.tirePositions) ? log.tirePositions.length : 1;

@@ -1,6 +1,11 @@
 // --- TRANSLATIONS ---
         const translations = {
             en: {
+                missed_fuel: 'Missed a fill before this record',
+                missed_fuel_help: 'Enter the actual total odometer (ODO). This breaks the fuel calculation interval. A full tank starts a new baseline; a partial fill waits for the next full tank. After backfilling all missing records, edit this record and untick this box.',
+                fuel_gap_summary: 'Incomplete fuel history. Spend shows recorded amounts only; average economy uses complete full-tank intervals. Overall cost per distance is unavailable while this range has a missing fill.',
+                fuel_data_insufficient: 'Insufficient data / no complete interval',
+                recorded_spend: 'Recorded spend',
                 dashboard: 'Home', fuel: 'Fuel', maintenance: 'Vehicle Records', maintenance_plus: 'Records+', analytics: 'Analytics', settings: 'Settings', parking: 'Park',
                 dashboard_nav_records: 'Records', dashboard_nav_insights: 'Insights', dashboard_add_record: 'Add record', dashboard_fuel_economy: 'Fuel economy', dashboard_monthly_spend: 'Monthly spend', dashboard_this_month: 'This month', dashboard_next_up: 'Next up', dashboard_recent_activity: 'Recent activity', dashboard_more_details: 'More vehicle details',
                 appearance: 'Appearance', apple_fluid_light: 'Apple Fluid Light', apple_fluid_light_desc: 'Always use the bright fluid appearance', apple_fluid_dark: 'Apple Fluid Dark', apple_fluid_dark_desc: 'Always use the deep fluid appearance', apple_fluid_system: 'Apple Fluid System', apple_fluid_system_desc: 'Automatically follow this device',
@@ -159,6 +164,11 @@
                 kwh: 'kWh'
             },
             zh: {
+                missed_fuel: '中間有漏記加油',
+                missed_fuel_help: '請輸入儀錶板實際總里數（ODO）。此處會中斷油耗計算；今次加滿會建立新起點，未加滿則等下次加滿。補齊所有漏記資料後，請編輯此紀錄並取消勾選。',
+                fuel_gap_summary: '加油資料不完整：支出只包括已記錄金額；平均油耗只計完整加滿週期。此範圍有漏記，暫不顯示整體每公里成本。',
+                fuel_data_insufficient: '資料不足／未有完整週期',
+                recorded_spend: '已記錄支出',
                 dashboard: '首頁', fuel: '加油', maintenance: '車務紀錄', maintenance_plus: '車務+', analytics: '統計', settings: '設定', parking: '停車',
                 dashboard_nav_records: '紀錄', dashboard_nav_insights: '分析', dashboard_add_record: '新增紀錄', dashboard_fuel_economy: '平均油耗', dashboard_monthly_spend: '本月支出', dashboard_this_month: '本月', dashboard_next_up: '下一項提醒', dashboard_recent_activity: '最近紀錄', dashboard_more_details: '更多車輛資料',
                 appearance: '外觀', apple_fluid_light: 'Apple Fluid 淺色', apple_fluid_light_desc: '固定使用明亮流體外觀', apple_fluid_dark: 'Apple Fluid 深色', apple_fluid_dark_desc: '固定使用深色流體外觀', apple_fluid_system: 'Apple Fluid 跟隨系統', apple_fluid_system_desc: '跟隨裝置自動切換日夜模式',
