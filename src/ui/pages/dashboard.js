@@ -140,6 +140,7 @@ renderDashboard(vehicle) {
                         </div>
 
                         <div class="px-6 mt-2 relative z-20">
+                            ${utils.fuelGapNotice(filteredLogs)}
                             <div class="dashboard-metrics grid grid-cols-2 gap-3 mb-6">
                                 <div class="theme-bg-card p-4 rounded-2xl card-shadow">
                                     <div class="theme-text-sub text-[10px] font-bold uppercase tracking-wider mb-1">${utils.t('efficiency')}</div>
@@ -259,6 +260,7 @@ renderFluidDashboard(vehicle) {
                         ${heroImage ? `<img data-testid="dashboard-vehicle-image" class="fluid-car-image ${heroImage.includes('honda-crv') ? 'is-suv' : ''}" src="${heroImage}" alt="" aria-hidden="true" width="700" height="350">` : `<span data-testid="dashboard-vehicle-fallback" class="fluid-car-fallback" aria-hidden="true"><span class="material-icons">${utils.getCarIcon(vehicle.type)}</span></span>`}
                         <button type="button" data-testid="dashboard-add-fuel" data-action="ui" data-ui-method="openAddFuel" class="fluid-add-record"><span class="material-icons">add_circle</span>${utils.t('add_fuel')}</button>
                     </section>
+                    ${utils.fuelGapNotice(store.getVehicleLogs('fuel'))}
                     <div class="fluid-metric-grid">
                         <button type="button" data-action="navigate" data-page="fuel" class="fluid-metric fluid-panel"><span class="fluid-icon-box is-teal"><span class="material-icons">local_gas_station</span></span><span class="fluid-metric-copy"><span class="fluid-metric-title">${utils.t('dashboard_fuel_economy')}</span><strong>${fuelStats.efficiency}</strong><small>${unitLabel}</small></span><span class="material-icons fluid-chevron">chevron_right</span></button>
                         <button type="button" data-action="navigate" data-page="analytics" class="fluid-metric fluid-panel"><span class="fluid-icon-box is-blue"><span class="material-icons">account_balance_wallet</span></span><span class="fluid-metric-copy"><span class="fluid-metric-title">${utils.t('dashboard_monthly_spend')}</span><strong>${utils.formatCurrency(monthTotal)}</strong><small>${utils.t('dashboard_this_month')}</small></span><span class="material-icons fluid-chevron">chevron_right</span></button>

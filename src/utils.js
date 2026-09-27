@@ -332,6 +332,27 @@
                 });
             },
 
+            fuelHistoryForSelection(logs) {
+                const selected = logs.filter(l => l.type === 'fuel');
+                if (!selected.length) return [];
+                const min = Math.min(...selected.map(l => Number(l.odometer)));
+                const max = Math.max(...selected.map(l => Number(l.odometer)));
+                const vehicles = new Set(selected.map(l => l.vehicleId));
+                const byId = new Map(selected.map(l => [l.id || l, l]));
+                // Search/Full-only filters must not hide a missing or partial fill from calculations.
+                for (const log of store.data.logs || []) {
+                    if (log.type === 'fuel' && vehicles.has(log.vehicleId)
+                        && Number(log.odometer) >= min && Number(log.odometer) <= max
+                        && !byId.has(log.id || log)) byId.set(log.id || log, log);
+                }
+                return [...byId.values()];
+            },
+
+            fuelGapNotice(logs) {
+                return utils.fuelHistoryForSelection(logs).some(l => l.missedFuel === true)
+                    ? `<p data-testid="fuel-gap-notice" class="text-sm theme-text-sub p-3 mb-4 rounded-xl border theme-border">${utils.t('fuel_gap_summary')}</p>` : '';
+            },
+
             calculateStats(logs, category = 'all') {
                 if (!logs.length) return { efficiency: '--', costKm: '--', totalCost: 0, totalDist: 0, totalDistCount: 0 };
                 
@@ -351,10 +372,12 @@
                 // 3. Fuel Efficiency (Always calc if fuel data exists)
                 let efficiency = '--';
                 let costKm = '--';
+                const calculationLogs = utils.fuelHistoryForSelection(logs);
+                const hasFuelGap = calculationLogs.some(l => l.missedFuel === true);
                 
                 if (category === 'fuel' || category === 'all') {
                     // Filter specifically for fuel logs to calculate efficiency
-                    const fuelLogs = logs.filter(l => l.type === 'fuel').sort((a, b) => parseFloat(a.odometer) - parseFloat(b.odometer));
+                    const fuelLogs = calculationLogs;
                     const v = store.getActiveVehicle();
                     const isImperial = store.data.settings.units === 'imperial';
                     const isEV = v && v.fuelUnit === 'kWh';
@@ -368,11 +391,11 @@
                 }
                 
                 // 4. Cost per KM (Total)
-                if (totalDist > 0 && totalCost > 0) {
+                if (totalDist > 0 && totalCost > 0 && !hasFuelGap) {
                     costKm = (totalCost / totalDist).toFixed(2);
                 }
 
-                return { efficiency, costKm, totalCost, totalDist, totalDistCount: sorted.length };
+                return { efficiency, costKm, totalCost, totalDist, totalDistCount: sorted.length, hasFuelGap };
             },
             
             detectLocation(callback) {
@@ -394,7 +417,7 @@
                 const isImperial = store.data.settings.units === 'imperial';
                 const distUnit = utils.getDistUnit();
                 const fuelUnit = v && v.fuelUnit ? v.fuelUnit : (isImperial ? 'Gal' : 'L');
-                const segments = FuelMateCore.buildFuelEfficiencySegments(logs);
+                const segments = FuelMateCore.buildFuelEfficiencySegments(utils.fuelHistoryForSelection(logs));
                 if (!segments.length) return '';
 
                 const monthly = new Map();
@@ -538,7 +561,7 @@
                     let details = l.notes || '';
                     if (l.type === 'fuel') {
                         const tank = l.isPartial ? utils.t('partial') : utils.t('full');
-                        details = `${l.liters}${fuelUnit}, ${tank}`;
+                        details = `${l.liters}${fuelUnit}, ${tank}${l.missedFuel ? ', ' + utils.t('missed_fuel') : ''}${l.notes ? ', ' + l.notes : ''}`;
                     }
                     rows.push([l.date, l.type, l.odometer ?? '', l.cost ?? '', details]);
                 });
