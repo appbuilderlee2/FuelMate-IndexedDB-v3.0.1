@@ -45,6 +45,7 @@ renderFuel(vehicle) {
                         })}
 
                         ${utils.fuelGapNotice(filteredLogs)}
+                        ${store.getActiveVehicle()?.pendingFuelGapOdometer != null ? `<p class="text-sm theme-text-sub mb-3">${utils.t('fuel_pending_gap')}</p>` : ''}
                         <p data-testid="fuel-stat-scope" class="text-xs theme-text-sub mb-3">${utils.t('fuel_stat_scope')} ${stats.cycleCount || 0} ${utils.t('complete_cycles')} · ${stats.cycleDistance || 0} ${utils.getDistUnit()}</p>
                         <div data-testid="fuel-summary" class="grid grid-cols-2 gap-3 mb-6">
                             <div class="theme-bg-card p-3 rounded-xl card-shadow border-l-4 border-teal-500">
@@ -58,11 +59,11 @@ renderFuel(vehicle) {
                                 ${stats.costKm === '--' ? `<p class="text-xs theme-text-sub">${utils.t('fuel_data_insufficient')}</p>` : ''}
                             </div>
                              <div class="theme-bg-card p-3 rounded-xl card-shadow">
-                                <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t(stats.hasFuelGap ? 'recorded_spend' : 'total_cost')}</div>
+                                <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t(stats.hasFuelGap ? 'recorded_spend' : 'visible_spend')}</div>
                                 <div class="text-lg font-bold theme-text-heading">${utils.formatCurrency(stats.totalCost)}</div>
                             </div>
                              <div class="theme-bg-card p-3 rounded-xl card-shadow">
-                                <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t('total_dist')}</div>
+                                <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t('visible_mileage')}</div>
                                 <div class="text-lg font-bold theme-text-heading">${stats.totalDistCount < 2 ? '--' : (Number.isFinite(stats.totalDist) ? stats.totalDist : '--')} <span class="text-[10px] font-normal">${utils.getDistUnit()}</span></div>
                             </div>
                         </div>

@@ -286,6 +286,8 @@ test('trip odometer survives mode switching and saving', async ({ page }, testIn
   await page.getByTestId('nav-fuel').click();
   await page.getByTestId('add-fuel').click();
   await page.locator('#l_odo_mode').click();
+  await page.locator('#l_trip_base').fill('1000');
+  await page.locator('#l_trip_confirm').check();
   await page.locator('#l_odo').fill('100');
   await page.locator('#l_odo_mode').click();
   await expect(page.locator('#l_odo')).toHaveValue('1100');
@@ -297,6 +299,61 @@ test('trip odometer survives mode switching and saving', async ({ page }, testIn
   await page.getByTestId('save-fuel').click();
   await expect(page.locator('[data-testid="log-card"][data-log-type="fuel"]')).toContainText('1250');
   await page.screenshot({ path: testInfo.outputPath('trip-odometer.png'), fullPage: false });
+});
+
+test('fuel safety guards protect backfills, duplicates, deletion and stale forms', async ({ page }, testInfo) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.getByTestId('nav-fuel').click();
+  await page.getByTestId('add-fuel').click();
+  await expect(page.locator('#l_odo')).toHaveValue('');
+  await page.locator('#l_backfill').check();
+  await expect(page.locator('#l_odo_mode')).toBeDisabled();
+  await page.locator('#l_odo').fill('1200');
+  await page.locator('#l_liters').fill('40');
+  await page.locator('#l_cost').fill('80');
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  await page.getByTestId('add-fuel').click();
+  await page.locator('#l_odo').fill('1200');
+  await page.locator('#l_liters').fill('40');
+  await page.locator('#l_cost').fill('80');
+  page.once('dialog', dialog => dialog.dismiss());
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeVisible();
+  expect(await page.evaluate(() => store.data.logs.filter(l => l.type === 'fuel').length)).toBe(1);
+  // A separate tab writes directly to the shared IndexedDB while the form remains open.
+  const other = await page.context().newPage();
+  await other.goto('./');
+  await other.waitForFunction(() => typeof store !== 'undefined' && store.db && store.data.vehicles.length > 0);
+  await other.evaluate(async () => {
+    await store.addLog({ id: 'other-window', vehicleId: store.data.settings.activeVehicleId, type: 'fuel', date: FuelMateCore.localDateKey(), odometer: 1500, liters: 25, cost: 50 });
+  });
+  await page.locator('#l_odo').fill('1800');
+  const staleDialog = page.waitForEvent('dialog').then(async dialog => {
+    const message = dialog.message(); await dialog.accept(); return message;
+  });
+  await page.getByTestId('save-fuel').click();
+  expect(await staleDialog).toContain('not saved');
+  await expect(page.getByTestId('modal-overlay')).toBeVisible();
+  await other.close();
+  await page.reload();
+  await page.getByTestId('nav-fuel').click();
+  expect(await page.evaluate(() => store.data.logs.filter(l => l.type === 'fuel').length)).toBe(2);
+  await page.evaluate(() => ui.deleteLog('other-window'));
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Remove a real fill and preserve the gap', exact: true }).click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  expect(await page.evaluate(() => store.getActiveVehicle().pendingFuelGapOdometer)).toBe(1500);
+  await page.getByTestId('add-fuel').click();
+  await page.locator('#l_odo').fill('1800');
+  await page.locator('#l_liters').fill('40');
+  await page.locator('#l_cost').fill('80');
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  await expect(page.getByTestId('fuel-gap-notice')).toBeVisible();
+  expect(await page.evaluate(() => utils.calculateStats(store.getVehicleLogs('fuel'), 'fuel').efficiency)).toBe('--');
+  await page.screenshot({ path: testInfo.outputPath('fuel-gap-safety.png'), fullPage: false });
 });
 
 test('unit switch preserves physical mileage and filtered analytics charts', async ({ page }, testInfo) => {

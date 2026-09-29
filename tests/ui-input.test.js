@@ -44,6 +44,7 @@ async function createUiHarness() {
       getDistUnit: () => 'km',
     },
     alert: (message) => alerts.push(message),
+    confirm: () => false,
     setTimeout,
     clearTimeout,
   });
@@ -112,6 +113,8 @@ test('valid fuel submission preserves the IndexedDB-compatible record shape', as
 
 test('trip mode converts once and returns to odometer mode', async () => {
   const { ui, getElement } = await createUiHarness();
+  getElement('l_trip_base').value = '1000';
+  getElement('l_trip_confirm').checked = true;
   const input = getElement('l_odo');
   const button = getElement('l_odo_mode');
   input.value = '1000';
@@ -127,6 +130,8 @@ test('trip mode converts once and returns to odometer mode', async () => {
 
 test('switching from a typed trip and saving a trip both preserve the converted odometer', async () => {
   const { ui, core, getElement, saved } = await createUiHarness();
+  getElement('l_trip_base').value = '1000';
+  getElement('l_trip_confirm').checked = true;
   const input = getElement('l_odo');
   const button = getElement('l_odo_mode');
   input.value = '1000';
@@ -190,6 +195,37 @@ test('invalid trip distance cannot silently become an absolute odometer', async 
   ui.toggleTripMode(button);
   assert.equal(input.value, '-5');
   assert.equal(input.dataset.mode, 'trip');
+});
+
+test('TRIP requires an explicit reset baseline and same-day backfills use ODO', async () => {
+  const { ui, getElement, alerts } = await createUiHarness();
+  ui.toggleTripMode(getElement('l_odo_mode'));
+  getElement('l_odo').value = '250';
+  assert.equal(ui.normalizeTripOdometer(getElement('l_odo')), false);
+  assert.equal(alerts.at(-1), 'trip_reset_required');
+  getElement('l_trip_base').value = '700';
+  getElement('l_trip_confirm').checked = true;
+  assert.equal(ui.normalizeTripOdometer(getElement('l_odo')), true);
+  assert.equal(getElement('l_odo').value, '950');
+  getElement('l_backfill').checked = true;
+  ui.refreshFuelTripMode();
+  assert.equal(getElement('l_odo_mode').disabled, true);
+});
+
+test('fuel submissions reject date/ODO conflicts and cancelled duplicates', async () => {
+  const { ui, store, getElement, saved, alerts } = await createUiHarness();
+  store.data.logs = [{ id: 'a', vehicleId: 'vehicle-1', type: 'fuel', date: '2026-01-02', odometer: 1200, liters: 40, cost: 80 }];
+  getElement('l_date').value = '2026-01-01';
+  getElement('l_odo').value = '1300';
+  getElement('l_liters').value = '40';
+  getElement('l_cost').value = '80';
+  await ui.submitFuel('');
+  assert.equal(alerts.at(-1), 'fuel_date_odo_conflict');
+  assert.equal(saved.length, 0);
+  getElement('l_date').value = '2026-01-02';
+  getElement('l_odo').value = '1200';
+  await ui.submitFuel('');
+  assert.equal(saved.length, 0);
 });
 
 test('quick tire setup saves a calendar-month interval', async () => {

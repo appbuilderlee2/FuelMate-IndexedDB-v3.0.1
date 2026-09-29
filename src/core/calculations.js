@@ -302,6 +302,7 @@
         if (vehicleIds.has(id)) errors.push('vehicle_duplicate_id');
         vehicleIds.add(id);
         if (!isNonNegativeNumber(vehicle.currentOdometer, { allowEmpty: true })) errors.push('vehicle_invalid_odometer');
+        if (vehicle.pendingFuelGapOdometer !== undefined && !isNonNegativeNumber(vehicle.pendingFuelGapOdometer)) errors.push('vehicle_invalid_fuel_gap');
         if (!isNonNegativeNumber(vehicle.year, { allowEmpty: true, positive: true })) errors.push('vehicle_invalid_year');
       }
     }

@@ -58,6 +58,29 @@ test('deleting the highest log corrects a derived vehicle odometer', async () =>
   assert.equal(store.data.vehicles[0].currentOdometer, 1000);
 });
 
+test('real fuel deletion transfers the gap and tail deletion defers it to a later fill', async () => {
+  const store = await createStore();
+  await store.deleteLog('l1', true);
+  assert.equal(store.data.logs[0].missedFuel, true);
+  await store.deleteLog('l2', true);
+  assert.equal(store.data.vehicles[0].pendingFuelGapOdometer, 1500);
+  await store.addLog({ id: 'old', vehicleId: 'v1', type: 'fuel', odometer: 1200 });
+  assert.equal(store.data.logs[0].missedFuel, undefined);
+  assert.equal(store.data.vehicles[0].pendingFuelGapOdometer, 1500);
+  await store.addLog({ id: 'next', vehicleId: 'v1', type: 'fuel', odometer: 1800 });
+  assert.equal(store.data.logs.find(l => l.id === 'next').missedFuel, true);
+  assert.equal(store.data.vehicles[0].pendingFuelGapOdometer, undefined);
+});
+
+test('deleting an incorrect record does not create a gap but cannot erase an existing one', async () => {
+  const store = await createStore();
+  await store.deleteLog('l1', false);
+  assert.equal(store.data.logs[0].missedFuel, undefined);
+  store.data.logs[0].missedFuel = true;
+  await store.deleteLog('l2', false);
+  assert.equal(store.data.vehicles[0].pendingFuelGapOdometer, 1500);
+});
+
 test('log edits do not reduce a manually newer vehicle odometer', async () => {
   const store = await createStore();
   store.data.vehicles[0].currentOdometer = 2000;
