@@ -215,6 +215,11 @@ test('adds a fuel record and renders the saved IndexedDB data', async ({ page })
   await page.locator('#l_price').fill('2');
   await expect(page.locator('#l_cost')).toHaveValue('80.00');
   await page.locator('#l_loc').fill('E2E Station');
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeVisible();
+  expect(await page.evaluate(() => store.data.logs.filter(l => l.type === 'fuel').length)).toBe(0);
+  await page.locator('#l_odo').fill('1400');
   await page.getByTestId('save-fuel').click();
 
   const fuelCard = page.locator('[data-testid="log-card"][data-log-type="fuel"]');
