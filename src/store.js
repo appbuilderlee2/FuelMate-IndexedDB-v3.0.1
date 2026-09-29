@@ -370,7 +370,7 @@
                     const max = nextLogs.filter(item => item.vehicleId === vehicle.id)
                         .reduce((value, item) => Math.max(value, parseFloat(item.odometer) || 0), 0);
                     const current = parseFloat(vehicle.currentOdometer) || 0;
-                    const derived = previous?.vehicleId === vehicle.id && current === this.getVehicleMaxLogOdometer(vehicle.id);
+                    const derived = !options.preserveGap && previous?.vehicleId === vehicle.id && current === this.getVehicleMaxLogOdometer(vehicle.id);
                     let updated = max > current || (derived && max < current) ? { ...vehicle, currentOdometer: max } : vehicle;
                     if (consumesGap && vehicle.id === log.vehicleId) { updated = { ...updated }; delete updated.pendingFuelGapOdometer; }
                     if (deferredGap && vehicle.id === previous.vehicleId) updated = { ...updated, pendingFuelGapOdometer: Math.min(Number(previous.odometer), Number(vehicle.pendingFuelGapOdometer ?? previous.odometer)) };

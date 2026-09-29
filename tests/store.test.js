@@ -64,6 +64,7 @@ test('real fuel deletion transfers the gap and tail deletion defers it to a late
   assert.equal(store.data.logs[0].missedFuel, true);
   await store.deleteLog('l2', true);
   assert.equal(store.data.vehicles[0].pendingFuelGapOdometer, 1500);
+  assert.equal(store.data.vehicles[0].currentOdometer, 1500);
   await store.addLog({ id: 'old', vehicleId: 'v1', type: 'fuel', odometer: 1200 });
   assert.equal(store.data.logs[0].missedFuel, undefined);
   assert.equal(store.data.vehicles[0].pendingFuelGapOdometer, 1500);
