@@ -244,6 +244,7 @@
                     ...vehicle,
                     currentOdometer: convert(vehicle.currentOdometer),
                     maintenanceBaselineOdometer: convert(vehicle.maintenanceBaselineOdometer),
+                    pendingFuelGapOdometer: convert(vehicle.pendingFuelGapOdometer),
                     maintenanceDist: convert(vehicle.maintenanceDist),
                     tireReplaceDist: convert(vehicle.tireReplaceDist),
                 }));
@@ -329,42 +330,77 @@
                 this._invalidateLogsCache();
             },
 
-            async addLog(log) {
-                await this.commitLogChange(log, null);
+            fuelWriteSnapshot() {
+                return JSON.stringify([this.data.logs.slice().sort((a,b) => String(a.id).localeCompare(String(b.id))), this.data.vehicles.slice().sort((a,b) => String(a.id).localeCompare(String(b.id))), this.data.settings.units]);
+            },
+
+            async addLog(log, expected) {
+                await this.commitLogChange(log, null, { expected });
             },
 
             _logWriteQueue: Promise.resolve(),
 
-            commitLogChange(log, previous) {
-                const operation = this._logWriteQueue.then(() => this._commitLogChange(log, previous));
+            commitLogChange(log, previous, options = {}) {
+                const operation = this._logWriteQueue.then(() => this._commitLogChange(log, previous, options));
                 this._logWriteQueue = operation.catch(() => {});
                 return operation;
             },
 
-            async _commitLogChange(log, previous) {
+            async _commitLogChange(log, previous, options = {}) {
                 const id = log?.id || previous?.id;
                 const nextLogs = this.data.logs.filter(item => item.id !== id);
+                const vehicle = this.data.vehicles.find(v => v.id === (log?.vehicleId || previous?.vehicleId));
+                const pending = vehicle?.pendingFuelGapOdometer;
+                const consumesGap = log?.type === 'fuel' && pending != null && Number(log.odometer) >= Number(pending);
+                if (consumesGap) log = { ...log, missedFuel: true };
                 if (log) nextLogs.push(log);
+                let following = null;
+                if (!log && previous?.type === 'fuel' && (options.preserveGap || previous.missedFuel)) {
+                    following = nextLogs.filter(item => item.vehicleId === previous.vehicleId && item.type === 'fuel' && Number(item.odometer) >= Number(previous.odometer))
+                        .sort((a,b) => Number(a.odometer) - Number(b.odometer) || String(a.id).localeCompare(String(b.id)))[0];
+                    if (following) {
+                        following = { ...following, missedFuel: true };
+                        nextLogs[nextLogs.findIndex(item => item.id === following.id)] = following;
+                    }
+                }
+                const deferredGap = !log && previous?.type === 'fuel' && (options.preserveGap || previous.missedFuel) && !following;
                 const affected = new Set([log?.vehicleId, previous?.vehicleId]);
                 const nextVehicles = this.data.vehicles.map(vehicle => {
                     if (!affected.has(vehicle.id)) return vehicle;
                     const max = nextLogs.filter(item => item.vehicleId === vehicle.id)
                         .reduce((value, item) => Math.max(value, parseFloat(item.odometer) || 0), 0);
                     const current = parseFloat(vehicle.currentOdometer) || 0;
-                    const derived = previous?.vehicleId === vehicle.id && current === this.getVehicleMaxLogOdometer(vehicle.id);
-                    return max > current || (derived && max < current) ? { ...vehicle, currentOdometer: max } : vehicle;
+                    const derived = !options.preserveGap && previous?.vehicleId === vehicle.id && current === this.getVehicleMaxLogOdometer(vehicle.id);
+                    let updated = max > current || (derived && max < current) ? { ...vehicle, currentOdometer: max } : vehicle;
+                    if (consumesGap && vehicle.id === log.vehicleId) { updated = { ...updated }; delete updated.pendingFuelGapOdometer; }
+                    if (deferredGap && vehicle.id === previous.vehicleId) updated = { ...updated, pendingFuelGapOdometer: Math.min(Number(previous.odometer), Number(vehicle.pendingFuelGapOdometer ?? previous.odometer)) };
+                    return updated;
                 });
                 await new Promise((resolve, reject) => {
-                    const tx = this.db.transaction(['logs', 'vehicles'], 'readwrite');
+                    const tx = this.db.transaction(options.expected ? ['logs', 'vehicles', 'settings'] : ['logs', 'vehicles'], 'readwrite');
                     tx.oncomplete = resolve;
                     tx.onerror = () => reject(tx.error || new Error('Log write failed'));
                     tx.onabort = () => reject(tx.error || new Error('Log write aborted'));
                     try {
                         const logs = tx.objectStore('logs');
-                        if (log) logs.put(log); else logs.delete(id);
-                        nextVehicles.forEach((vehicle, index) => {
-                            if (vehicle !== this.data.vehicles[index]) tx.objectStore('vehicles').put(vehicle);
-                        });
+                        const write = () => {
+                            if (log) logs.put(log); else logs.delete(id);
+                            if (following) logs.put(following);
+                            nextVehicles.forEach((vehicle, index) => {
+                                if (vehicle !== this.data.vehicles[index]) tx.objectStore('vehicles').put(vehicle);
+                            });
+                        };
+                        if (!options.expected) write();
+                        else {
+                            const records = logs.getAll();
+                            const vehicles = tx.objectStore('vehicles').getAll();
+                            const settings = tx.objectStore('settings').get('global');
+                            settings.onsuccess = () => {
+                                const actual = JSON.stringify([records.result.sort((a,b) => String(a.id).localeCompare(String(b.id))), vehicles.result.sort((a,b) => String(a.id).localeCompare(String(b.id))), settings.result?.units || this.data.settings.units]);
+                                if (actual !== options.expected || this.fuelWriteSnapshot() !== options.expected) { reject(new Error('fuel_stale')); tx.abort(); }
+                                else write();
+                            };
+                        }
                     } catch (error) {
                         tx.abort();
                         reject(error);
@@ -395,14 +431,14 @@
                 }
             },
 
-            async updateLog(log) {
+            async updateLog(log, expected) {
                 const previous = this.data.logs.find(l => l.id === log.id);
-                if (previous) await this.commitLogChange(log, previous);
+                if (previous) await this.commitLogChange(log, previous, { expected });
             },
 
-            async deleteLog(id) {
+            async deleteLog(id, preserveGap = false, expected) {
                 const previous = this.data.logs.find(l => l.id === id);
-                if (previous) await this.commitLogChange(null, previous);
+                if (previous) await this.commitLogChange(null, previous, { preserveGap, expected });
             },
 
             async clearVehicleLogs(vehicleId) {
