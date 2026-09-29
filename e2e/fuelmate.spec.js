@@ -307,6 +307,8 @@ test('trip odometer survives mode switching and saving', async ({ page }, testIn
 });
 
 test('fuel safety guards protect backfills, duplicates, deletion and stale forms', async ({ page }, testInfo) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
   await openFreshApp(page);
   await createVehicle(page);
   await page.getByTestId('nav-fuel').click();
@@ -358,6 +360,11 @@ test('fuel safety guards protect backfills, duplicates, deletion and stale forms
   await expect(page.getByTestId('modal-overlay')).toBeHidden();
   await expect(page.getByTestId('fuel-gap-notice')).toBeVisible();
   expect(await page.evaluate(() => utils.calculateStats(store.getVehicleLogs('fuel'), 'fuel').efficiency)).toBe('--');
+  await page.getByTestId('fuel-stat-scope').locator('summary').click();
+  await expect(page.getByTestId('fuel-stat-scope').locator('p')).toBeVisible();
+  await page.getByTestId('fuel-stat-scope').locator('summary').click();
+  await expect(page.getByTestId('fuel-stat-scope').locator('p')).toBeHidden();
+  expect(errors).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('fuel-gap-safety.png'), fullPage: false });
 });
 

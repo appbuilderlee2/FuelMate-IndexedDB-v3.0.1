@@ -1,6 +1,8 @@
 // --- TRANSLATIONS ---
         const translations = {
             en: {
+                fuel_scope_title: 'How these figures are calculated',
+                fuel_gap_short: 'Incomplete fuel history — complete cycles only',
                 fuel_backfill: 'Backfill an earlier fill (including earlier today) — ODO only',
                 trip_reset_confirm: 'This TRIP was reset at the starting ODO entered above.',
                 trip_reset_required: 'Enter the ODO when TRIP was reset and confirm that starting point, or use the actual ODO.',
@@ -187,6 +189,8 @@
                 kwh: 'kWh'
             },
             zh: {
+                fuel_scope_title: '計算方式',
+                fuel_gap_short: '有漏記加油 — 油耗只計完整週期',
                 fuel_backfill: '補錄較早的加油（包括今天較早時）— 只用 ODO',
                 trip_reset_confirm: '我確認 TRIP 是在上方所填的 ODO 歸零。',
                 trip_reset_required: '請填寫 TRIP 歸零時的 ODO 並確認起點；如不清楚，請改用實際總里數。',

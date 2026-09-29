@@ -46,7 +46,7 @@ renderFuel(vehicle) {
 
                         ${utils.fuelGapNotice(filteredLogs)}
                         ${store.getActiveVehicle()?.pendingFuelGapOdometer != null ? `<p class="text-sm theme-text-sub mb-3">${utils.t('fuel_pending_gap')}</p>` : ''}
-                        <p data-testid="fuel-stat-scope" class="text-xs theme-text-sub mb-3">${utils.t('fuel_stat_scope')} ${stats.cycleCount || 0} ${utils.t('complete_cycles')} · ${stats.cycleDistance || 0} ${utils.getDistUnit()}</p>
+                        <details data-testid="fuel-stat-scope" class="text-xs theme-text-sub mb-3"><summary>${utils.t('fuel_scope_title')} · ${stats.cycleCount || 0} ${utils.t('complete_cycles')} · ${Number(stats.cycleDistance || 0).toLocaleString(undefined, { maximumFractionDigits: 1 })} ${utils.getDistUnit()}</summary><p class="mt-2">${utils.t('fuel_stat_scope')}</p></details>
                         <div data-testid="fuel-summary" class="grid grid-cols-2 gap-3 mb-6">
                             <div class="theme-bg-card p-3 rounded-xl card-shadow border-l-4 border-teal-500">
                                 <div class="text-[10px] theme-text-sub uppercase tracking-wider">${utils.t('efficiency')}</div>
@@ -398,7 +398,7 @@ renderAnalytics(vehicle) {
                         <div class="theme-bg-card p-6 rounded-2xl card-shadow mb-24">
                             <div class="text-xs font-bold theme-text-sub uppercase mb-4">${utils.t('fuel_efficiency_trend')}</div>
                             <div class="h-32">
-                                <p class="text-xs theme-text-sub mb-3">${utils.t('fuel_stat_scope')}</p>
+                                <details class="text-xs theme-text-sub mb-3"><summary>${utils.t('fuel_scope_title')}</summary><p class="mt-2">${utils.t('fuel_stat_scope')}</p></details>
                                 ${utils.generateTrendChart(filteredLogs)}
                             </div>
                         </div>
