@@ -368,7 +368,7 @@
 
             fuelGapNotice(logs) {
                 return utils.fuelHistoryForSelection(logs).some(l => l.missedFuel === true)
-                    ? `<p data-testid="fuel-gap-notice" class="text-sm theme-text-sub p-3 mb-4 rounded-xl border theme-border">${utils.t('fuel_gap_summary')}</p>` : '';
+                    ? `<details data-testid="fuel-gap-notice" class="text-sm theme-text-sub p-3 mb-4 rounded-xl border theme-border"><summary>${utils.t('fuel_gap_short')}</summary><p class="mt-2">${utils.t('fuel_gap_summary')}</p></details>` : '';
             },
 
             calculateStats(logs, category = 'all') {

@@ -344,6 +344,15 @@ const router = {
                         registration.installing?.addEventListener('statechange', notifyWaiting);
                     });
                     window.addEventListener('online', () => registration.update().catch(console.error));
+                    let lastUpdateCheck = 0;
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState !== 'visible') return;
+                        notifyWaiting();
+                        if (navigator.onLine && Date.now() - lastUpdateCheck > 60000) {
+                            lastUpdateCheck = Date.now();
+                            registration.update().then(notifyWaiting).catch(console.error);
+                        }
+                    });
                 } catch (error) { console.error('Service Worker registration failed', error); }
             });
         }
