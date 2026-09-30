@@ -70,8 +70,11 @@ async deleteFuelRecord(id, preserveGap) {
 async undoFuelDeletion() {
                 try { await store.undoFuelDeletion(); this.render(); }
                 catch (_) {
-                    const log = store.getFuelUndo()?.deleted;
-                    alert(`${utils.t('fuel_undo_changed')}${log ? `\n${log.date} · ${log.odometer} ${utils.getDistUnit()} · ${log.liters} · ${log.cost}` : ''}`);
+                    const undo = store.getFuelUndo();
+                    const log = undo?.deleted;
+                    let unit = utils.getDistUnit();
+                    try { unit = JSON.parse(undo.before.signature)[2] === 'imperial' ? 'mi' : 'km'; } catch (_) {}
+                    alert(`${utils.t('fuel_undo_changed')}${log ? `\n${log.date} · ${log.odometer} ${unit} · ${log.liters} · ${log.cost}` : ''}`);
                 }
             },
 
