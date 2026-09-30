@@ -26,7 +26,9 @@ renderFuel(vehicle) {
                     <div class="px-6 pt-safe min-h-screen">
                         <div class="flex justify-between items-center mb-6">
                              <h1 class="text-3xl font-black theme-text-heading">${utils.t('fuel')}</h1>
+                             <button data-testid="add-fuel" data-action="ui" data-ui-method="openAddFuel" class="p-3 rounded-xl grad-teal text-white font-bold">+ ${utils.t('add_fuel')}</button>
                         </div>
+                        ${store.getFuelUndo(vehicle.id) ? `<button data-testid="undo-fuel-delete" data-action="ui" data-ui-method="undoFuelDeletion" class="w-full p-3 mb-3 rounded-xl border theme-border text-sm">${utils.t('fuel_undo_delete')}</button>` : ''}
                         <div class="mb-4">${this.renderFilterHeader('fuel', filter)}</div>
 
                         ${ui.renderSearchPanel({
@@ -72,9 +74,6 @@ renderFuel(vehicle) {
                             ${visibleLogs.length ? visibleLogs.map(l => this.renderLogCard(l)).join('') : `<div class="text-center theme-text-sub py-12">No records found</div>`}
                             ${filteredLogs.length > visibleLogs.length ? ui.renderLoadMore('fuel', visibleLogs.length, filteredLogs.length) : ''}
                         </div>
-                        <button data-testid="add-fuel" data-action="ui" data-ui-method="openAddFuel" class="fixed bottom-[calc(130px+var(--safe-bottom))] right-6 w-14 h-14 rounded-full grad-teal text-white shadow-xl flex items-center justify-center active:scale-90 transition-transform z-50">
-                            <span class="material-icons">add</span>
-                        </button>
                     </div>
                 `;
             },

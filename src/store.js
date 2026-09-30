@@ -330,8 +330,24 @@
                 this._invalidateLogsCache();
             },
 
-            fuelWriteSnapshot() {
-                return JSON.stringify([this.data.logs.slice().sort((a,b) => String(a.id).localeCompare(String(b.id))), this.data.vehicles.slice().sort((a,b) => String(a.id).localeCompare(String(b.id))), this.data.settings.units]);
+            fuelWriteSnapshot(vehicleId = this.data.settings.activeVehicleId) {
+                return { vehicleId, signature: this.fuelSnapshotSignature(this.data.logs.filter(l => l.vehicleId === vehicleId), this.data.vehicles.find(v => v.id === vehicleId), this.data.settings.units) };
+            },
+
+            fuelSnapshotSignature(logs, vehicle, units) {
+                return JSON.stringify([logs.slice().sort((a,b) => String(a.id).localeCompare(String(b.id))), vehicle || null, units]);
+            },
+
+            verifyFuelSnapshot(tx, expected, write, reject) {
+                const records = tx.objectStore('logs').index('vehicleId').getAll(expected.vehicleId);
+                const vehicle = tx.objectStore('vehicles').get(expected.vehicleId);
+                const settings = tx.objectStore('settings').get('global');
+                settings.onsuccess = () => {
+                    const actual = this.fuelSnapshotSignature(records.result, vehicle.result, settings.result?.units || this.data.settings.units);
+                    if (actual !== expected.signature || this.fuelWriteSnapshot(expected.vehicleId).signature !== expected.signature) {
+                        reject(new Error('fuel_stale')); tx.abort();
+                    } else write();
+                };
             },
 
             async addLog(log, expected) {
@@ -391,16 +407,7 @@
                             });
                         };
                         if (!options.expected) write();
-                        else {
-                            const records = logs.getAll();
-                            const vehicles = tx.objectStore('vehicles').getAll();
-                            const settings = tx.objectStore('settings').get('global');
-                            settings.onsuccess = () => {
-                                const actual = JSON.stringify([records.result.sort((a,b) => String(a.id).localeCompare(String(b.id))), vehicles.result.sort((a,b) => String(a.id).localeCompare(String(b.id))), settings.result?.units || this.data.settings.units]);
-                                if (actual !== options.expected || this.fuelWriteSnapshot() !== options.expected) { reject(new Error('fuel_stale')); tx.abort(); }
-                                else write();
-                            };
-                        }
+                        else this.verifyFuelSnapshot(tx, options.expected, write, reject);
                     } catch (error) {
                         tx.abort();
                         reject(error);
@@ -438,7 +445,46 @@
 
             async deleteLog(id, preserveGap = false, expected) {
                 const previous = this.data.logs.find(l => l.id === id);
-                if (previous) await this.commitLogChange(null, previous, { preserveGap, expected });
+                if (previous) {
+                    const before = previous.type === 'fuel' ? this.fuelWriteSnapshot(previous.vehicleId) : null;
+                    await this.commitLogChange(null, previous, { preserveGap, expected });
+                    if (before) {
+                        this._fuelUndo = { before, after: this.fuelWriteSnapshot(previous.vehicleId), deleted: previous };
+                        try { sessionStorage.setItem('fuelmate_fuel_undo', JSON.stringify(this._fuelUndo)); } catch (_) {}
+                    }
+                }
+            },
+
+            getFuelUndo(vehicleId = this.data.settings.activeVehicleId) {
+                try { if (!this._fuelUndo) this._fuelUndo = JSON.parse(sessionStorage.getItem('fuelmate_fuel_undo') || 'null'); } catch (_) {}
+                return this._fuelUndo?.before?.vehicleId === vehicleId ? this._fuelUndo : null;
+            },
+
+            undoFuelDeletion() {
+                const operation = this._logWriteQueue.then(async () => {
+                    const undo = this.getFuelUndo();
+                    if (!undo) return;
+                    const [oldLogs, oldVehicle] = JSON.parse(undo.before.signature);
+                    await new Promise((resolve, reject) => {
+                        const tx = this.db.transaction(['logs', 'vehicles', 'settings'], 'readwrite');
+                        tx.oncomplete = resolve;
+                        tx.onerror = () => reject(tx.error || new Error('Undo failed'));
+                        tx.onabort = () => reject(tx.error || new Error('Undo aborted'));
+                        this.verifyFuelSnapshot(tx, undo.after, () => {
+                            const logs = tx.objectStore('logs');
+                            for (const log of this.data.logs.filter(l => l.vehicleId === undo.before.vehicleId)) logs.delete(log.id);
+                            for (const log of oldLogs) logs.put(log);
+                            tx.objectStore('vehicles').put(oldVehicle);
+                        }, reject);
+                    });
+                    this.data.logs = [...this.data.logs.filter(l => l.vehicleId !== undo.before.vehicleId), ...oldLogs];
+                    this.data.vehicles = this.data.vehicles.map(v => v.id === oldVehicle.id ? oldVehicle : v);
+                    this._fuelUndo = null;
+                    try { sessionStorage.removeItem('fuelmate_fuel_undo'); } catch (_) {}
+                    this._invalidateLogsCache();
+                });
+                this._logWriteQueue = operation.catch(() => {});
+                return operation;
             },
 
             async clearVehicleLogs(vehicleId) {

@@ -1,5 +1,5 @@
 (function exposeFuelMateVersion(global) {
   global.FuelMateVersion = Object.freeze({
-    current: '4.4.9',
+    current: '4.4.10',
   });
 })(globalThis);
