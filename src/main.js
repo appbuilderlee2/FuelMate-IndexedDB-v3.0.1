@@ -291,7 +291,7 @@ const router = {
                 banner = document.createElement('div');
                 banner.id = 'pwa-status-banner';
                 banner.setAttribute('role', 'status');
-                banner.className = 'fixed left-1/2 -translate-x-1/2 z-[100] max-w-[calc(100%-1.5rem)] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold shadow-xl flex items-center gap-3 pointer-events-auto';
+                banner.className = 'fixed left-1/2 -translate-x-1/2 z-[40] max-w-[calc(100%-1.5rem)] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold shadow-xl flex items-center gap-3 pointer-events-auto';
                 banner.style.maxWidth = 'min(360px, calc(100% - 1.5rem))';
                 banner.style.bottom = 'calc(92px + env(safe-area-inset-bottom, 0px))';
                 document.body.appendChild(banner);
@@ -308,9 +308,16 @@ const router = {
                 button.addEventListener('click', options.onAction, { once: true });
                 banner.appendChild(button);
             }
+            const dismiss = document.createElement('button');
+            dismiss.type = 'button';
+            dismiss.textContent = '×';
+            dismiss.setAttribute('aria-label', store.data.settings.language === 'zh' ? '關閉提示' : 'Dismiss notice');
+            dismiss.className = 'p-2 text-lg';
+            dismiss.addEventListener('click', () => banner.classList.add('hidden'));
+            banner.appendChild(dismiss);
             banner.classList.remove('hidden');
+            clearTimeout(showPwaStatus._timer);
             if (!options.persistent) {
-                clearTimeout(showPwaStatus._timer);
                 showPwaStatus._timer = setTimeout(() => banner.classList.add('hidden'), options.duration || 2200);
             }
         };

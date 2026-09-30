@@ -403,9 +403,12 @@ test('fuel recovery supports unrelated edits, selected TRIP baselines, undo and 
   await expect(page.getByTestId('modal-overlay')).toBeHidden();
   const savedId = await page.evaluate(() => store.getVehicleLogs('fuel').find(l => l.odometer === 1200).id);
   await page.evaluate(id => ui.deleteLog(id), savedId);
+  await page.context().setOffline(true);
+  await expect(page.locator('#pwa-status-banner')).toBeVisible();
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Remove a real fill and preserve the gap', exact: true }).click();
   await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  await page.context().setOffline(false);
   await page.reload();
   await page.getByTestId('nav-fuel').click();
   await page.getByTestId('undo-fuel-delete').click();
