@@ -8,6 +8,7 @@ openAddFuel(id = null) {
                 this._fuelUnits = store.data.settings.units;
                 this._fuelDraftKey = `fuelmate_draft_${this._fuelVehicleId}_${id || 'new'}`;
                 const previousFills = store.data.logs.filter(l => l.vehicleId === this._fuelVehicleId && l.type === 'fuel' && Number.isFinite(Number(l.odometer))).sort((a,b) => Number(b.odometer) - Number(a.odometer)).slice(0, 30);
+                if (!id) log.odometer = previousFills[0]?.odometer ?? store.data.vehicles.find(v => v.id === this._fuelVehicleId)?.currentOdometer ?? '';
                 this._fuelCalcLast = [];
                 this._fuelEditingId = id;
                 const fuelUnit = utils.getFuelUnit();
@@ -18,7 +19,6 @@ openAddFuel(id = null) {
                     <div class="space-y-4">
                         ${this.getFuelDraft() ? `<button data-testid="restore-fuel-draft" data-action="ui" data-ui-method="restoreFuelDraft" class="w-full p-3 rounded-xl border theme-border">${utils.t('fuel_restore_draft')}</button>` : ''}
                         <div id="l_fuel_feedback" hidden class="p-3 rounded-xl border theme-border text-sm"></div>
-                        ${!id ? `<label class="flex items-center gap-2 text-sm"><input id="l_backfill" type="checkbox" data-change-action="ui" data-ui-method="refreshFuelTripMode">${utils.t('fuel_backfill')}</label>` : ''}
                         <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="l_date" type="date" value="${utils.escapeAttr(log.date)}" data-input-action="ui" data-ui-method="refreshFuelTripMode" class="w-full p-3 rounded-xl"></div>
 
                          <div>
@@ -27,7 +27,6 @@ openAddFuel(id = null) {
                                 <button id="l_odo_mode" data-action="ui" data-ui-method="toggleTripMode" data-ui-pass-element="true" class="text-[10px] bg-slate-200 px-2 py-0.5 rounded font-bold">ODO</button>
                             </div>
                             <input id="l_odo" type="number" min="0" value="${utils.escapeAttr(log.odometer)}" data-mode="odo" class="w-full p-3 rounded-xl">
-                            <p id="l_trip_help" class="text-xs theme-text-sub mt-2">${utils.t('trip_history_help')}</p>
                             <div id="l_trip_fields" hidden class="mt-2 space-y-2">
                                 <label class="block text-xs">${utils.t('trip_choose_base')}<select id="l_trip_record" class="w-full p-3 rounded-xl" data-change-action="ui" data-ui-method="chooseFuelTripBase" data-ui-pass-value="true"><option value="">${utils.t('trip_manual_base')}</option>${previousFills.map(l => `<option value="${utils.escapeAttr(l.id)}">${utils.escapeHtml(l.date)} · ${utils.escapeHtml(l.odometer)} ${utils.getDistUnit()}</option>`).join('')}</select></label>
                                 <label class="block text-xs">${utils.t('trip_base')}<input id="l_trip_base" type="number" min="0" class="w-full p-3 rounded-xl"></label>
@@ -45,17 +44,18 @@ openAddFuel(id = null) {
                             <input type="checkbox" id="l_partial" class="w-5 h-5 text-teal-600 rounded" ${log.isPartial?'checked':''}>
                             <label for="l_partial" class="text-sm font-medium text-amber-800">${utils.t('partial_tank')}</label>
                         </div>
-                        <details class="text-xs theme-text-sub"><summary>${utils.t('fuel_full_title')}</summary><p class="mt-2">${utils.t('fuel_full_help')}</p></details>
 
                         <div class="relative">
                             <label class="flex items-start gap-2 p-3 rounded-xl border theme-border">
                                 <input id="l_missed_fuel" type="checkbox" class="w-5 h-5 shrink-0" ${log.missedFuel ? 'checked' : ''}>
                                 <span class="text-sm theme-text-heading">${utils.t('missed_fuel')}</span>
                             </label>
-                            <details class="text-xs theme-text-sub mt-2"><summary>${utils.t('fuel_gap_help_title')}</summary><p>${utils.t('missed_fuel_help')} ${utils.t('fuel_backfill_gap_help')}</p></details>
                         </div>
 
                         <details id="l_fuel_details"><summary class="text-sm theme-text-sub">${utils.t('fuel_more_details')}</summary><div class="space-y-4 mt-3">
+                        ${!id ? `<label class="flex items-center gap-2 text-sm"><input id="l_backfill" type="checkbox" data-change-action="ui" data-ui-method="refreshFuelTripMode">${utils.t('fuel_backfill')}</label>` : ''}
+                        <details class="text-xs theme-text-sub"><summary>${utils.t('fuel_full_title')}</summary><p class="mt-2">${utils.t('fuel_full_help')}</p></details>
+                        <details class="text-xs theme-text-sub"><summary>${utils.t('fuel_gap_help_title')}</summary><p>${utils.t('missed_fuel_help')} ${utils.t('fuel_backfill_gap_help')}</p></details>
                         <div class="relative">
                              <label class="text-xs theme-text-sub block mb-1">${utils.t('location')}</label>
                              <input id="l_loc" type="text" value="${utils.escapeAttr(log.location || '')}" class="w-full p-3 rounded-xl pr-10">

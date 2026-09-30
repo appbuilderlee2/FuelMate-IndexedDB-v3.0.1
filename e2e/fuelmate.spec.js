@@ -314,7 +314,12 @@ test('fuel safety guards protect backfills, duplicates, deletion and stale forms
   await createVehicle(page);
   await page.getByTestId('nav-fuel').click();
   await page.getByTestId('add-fuel').click();
-  await expect(page.locator('#l_odo')).toHaveValue('');
+  await expect(page.locator('#l_odo')).toHaveValue('1000');
+  await expect(page.locator('#l_loc')).toBeHidden();
+  await expect(page.locator('#l_backfill')).toBeHidden();
+  await expect(page.getByTestId('save-fuel')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('compact-fuel-form.png'), fullPage: false });
+  await page.locator('#l_fuel_details > summary').click();
   await page.locator('#l_backfill').check();
   await expect(page.locator('#l_odo_mode')).toBeDisabled();
   await page.locator('#l_odo').fill('1200');
@@ -416,6 +421,7 @@ test('fuel recovery supports unrelated edits, selected TRIP baselines, undo and 
   expect(await page.evaluate(id => store.data.logs.some(l => l.id === id), savedId)).toBe(true);
   expect(await page.evaluate(() => store.getActiveVehicle().pendingFuelGapOdometer)).toBeUndefined();
   await page.getByTestId('add-fuel').click();
+  await expect(page.locator('#l_odo')).toHaveValue('1200');
   await page.locator('#l_fuel_details > summary').click();
   await page.getByText('Replaced / reset odometer', { exact: true }).click();
   await page.locator('#l_meter_before').fill('1200');
