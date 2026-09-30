@@ -216,6 +216,7 @@ test('adds a fuel record and renders the saved IndexedDB data', async ({ page })
   await expect(page.locator('#l_cost')).toHaveValue('80.00');
   await page.locator('#l_fuel_details > summary').click();
   await page.locator('#l_loc').fill('E2E Station');
+  await page.locator('#l_odo').fill('');
   page.once('dialog', dialog => dialog.accept());
   await page.getByTestId('save-fuel').click();
   await expect(page.getByTestId('modal-overlay')).toBeVisible();
@@ -318,7 +319,7 @@ test('fuel safety guards protect backfills, duplicates, deletion and stale forms
   await expect(page.locator('#l_loc')).toBeHidden();
   await expect(page.locator('#l_backfill')).toBeHidden();
   await expect(page.getByTestId('save-fuel')).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath('compact-fuel-form.png'), fullPage: false });
+  await page.screenshot({ path: testInfo.outputPath('fuel-gap-compact-form.png'), fullPage: false });
   await page.locator('#l_fuel_details > summary').click();
   await page.locator('#l_backfill').check();
   await expect(page.locator('#l_odo_mode')).toBeDisabled();
