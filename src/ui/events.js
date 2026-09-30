@@ -47,8 +47,8 @@ const FuelMateEvents = (() => {
     if (initialized) return;
     initialized = true;
     document.addEventListener('click', (event) => dispatch(event, 'data-action'));
-    document.addEventListener('change', (event) => dispatch(event, 'data-change-action'));
-    document.addEventListener('input', (event) => dispatch(event, 'data-input-action'));
+    document.addEventListener('change', (event) => { dispatch(event, 'data-change-action'); ui.captureFuelDraft?.(); });
+    document.addEventListener('input', (event) => { dispatch(event, 'data-input-action'); ui.captureFuelDraft?.(); });
     document.addEventListener('focusout', (event) => dispatch(event, 'data-blur-action'));
   }
 

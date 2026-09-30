@@ -37,6 +37,7 @@ async function createUiHarness() {
     utils: {
       newId: () => `log-${saved.length + 1}`,
       t: (key) => key,
+      escapeHtml: value => String(value),
       getTirePositions: () => ['front_left', 'front_right', 'rear_left', 'rear_right'],
       getTireReplacementPositions: log => Array.isArray(log?.tirePositions) ? log.tirePositions : (log?.tirePosition ? [log.tirePosition] : []),
       getPressureUnit: () => 'kPa',
@@ -74,6 +75,29 @@ test('fuel input calculates the third value from the last two fields', async () 
   ui.calcFuel('vol');
   ui.calcFuel('price');
   assert.equal(getElement('l_cost').value, '80.00');
+});
+
+test('meter conversion preserves lifetime mileage and rejects reversed new meter readings', async () => {
+  const { ui, getElement, alerts } = await createUiHarness();
+  getElement('l_meter_before').value = '100000';
+  getElement('l_meter_start').value = '50';
+  getElement('l_meter_now').value = '350';
+  ui.convertFuelMeter();
+  assert.equal(getElement('l_odo').value, '100300');
+  getElement('l_meter_now').value = '20';
+  ui.convertFuelMeter();
+  assert.equal(getElement('l_odo').value, '100300');
+  assert.equal(alerts.at(-1), 'validation_odometer');
+});
+
+test('choosing a TRIP record never assumes the trip was reset there', async () => {
+  const { ui, store, getElement } = await createUiHarness();
+  store.data.logs = [{ id: 'base', vehicleId: 'vehicle-1', odometer: 800 }];
+  ui._fuelVehicleId = 'vehicle-1';
+  getElement('l_trip_confirm').checked = true;
+  ui.chooseFuelTripBase('base');
+  assert.equal(getElement('l_trip_base').value, '800');
+  assert.equal(getElement('l_trip_confirm').checked, false);
 });
 
 test('fuel submission rejects negative and missing values', async () => {
@@ -220,7 +244,7 @@ test('fuel submissions reject date/ODO conflicts and cancelled duplicates', asyn
   getElement('l_liters').value = '40';
   getElement('l_cost').value = '80';
   await ui.submitFuel('');
-  assert.equal(alerts.at(-1), 'fuel_date_odo_conflict');
+  assert.match(alerts.at(-1), /fuel_date_odo_conflict.*\n2026-01-02 · 1200/);
   assert.equal(saved.length, 0);
   getElement('l_date').value = '2026-01-02';
   getElement('l_odo').value = '1200';

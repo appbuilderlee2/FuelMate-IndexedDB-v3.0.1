@@ -214,6 +214,7 @@ test('adds a fuel record and renders the saved IndexedDB data', async ({ page })
   await page.locator('#l_liters').fill('40');
   await page.locator('#l_price').fill('2');
   await expect(page.locator('#l_cost')).toHaveValue('80.00');
+  await page.locator('#l_fuel_details > summary').click();
   await page.locator('#l_loc').fill('E2E Station');
   page.once('dialog', dialog => dialog.accept());
   await page.getByTestId('save-fuel').click();
@@ -343,9 +344,17 @@ test('fuel safety guards protect backfills, duplicates, deletion and stale forms
   await page.getByTestId('save-fuel').click();
   expect(await staleDialog).toContain('not saved');
   await expect(page.getByTestId('modal-overlay')).toBeVisible();
+  await page.getByTestId('refresh-fuel-data').click();
+  await expect(page.locator('#l_odo')).toHaveValue('1800');
   await other.close();
   await page.reload();
   await page.getByTestId('nav-fuel').click();
+  await page.getByTestId('add-fuel').click();
+  await page.getByTestId('restore-fuel-draft').click();
+  await expect(page.locator('#l_odo')).toHaveValue('1800');
+  await expect(page.locator('#l_liters')).toHaveValue('40');
+  await page.evaluate(() => ui.closeModal());
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
   expect(await page.evaluate(() => store.data.logs.filter(l => l.type === 'fuel').length)).toBe(2);
   await page.evaluate(() => ui.deleteLog('other-window'));
   page.once('dialog', dialog => dialog.accept());
@@ -366,6 +375,59 @@ test('fuel safety guards protect backfills, duplicates, deletion and stale forms
   await expect(page.getByTestId('fuel-stat-scope').locator('p')).toBeHidden();
   expect(errors).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('fuel-gap-safety.png'), fullPage: false });
+});
+
+test('fuel recovery supports unrelated edits, selected TRIP baselines, undo and replaced meters', async ({ page }, testInfo) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.evaluate(async () => {
+    await store.addLog({ id: 'trip-base', vehicleId: store.data.settings.activeVehicleId, type: 'fuel', date: FuelMateCore.localDateKey(), odometer: 1000, liters: 40, cost: 80 });
+  });
+  await page.getByTestId('nav-fuel').click();
+  await page.getByTestId('add-fuel').click();
+  await page.locator('#l_odo_mode').click();
+  await page.locator('#l_trip_record').selectOption('trip-base');
+  await expect(page.locator('#l_trip_base')).toHaveValue('1000');
+  await expect(page.locator('#l_trip_confirm')).not.toBeChecked();
+  await page.locator('#l_trip_confirm').check();
+  await page.locator('#l_odo').fill('200');
+  await page.locator('#l_liters').fill('40');
+  await page.locator('#l_cost').fill('80');
+  await page.evaluate(async () => {
+    await store.addVehicle({ id: 'unrelated-car', make: 'Other', model: 'Car', currentOdometer: 100 });
+    await store.addLog({ id: 'unrelated-log', vehicleId: 'unrelated-car', type: 'fuel', date: FuelMateCore.localDateKey(), odometer: 100, liters: 20, cost: 40 });
+  });
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  const savedId = await page.evaluate(() => store.getVehicleLogs('fuel').find(l => l.odometer === 1200).id);
+  await page.evaluate(id => ui.deleteLog(id), savedId);
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Remove a real fill and preserve the gap', exact: true }).click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  await page.reload();
+  await page.getByTestId('nav-fuel').click();
+  await page.getByTestId('undo-fuel-delete').click();
+  await expect(page.getByTestId('undo-fuel-delete')).toHaveCount(0);
+  expect(await page.evaluate(id => store.data.logs.some(l => l.id === id), savedId)).toBe(true);
+  expect(await page.evaluate(() => store.getActiveVehicle().pendingFuelGapOdometer)).toBeUndefined();
+  await page.getByTestId('add-fuel').click();
+  await page.locator('#l_fuel_details > summary').click();
+  await page.getByText('Replaced / reset odometer', { exact: true }).click();
+  await page.locator('#l_meter_before').fill('1200');
+  await page.locator('#l_meter_start').fill('0');
+  await page.locator('#l_meter_now').fill('50');
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Convert to lifetime ODO', exact: true }).click();
+  await expect(page.locator('#l_odo')).toHaveValue('1250');
+  await page.locator('#l_liters').fill('10');
+  await page.locator('#l_cost').fill('20');
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  expect(await page.getByTestId('add-fuel').evaluate(el => getComputedStyle(el).position)).not.toBe('fixed');
+  expect(errors).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath('fuel-gap-recovery.png'), fullPage: false });
 });
 
 test('unit switch preserves physical mileage and filtered analytics charts', async ({ page }, testInfo) => {

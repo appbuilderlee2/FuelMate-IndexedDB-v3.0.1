@@ -52,6 +52,19 @@ test('correcting the highest log downward corrects a derived vehicle odometer', 
   assert.equal(store.data.vehicles[0].currentOdometer, 1300);
 });
 
+test('fuel snapshots exclude unrelated vehicles but detect same-vehicle edits and unit changes', async () => {
+  const store = await createStore();
+  const before = store.fuelWriteSnapshot('v1');
+  store.data.vehicles.push({ id: 'v2', currentOdometer: 800 });
+  store.data.logs.push({ id: 'other', vehicleId: 'v2', odometer: 800 });
+  assert.equal(store.fuelWriteSnapshot('v1').signature, before.signature);
+  store.data.logs[0].cost = 10;
+  assert.notEqual(store.fuelWriteSnapshot('v1').signature, before.signature);
+  const updated = store.fuelWriteSnapshot('v1');
+  store.data.settings.units = 'imperial';
+  assert.notEqual(store.fuelWriteSnapshot('v1').signature, updated.signature);
+});
+
 test('deleting the highest log corrects a derived vehicle odometer', async () => {
   const store = await createStore();
   await store.deleteLog('l2');
