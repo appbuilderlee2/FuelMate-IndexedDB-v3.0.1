@@ -291,7 +291,7 @@ const router = {
                 banner = document.createElement('div');
                 banner.id = 'pwa-status-banner';
                 banner.setAttribute('role', 'status');
-                banner.className = 'fixed left-1/2 -translate-x-1/2 z-[100] max-w-[calc(100%-1.5rem)] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold shadow-xl flex items-center gap-3 pointer-events-auto';
+                banner.className = 'fixed left-1/2 -translate-x-1/2 z-[40] max-w-[calc(100%-1.5rem)] rounded-xl bg-slate-900 text-white px-4 py-2 text-xs font-bold shadow-xl flex items-center gap-3 pointer-events-auto';
                 banner.style.maxWidth = 'min(360px, calc(100% - 1.5rem))';
                 banner.style.bottom = 'calc(92px + env(safe-area-inset-bottom, 0px))';
                 document.body.appendChild(banner);
@@ -308,12 +308,34 @@ const router = {
                 button.addEventListener('click', options.onAction, { once: true });
                 banner.appendChild(button);
             }
+            const dismiss = document.createElement('button');
+            dismiss.type = 'button';
+            dismiss.textContent = '×';
+            dismiss.setAttribute('aria-label', store.data.settings.language === 'zh' ? '關閉提示' : 'Dismiss notice');
+            dismiss.className = 'p-2 text-lg';
+            dismiss.addEventListener('click', () => banner.classList.add('hidden'));
+            banner.appendChild(dismiss);
             banner.classList.remove('hidden');
+            clearTimeout(showPwaStatus._timer);
             if (!options.persistent) {
-                clearTimeout(showPwaStatus._timer);
                 showPwaStatus._timer = setTimeout(() => banner.classList.add('hidden'), options.duration || 2200);
             }
         };
+
+        const announceRunningVersion = () => {
+            try {
+                const current = FuelMateVersion.current;
+                const known = localStorage.getItem('fuelmate_latest_running_version') || current;
+                const newer = known.localeCompare(current, undefined, { numeric: true }) > 0;
+                if (!newer) localStorage.setItem('fuelmate_latest_running_version', current);
+                if (newer) showPwaStatus(store.data.settings.language === 'zh'
+                    ? `此視窗仍是 v${current}，其他視窗已使用 v${known}。請先保留輸入，再關閉所有 FuelMate 視窗及重開。`
+                    : `This window runs v${current}; another runs v${known}. Preserve your entry, then close all FuelMate windows and reopen.`, { persistent: true });
+            } catch (_) {}
+        };
+        window.addEventListener('load', announceRunningVersion);
+        window.addEventListener('storage', event => { if (event.key === 'fuelmate_latest_running_version') announceRunningVersion(); });
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') announceRunningVersion(); });
 
         const updateNetworkStatus = () => {
             if (!navigator.onLine) {
@@ -334,8 +356,8 @@ const router = {
                     const notifyWaiting = () => {
                         if (registration.waiting) showPwaStatus(
                             store.data.settings.language === 'zh'
-                                ? '新版已準備好。請先儲存，再關閉所有 FuelMate 視窗並重新開啟。'
-                                : 'Update ready. Save your work, close all FuelMate windows, then reopen.',
+                                ? `此視窗 v${FuelMateVersion.current}，新版已準備好。請先儲存，再關閉所有 FuelMate 視窗並重新開啟。`
+                                : `This window: v${FuelMateVersion.current}. Update ready. Save your work, close all FuelMate windows, then reopen.`,
                             { persistent: true }
                         );
                     };

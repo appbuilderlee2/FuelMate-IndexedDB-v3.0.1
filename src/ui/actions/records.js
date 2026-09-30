@@ -45,7 +45,7 @@ async submitParking(id) {
 deleteLog(id) {
                 const record = store.data.logs.find(log => log.id === id);
                 if (record?.type === 'fuel') {
-                    this._fuelDeleteSnapshot = store.fuelWriteSnapshot();
+                    this._fuelDeleteSnapshot = store.fuelWriteSnapshot(record.vehicleId);
                     this.openModal(`<h2 class="text-xl font-bold mb-4">${utils.t('delete')}</h2><p class="text-sm mb-4">${utils.t('fuel_delete_help')}</p><div class="space-y-3"><button class="w-full p-3 rounded-xl bg-red-50 text-red-700" data-action="ui" data-ui-method="deleteFuelRecord" data-ui-args="${encodeURIComponent(JSON.stringify([id, true]))}">${utils.t('fuel_delete_real')}</button><button class="w-full p-3 rounded-xl border theme-border" data-action="ui" data-ui-method="deleteFuelRecord" data-ui-args="${encodeURIComponent(JSON.stringify([id, false]))}">${utils.t('fuel_delete_error')}</button><button class="w-full p-3" data-action="ui" data-ui-method="closeModal">${utils.t('cancel')}</button></div>`);
                     return;
                 }
@@ -65,6 +65,17 @@ async deleteFuelRecord(id, preserveGap) {
                     await store.deleteLog(id, preserveGap, this._fuelDeleteSnapshot);
                     this.closeModal(); this.render();
                 } catch (error) { alert(utils.t(error?.message === 'fuel_stale' ? 'fuel_stale' : 'fuel_save_failed')); }
+            },
+
+async undoFuelDeletion() {
+                try { await store.undoFuelDeletion(); this.render(); }
+                catch (_) {
+                    const undo = store.getFuelUndo();
+                    const log = undo?.deleted;
+                    let unit = utils.getDistUnit();
+                    try { unit = JSON.parse(undo.before.signature)[2] === 'imperial' ? 'mi' : 'km'; } catch (_) {}
+                    alert(`${utils.t('fuel_undo_changed')}${log ? `\n${log.date} · ${log.odometer} ${unit} · ${log.liters} · ${log.cost}` : ''}`);
+                }
             },
 
 getReminderStateIds(id) {
