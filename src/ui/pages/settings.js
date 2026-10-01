@@ -195,7 +195,6 @@ renderSettings(vehicle) {
                                             </button>`;
                                         }).join('')}
                                     </div>
-                                    <p class="text-xs theme-text-sub mt-2">${settings.language === 'zh' ? '保留所有原有風格；切換不會影響記錄與資料。' : 'All existing styles remain available. Switching keeps your records and data.'}</p>
                                     ${(settings.appearance || '').startsWith('ios-') ? `<div class="ios-display-modes mt-4" role="group" aria-label="${settings.language === 'zh' ? '顯示模式' : 'Color scheme'}">
                                         ${['light', 'dark', 'system'].map((mode, i) => `<button data-testid="ios-mode-${mode}" aria-pressed="${settings.appearance.endsWith('-' + mode)}" data-action="ui" data-ui-method="updateAppearance" data-ui-args="${encodeURIComponent(JSON.stringify([settings.appearance.replace(/-(light|dark|system)$/, '-' + mode)]))}">${(settings.language === 'zh' ? ['淺色', '深色', '跟隨系統'] : ['Light', 'Dark', 'System'])[i]}</button>`).join('')}
                                     </div>` : ''}

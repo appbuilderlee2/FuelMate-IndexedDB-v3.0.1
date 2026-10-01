@@ -54,8 +54,6 @@ openAddFuel(id = null) {
 
                         <details id="l_fuel_details"><summary class="text-sm theme-text-sub">${utils.t('fuel_more_details')}</summary><div class="space-y-4 mt-3">
                         ${!id ? `<label class="flex items-center gap-2 text-sm"><input id="l_backfill" type="checkbox" data-change-action="ui" data-ui-method="refreshFuelTripMode">${utils.t('fuel_backfill')}</label>` : ''}
-                        <details class="text-xs theme-text-sub"><summary>${utils.t('fuel_full_title')}</summary><p class="mt-2">${utils.t('fuel_full_help')}</p></details>
-                        <details class="text-xs theme-text-sub"><summary>${utils.t('fuel_gap_help_title')}</summary><p>${utils.t('missed_fuel_help')} ${utils.t('fuel_backfill_gap_help')}</p></details>
                         <div class="relative">
                              <label class="text-xs theme-text-sub block mb-1">${utils.t('location')}</label>
                              <input id="l_loc" type="text" value="${utils.escapeAttr(log.location || '')}" class="w-full p-3 rounded-xl pr-10">
@@ -63,9 +61,9 @@ openAddFuel(id = null) {
                         </div>
 
                         <div><label for="l_notes" class="text-xs theme-text-sub">${utils.t('notes')}</label><textarea id="l_notes" class="w-full p-3 rounded-xl">${utils.escapeHtml(log.notes || '')}</textarea></div>
-                        <details><summary class="text-sm">${utils.t('meter_convert')}</summary><p class="text-xs theme-text-sub my-2">${utils.t('meter_help')}</p><label class="block text-xs">${utils.t('meter_before')}<input id="l_meter_before" type="number" min="0" class="w-full p-3 rounded-xl"></label><label class="block text-xs">${utils.t('meter_start')}<input id="l_meter_start" type="number" min="0" class="w-full p-3 rounded-xl"></label><label class="block text-xs">${utils.t('meter_now')}<input id="l_meter_now" type="number" min="0" class="w-full p-3 rounded-xl"></label><button class="w-full p-3 rounded-xl border theme-border" data-action="ui" data-ui-method="convertFuelMeter">${utils.t('meter_apply')}</button></details>
+                        <details><summary class="text-sm">${utils.t('meter_convert')}</summary><label class="block text-xs">${utils.t('meter_before')}<input id="l_meter_before" type="number" min="0" class="w-full p-3 rounded-xl"></label><label class="block text-xs">${utils.t('meter_start')}<input id="l_meter_start" type="number" min="0" class="w-full p-3 rounded-xl"></label><label class="block text-xs">${utils.t('meter_now')}<input id="l_meter_now" type="number" min="0" class="w-full p-3 rounded-xl"></label><button class="w-full p-3 rounded-xl border theme-border" data-action="ui" data-ui-method="convertFuelMeter">${utils.t('meter_apply')}</button></details>
                         </div></details>
-                        ${log.missedFuel ? `<label class="flex items-start gap-2 p-3 rounded-xl border theme-border"><input id="l_gap_confirm" type="checkbox" class="w-5 h-5 shrink-0"><span class="text-sm theme-text-heading">${utils.t('gap_clear_confirm')}<span class="block text-xs theme-text-sub mt-1">${utils.t('gap_clear_help')}</span></span></label>` : ''}
+                        ${log.missedFuel ? `<label class="flex items-start gap-2 p-3 rounded-xl border theme-border"><input id="l_gap_confirm" type="checkbox" class="w-5 h-5 shrink-0"><span class="text-sm theme-text-heading">${utils.t('gap_clear_confirm')}</span></label>` : ''}
                         <div class="flex gap-3 mt-4">
                             ${id ? `<button data-action="ui" data-ui-method="deleteLog" data-ui-args="${encodeURIComponent(JSON.stringify([id]))}" class="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold">${utils.t('delete')}</button>` : ''}
                             <button data-testid="save-fuel" data-action="ui" data-ui-method="submitFuel" data-ui-args="${encodeURIComponent(JSON.stringify([id || '']))}" class="flex-1 grad-teal text-white py-3 rounded-xl font-bold shadow-lg">${utils.t('save')}</button>

@@ -375,10 +375,6 @@ test('fuel safety guards protect backfills, duplicates, deletion and stale forms
   await expect(page.getByTestId('modal-overlay')).toBeHidden();
   await expect(page.getByTestId('fuel-gap-notice')).toBeVisible();
   expect(await page.evaluate(() => utils.calculateStats(store.getVehicleLogs('fuel'), 'fuel').efficiency)).toBe('--');
-  await page.getByTestId('fuel-stat-scope').locator('summary').click();
-  await expect(page.getByTestId('fuel-stat-scope').locator('p')).toBeVisible();
-  await page.getByTestId('fuel-stat-scope').locator('summary').click();
-  await expect(page.getByTestId('fuel-stat-scope').locator('p')).toBeHidden();
   expect(errors).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('fuel-gap-safety.png'), fullPage: false });
 });
@@ -424,12 +420,15 @@ test('fuel recovery supports unrelated edits, selected TRIP baselines, undo and 
   await page.getByTestId('add-fuel').click();
   await expect(page.locator('#l_odo')).toHaveValue('1200');
   await page.locator('#l_fuel_details > summary').click();
+  await expect(page.getByText('How to mark a full tank', { exact: true })).toHaveCount(0);
   await page.getByText('Replaced / reset odometer', { exact: true }).click();
+  await expect(page.locator('#l_fuel_details p')).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('fuel-gap-simple-options.png'), fullPage: false });
   await page.locator('#l_meter_before').fill('1200');
   await page.locator('#l_meter_start').fill('0');
   await page.locator('#l_meter_now').fill('50');
   page.once('dialog', dialog => dialog.accept());
-  await page.getByRole('button', { name: 'Convert to lifetime ODO', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply mileage', exact: true }).click();
   await expect(page.locator('#l_odo')).toHaveValue('1250');
   await page.locator('#l_liters').fill('10');
   await page.locator('#l_cost').fill('20');
