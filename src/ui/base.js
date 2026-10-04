@@ -232,6 +232,7 @@ togglePageFlag(pageKey, objectKey, flagKey) {
             },
 
 renderLogCard(log) {
+                if (log.type === 'trip') return `<div data-testid="log-card" data-log-type="trip" class="theme-bg-card p-4 rounded-2xl card-shadow"><div class="font-bold">${this.tripKindLabel(log.tripKind)} · ${(log.odometer-log.startOdometer).toLocaleString(undefined,{maximumFractionDigits:3})} ${utils.getDistUnit()}</div><div class="text-sm theme-text-sub">${utils.formatDate(log.date)} · ${utils.escapeHtml(log.purpose)}</div>${this.drivingButton('openTripForm',utils.t('edit'),log.id)}</div>`;
                 const vehicle = store.data.vehicles.find(v => v.id === log.vehicleId);
                 const date = utils.formatDate(log.date);
                 let icon = 'edit_note';

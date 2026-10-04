@@ -223,7 +223,7 @@
   const supportedLogTypes = Object.freeze([
     'fuel', 'parking', 'service', 'repair', 'tire_replace', 'tire_rotation',
     'periodic_maintenance', 'car_wash', 'car_accessories', 'fine',
-    'license', 'insurance', 'registration',
+    'license', 'insurance', 'registration', 'trip',
   ]);
 
   function validateImportPayload(data, isSafeId) {
@@ -326,6 +326,8 @@
         }
         if (!isNonNegativeNumber(log.cost, { allowEmpty: !['fuel', 'parking'].includes(log.type) })) errors.push('log_invalid_cost');
         if (log.type === 'fuel' && !isNonNegativeNumber(log.liters, { positive: true })) errors.push('log_invalid_fuel_amount');
+        if (log.type === 'trip' && (!isNonNegativeNumber(log.startOdometer) || !isNonNegativeNumber(log.odometer) || Number(log.odometer) <= Number(log.startOdometer) || !['work','private'].includes(log.tripKind) || typeof log.purpose !== 'string' || !log.purpose.trim() || log.purpose.length > 300 || Number(log.cost) !== 0)) errors.push('log_invalid_trip');
+        if (log.maintenanceItems !== undefined && (!Array.isArray(log.maintenanceItems) || log.maintenanceItems.some(item => !['oil_change','transmission_fluid','battery'].includes(item)))) errors.push('log_invalid_maintenance_items');
         if (log.missedFuel !== undefined && typeof log.missedFuel !== 'boolean') errors.push('log_invalid_missed_fuel');
         if (log.expiryDate && !isValidIsoDate(log.expiryDate)) errors.push('log_invalid_expiry_date');
         if (log.type === 'tire_replace' && (log.tirePositions !== undefined || log.tirePosition !== undefined)) {

@@ -439,6 +439,66 @@ test('fuel recovery supports unrelated edits, selected TRIP baselines, undo and 
   await page.screenshot({ path: testInfo.outputPath('fuel-gap-recovery.png'), fullPage: false });
 });
 
+test('vehicle tools support timeline, monthly costs, estimates and mileage CRUD', async ({ page }, testInfo) => {
+  const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+  await openFreshApp(page); await createVehicle(page);
+  await page.evaluate(async()=>{
+    const vehicleId=store.data.settings.activeVehicleId, date=FuelMateCore.localDateKey();
+    for(const l of [
+      {id:'base-fill',type:'fuel',odometer:1000,liters:40,cost:80},
+      {id:'end-fill',type:'fuel',odometer:1500,liters:40,cost:80},
+      {id:'service-tools',type:'service',odometer:1500,cost:100,maintenanceItems:['oil_change','battery']},
+      {id:'insurance-tools',type:'insurance',odometer:1500,cost:600},
+      {id:'parking-tools',type:'parking',odometer:1500,cost:10}
+    ]) await store.addLog({...l,vehicleId,date});
+    ui.render();
+  });
+  await page.getByTestId('nav-maintenance').click();
+  await page.getByTestId('openMaintenanceTimeline').click();
+  await expect(page.getByTestId('maintenance-timeline')).toContainText('1500');
+  await expect(page.getByTestId('maintenance-timeline')).toContainText('Oil Change');
+  await page.evaluate(()=>ui.closeModal());
+  await page.getByTestId('openTrips').click();
+  await page.getByTestId('openTripForm').click();
+  await expect(page.locator('#journey_start')).toHaveValue('1500');
+  await page.locator('#journey_end').fill('1600');
+  await page.locator('#journey_kind').selectOption('work');
+  await page.locator('#journey_purpose').fill('Uber Eats');
+  await page.getByTestId('saveJourney').click();
+  await expect(page.getByTestId('trip-total')).toContainText('100 km');
+  const download=page.waitForEvent('download'); await page.getByTestId('exportTrips').click();
+  expect((await download).suggestedFilename()).toMatch(/fuelmate-mileage/);
+  await page.getByTestId('trip-list').getByTestId('openTripForm').click();
+  await page.locator('#journey_end').fill('1620'); await page.getByTestId('saveJourney').click();
+  await expect(page.getByTestId('trip-total')).toContainText('120 km');
+  await page.locator('#trip_kind_filter').selectOption('private');
+  await expect(page.getByTestId('trip-total')).toContainText('0 km');
+  await page.locator('#trip_kind_filter').selectOption('work');
+  await page.reload(); await page.getByTestId('nav-maintenance').click(); await page.getByTestId('openTrips').click();
+  await expect(page.getByTestId('trip-list')).toContainText('Uber Eats');
+  await page.evaluate(async()=>{ await store.changeDistanceUnits('imperial'); ui.openTrips(); });
+  await expect(page.getByTestId('trip-total')).toContainText('mi');
+  const distance=await page.evaluate(()=>{const l=store.getVehicleLogs('trip')[0];return l.odometer-l.startOdometer;});
+  expect(distance).toBeCloseTo(120*0.621371192237334,2);
+  await page.evaluate(async()=>{ await store.changeDistanceUnits('metric'); ui.openTrips(); });
+  await page.screenshot({path:testInfo.outputPath('fuel-gap-mileage-tools.png'),fullPage:false});
+  await page.getByTestId('trip-list').getByTestId('openTripForm').click();
+  page.once('dialog',d=>d.accept()); await page.getByTestId('deleteJourney').click();
+  await expect(page.getByTestId('trip-total')).toContainText('0 km');
+  await page.evaluate(()=>ui.closeModal()); await page.getByTestId('nav-analytics').click();
+  await page.getByTestId('openMonthlyCosts').click();
+  await expect(page.getByTestId('monthly-total')).toContainText('870.00');
+  await expect(page.locator('[data-cost-category="fuel"]')).toContainText('160.00');
+  await page.screenshot({path:testInfo.outputPath('fuel-gap-monthly-tools.png'),fullPage:false});
+  await page.evaluate(()=>ui.closeModal()); await page.getByTestId('openTripEstimate').click();
+  await expect(page.locator('#estimate_efficiency')).toHaveValue('8.00');
+  await page.locator('#estimate_distance').fill('100'); await page.getByTestId('calculateTripEstimate').click();
+  await expect(page.locator('#estimate_result')).toContainText('16.00');
+  await page.locator('#estimate_return').check(); await page.getByTestId('calculateTripEstimate').click();
+  await expect(page.locator('#estimate_result')).toContainText('32.00');
+  expect(errors).toEqual([]);
+});
+
 test('unit switch preserves physical mileage and filtered analytics charts', async ({ page }, testInfo) => {
   await openFreshApp(page);
   await createVehicle(page);
