@@ -583,6 +583,7 @@
                 const rows = [['Date', 'Type', `Odometer (${utils.getDistUnit()})`, `Cost (${store.data.settings.currency})`, 'Details']];
                 logs.forEach(l => {
                     let details = l.notes || '';
+                    if (l.type === 'trip') details = `${l.tripKind}: ${l.purpose}; ${l.startOdometer} → ${l.odometer} ${utils.getDistUnit()}`;
                     if (l.type === 'fuel') {
                         const tank = l.isPartial ? utils.t('partial') : utils.t('full');
                         details = `${l.liters}${fuelUnit}, ${tank}${l.missedFuel ? ', ' + utils.t('missed_fuel') : ''}${l.notes ? ', ' + l.notes : ''}`;

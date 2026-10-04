@@ -251,6 +251,7 @@
                 const nextLogs = this.data.logs.map(log => ({
                     ...log,
                     odometer: convert(log.odometer),
+                    ...(log.type === 'trip' ? { startOdometer: convert(log.startOdometer) } : {}),
                     tireRemainingDist: convert(log.tireRemainingDist),
                     ...(log.tireDetails && typeof log.tireDetails === 'object' && !Array.isArray(log.tireDetails)
                         ? { tireDetails: Object.fromEntries(Object.entries(log.tireDetails).map(([position, details]) => [position,

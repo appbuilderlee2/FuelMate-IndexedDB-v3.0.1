@@ -366,6 +366,7 @@ openAddService(id = null, defaultType = 'service') {
                                  <button onclick="utils.detectLocation(l => document.getElementById('l_loc').value=l)" class="absolute right-3 top-8 text-teal-500"><span class="material-icons">my_location</span></button>
                             </div>
 
+                            <div class="flex flex-wrap gap-3 mb-3" data-testid="maintenance-items">${['oil_change','transmission_fluid','battery'].map(item=>`<label class="flex gap-1 items-center text-sm"><input type="checkbox" name="maintenance_items" value="${item}" ${(log.maintenanceItems || []).includes(item)?'checked':''}>${utils.t(item)}</label>`).join('')}</div>
                             <div id="quick_tags" class="flex flex-wrap gap-2 mb-2">
                                 ${quickTags.map(t => `<button onclick="document.getElementById('l_notes').value += (document.getElementById('l_notes').value ? ', ' : '') + '${utils.t(t)}'" class="text-[10px] bg-slate-100 px-2 py-1 rounded-full border hover:bg-teal-50 hover:text-teal-600 transition">+ ${utils.t(t)}</button>`).join('')}
                             </div>
@@ -456,6 +457,7 @@ openLogEditorById(id) {
                 if (!log) return;
                 if (log.type === 'fuel') return this.openAddFuel(log.id);
                 if (log.type === 'parking') return this.openAddParking(log.id);
+                if (log.type === 'trip') return this.openTripForm(log.id);
                 return this.openAddService(log.id);
             },
 
@@ -548,6 +550,7 @@ async submitService(id) {
                     location: isDoc ? '' : document.getElementById('l_loc').value.trim(),
                     notes: isDoc ? '' : document.getElementById('l_notes').value.trim(),
                     expiryDate,
+                    maintenanceItems: ['service','repair','periodic_maintenance'].includes(type) ? Array.from(document.querySelectorAll?.('input[name="maintenance_items"]:checked') || []).map(el => el.value) : [],
                     // Keep the original single-position fields for old readers,
                     // while storing all selected positions in one replacement event.
                     tirePosition: isTireReplace ? selectedTirePositions[0] : undefined,
