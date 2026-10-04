@@ -90,7 +90,7 @@ renderMaintenance(vehicle) {
                     `maintenance|${store.data.settings.language || 'en'}|${filter.mode}:${filter.value}|${from}|${to}|${typeKey}|${query}`,
                     () => {
                         const logs = store.getVehicleLogs();
-                        let out = logs.filter(l => l.type !== 'fuel' && l.type !== 'parking');
+                        let out = logs.filter(l => !['fuel','parking','trip'].includes(l.type));
                         out = utils.filterLogs(out, filter);
                         out = utils.filterByDateRange(out, from, to);
                         if (selectedTypes.length) out = out.filter(l => selectedTypes.includes(l.type));
@@ -119,6 +119,7 @@ renderMaintenance(vehicle) {
                         <div class="flex justify-between items-center mb-2">
                              <h1 class="text-3xl font-black theme-text-heading">${utils.t('maintenance')}</h1>
                         </div>
+                        <div class="grid grid-cols-2 gap-2 mb-4">${this.drivingButton('openMaintenanceTimeline',this.drivingText('保養時間線','Maintenance timeline'))}${this.drivingButton('openTrips',this.drivingText('里程紀錄','Mileage log'))}</div>
                         <div class="mb-4">${this.renderFilterHeader('maintenance', filter)}</div>
 
                         ${ui.renderSearchPanel({
@@ -341,6 +342,7 @@ renderAnalytics(vehicle) {
                         <div class="flex justify-between items-center mb-6">
                              <h1 class="text-3xl font-black theme-text-heading">${utils.t('analytics')}</h1>
                         </div>
+                        <div class="grid grid-cols-2 gap-2 mb-4">${this.drivingButton('openMonthlyCosts',this.drivingText('每月養車成本','Monthly costs'))}${this.drivingButton('openTripEstimate',this.drivingText('行程估算','Trip estimate'))}</div>
                         <div class="mb-4">${this.renderFilterHeader('analytics', filter)}</div>
 
                         ${ui.renderSearchPanel({

@@ -25,6 +25,7 @@ const runtimeFiles = [
   'ui/actions/records.js',
   'ui/actions/data.js',
   'ui/actions/dialogs.js',
+  'ui/actions/driving.js',
   'main.js',
 ];
 
