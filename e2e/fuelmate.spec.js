@@ -481,7 +481,8 @@ test('vehicle tools support timeline, monthly costs, estimates and mileage CRUD'
   const distance=await page.evaluate(()=>{const l=store.getVehicleLogs('trip')[0];return l.odometer-l.startOdometer;});
   expect(distance).toBeCloseTo(120*0.621371192237334,2);
   await page.evaluate(async()=>{ await store.changeDistanceUnits('metric'); ui.openTrips(); });
-  await page.screenshot({path:testInfo.outputPath('fuel-gap-mileage-tools.png'),fullPage:false});
+  await expect(page.locator('#modal-overlay')).toHaveCSS('opacity', '1');
+  await page.screenshot({animations:'disabled',path:testInfo.outputPath('fuel-gap-mileage-tools.png'),fullPage:false});
   await page.getByTestId('trip-list').getByTestId('openTripForm').click();
   page.once('dialog',d=>d.accept()); await page.getByTestId('deleteJourney').click();
   await expect(page.getByTestId('trip-total')).toContainText('0 km');
@@ -489,7 +490,8 @@ test('vehicle tools support timeline, monthly costs, estimates and mileage CRUD'
   await page.getByTestId('openMonthlyCosts').click();
   await expect(page.getByTestId('monthly-total')).toContainText('870.00');
   await expect(page.locator('[data-cost-category="fuel"]')).toContainText('160.00');
-  await page.screenshot({path:testInfo.outputPath('fuel-gap-monthly-tools.png'),fullPage:false});
+  await expect(page.locator('#modal-overlay')).toHaveCSS('opacity', '1');
+  await page.screenshot({animations:'disabled',path:testInfo.outputPath('fuel-gap-monthly-tools.png'),fullPage:false});
   await page.evaluate(()=>ui.closeModal()); await page.getByTestId('openTripEstimate').click();
   await expect(page.locator('#estimate_efficiency')).toHaveValue('8.00');
   await page.locator('#estimate_distance').fill('100'); await page.getByTestId('calculateTripEstimate').click();
