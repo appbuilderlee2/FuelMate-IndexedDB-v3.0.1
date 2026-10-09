@@ -35,10 +35,10 @@ openAddFuel(id = null) {
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
-                            <div><label class="text-xs theme-text-sub block mb-1">${volLabel}</label><input id="l_liters" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.liters)}" data-input-action="ui" data-ui-method="calcFuel" data-ui-args="${encodeURIComponent(JSON.stringify(['vol']))}" class="w-full p-3 rounded-xl"></div>
-                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('price_unit')}</label><input id="l_price" type="number" min="0" step="0.01" data-input-action="ui" data-ui-method="calcFuel" data-ui-args="${encodeURIComponent(JSON.stringify(['price']))}" class="w-full p-3 rounded-xl bg-slate-50"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">${volLabel}</label><input id="l_liters" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.liters)}" data-input-action="ui" data-change-action="ui" data-ui-method="calcFuel" data-ui-args="${encodeURIComponent(JSON.stringify(['vol']))}" class="w-full p-3 rounded-xl"></div>
+                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('price_unit')}</label><input id="l_price" type="number" min="0" step="0.001" inputmode="decimal" data-input-action="ui" data-change-action="ui" data-ui-method="calcFuel" data-ui-args="${encodeURIComponent(JSON.stringify(['price']))}" class="w-full p-3 rounded-xl bg-slate-50"></div>
                         </div>
-                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.cost)}" data-input-action="ui" data-ui-method="calcFuel" data-ui-args="${encodeURIComponent(JSON.stringify(['cost']))}" class="w-full p-3 rounded-xl"></div>
+                        <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.cost)}" data-input-action="ui" data-change-action="ui" data-ui-method="calcFuel" data-ui-args="${encodeURIComponent(JSON.stringify(['cost']))}" class="w-full p-3 rounded-xl"></div>
 
                         <div class="flex items-center gap-2 bg-amber-50 p-3 rounded-xl">
                             <input type="checkbox" id="l_partial" class="w-5 h-5 text-teal-600 rounded" ${log.isPartial?'checked':''}>
@@ -72,7 +72,7 @@ openAddFuel(id = null) {
                 `);
                 // Init calc
                 this.refreshFuelTripMode();
-                setTimeout(() => ui.calcFuel('init'), 100);
+                this.calcFuel('init');
             },
 
 getFuelDraft() {
@@ -244,6 +244,7 @@ calcFuel(trigger) {
                 const costEl = document.getElementById('l_cost');
                 const priceEl = document.getElementById('l_price');
 
+                if (!litersEl || !costEl || !priceEl) return;
                 const vol = parseFloat(litersEl.value) || 0;
                 const cost = parseFloat(costEl.value) || 0;
                 const price = parseFloat(priceEl.value) || 0;
@@ -264,6 +265,20 @@ calcFuel(trigger) {
                     else if (!cost && vol > 0 && price > 0) compute('cost');
                     else if (!vol && cost > 0 && price > 0) compute('liters');
                     return;
+                }
+
+                // Restored/autofilled values are valid sources even without input history.
+                // Fill the sole blank first; never replace a populated source with stale history.
+                const fields = { liters: litersEl, cost: costEl, price: priceEl };
+                const values = { liters: vol, cost, price };
+                const blanks = Object.keys(fields).filter(k => fields[k].value === '');
+                if (blanks.length === 1 && blanks[0] !== (trigger === 'vol' ? 'liters' : trigger)) {
+                    const sources = Object.keys(fields).filter(k => k !== blanks[0]);
+                    if (sources.every(k => Number.isFinite(values[k]) && values[k] > 0)) {
+                        this._fuelCalcLast = sources;
+                        compute(blanks[0]);
+                        return;
+                    }
                 }
 
                 // Input logic: last 2 edited fields determine the 3rd.
