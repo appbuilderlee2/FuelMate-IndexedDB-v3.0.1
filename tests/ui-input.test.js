@@ -394,3 +394,11 @@ test('fuel calculation ignores cleared inputs and updates the missing volume', a
   ui.calcFuel('cost');
   assert.equal(getElement('l_liters').value, '40.00');
 });
+
+test('clearing a field does not immediately refill it while typing', async () => {
+  const { ui, getElement } = await createUiHarness();
+  getElement('l_liters').value = '40';
+  getElement('l_price').value = '2';
+  ui.calcFuel('cost');
+  assert.equal(getElement('l_cost').value, '');
+});

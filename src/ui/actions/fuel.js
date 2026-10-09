@@ -272,7 +272,7 @@ calcFuel(trigger) {
                 const fields = { liters: litersEl, cost: costEl, price: priceEl };
                 const values = { liters: vol, cost, price };
                 const blanks = Object.keys(fields).filter(k => fields[k].value === '');
-                if (blanks.length === 1) {
+                if (blanks.length === 1 && blanks[0] !== (trigger === 'vol' ? 'liters' : trigger)) {
                     const sources = Object.keys(fields).filter(k => k !== blanks[0]);
                     if (sources.every(k => Number.isFinite(values[k]) && values[k] > 0)) {
                         this._fuelCalcLast = sources;
