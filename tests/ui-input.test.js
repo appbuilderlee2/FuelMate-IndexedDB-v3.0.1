@@ -374,3 +374,31 @@ test('vehicle edit preserves service baselines and new vehicles establish them',
   assert.equal(saved[1].maintenanceBaselineOdometer, 110000);
   assert.equal(saved[1].maintenanceBaselineDate, '2026-09-26');
 });
+
+for (const first of ['price', 'cost']) {
+  test(`fuel volume uses price and cost when ${first} was restored or autofilled`, async () => {
+    const { ui, getElement } = await createUiHarness();
+    getElement('l_price').value = '1.899';
+    getElement('l_cost').value = '75';
+    ui.calcFuel(first === 'price' ? 'cost' : 'price');
+    assert.equal(getElement('l_liters').value, '39.49');
+  });
+}
+
+test('fuel calculation ignores cleared inputs and updates the missing volume', async () => {
+  const { ui, getElement } = await createUiHarness();
+  ui.calcFuel('vol');
+  getElement('l_price').value = '2';
+  ui.calcFuel('price');
+  getElement('l_cost').value = '80';
+  ui.calcFuel('cost');
+  assert.equal(getElement('l_liters').value, '40.00');
+});
+
+test('clearing a field does not immediately refill it while typing', async () => {
+  const { ui, getElement } = await createUiHarness();
+  getElement('l_liters').value = '40';
+  getElement('l_price').value = '2';
+  ui.calcFuel('cost');
+  assert.equal(getElement('l_cost').value, '');
+});

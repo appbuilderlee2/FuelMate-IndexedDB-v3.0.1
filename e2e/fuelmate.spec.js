@@ -690,3 +690,47 @@ test('reloads the cached app shell while the browser is offline', async ({ page,
     await context.setOffline(false);
   }
 });
+
+test('price and amount calculate volume in both orders and after restoring a draft', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.getByTestId('nav-fuel').click();
+  await page.getByTestId('add-fuel').click();
+  await page.locator('#l_price').fill('1.899');
+  await page.locator('#l_cost').fill('75');
+  await expect(page.locator('#l_liters')).toHaveValue('39.49');
+  await page.locator('#l_cost').fill('94.95');
+  await expect(page.locator('#l_liters')).toHaveValue('50.00');
+  await page.reload();
+  await page.getByTestId('nav-fuel').click();
+  await page.getByTestId('add-fuel').click();
+  await page.getByTestId('restore-fuel-draft').click();
+  await expect(page.locator('#l_price')).toHaveValue('1.899');
+  // Reproduce a partially completed draft, with only price already present.
+  await page.evaluate(() => {
+    document.getElementById('l_liters').value = '';
+    document.getElementById('l_cost').value = '';
+  });
+  await page.locator('#l_cost').fill('75');
+  await expect(page.locator('#l_liters')).toHaveValue('39.49');
+  await page.reload();
+  await page.getByTestId('nav-fuel').click();
+  await page.getByTestId('add-fuel').click();
+  await page.locator('#l_cost').fill('80');
+  await page.locator('#l_price').fill('2');
+  await expect(page.locator('#l_liters')).toHaveValue('40.00');
+  // Some autofill paths only dispatch change.
+  await page.evaluate(() => {
+    document.getElementById('l_price').value = '4';
+    document.getElementById('l_price').dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(page.locator('#l_liters')).toHaveValue('20.00');
+  await page.locator('#l_odo').fill('1400');
+  await page.getByTestId('save-fuel').click();
+  await expect(page.getByTestId('modal-overlay')).toBeHidden();
+  await page.reload();
+  expect(await page.evaluate(() => Number(store.data.logs.find(l => l.type === 'fuel').liters))).toBe(20);
+  expect(errors).toEqual([]);
+});
