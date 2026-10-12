@@ -244,3 +244,16 @@ test('validates multi-position tire replacement imports without changing the sch
   }, safeId);
   assert.ok(invalid.errors.includes('log_invalid_tire_replacement'));
 });
+
+test('same-day fuel efficiency is independent of display and insertion order', () => {
+  const rows = [
+    { id: 'base', date: '2026-10-09', odometer: 117792, liters: 23.59 },
+    { id: 'first', date: '2026-10-11', odometer: 118100, liters: 20.4 },
+    { id: 'second', date: '2026-10-11', odometer: 118240, liters: 11.64 },
+    { id: 'third', date: '2026-10-11', odometer: 118505, liters: 16.71 },
+  ].map(log => ({ type: 'fuel', cost: 40, ...log }));
+  const expected = buildFuelEfficiencySegments(rows);
+  assert.deepEqual(expected.map(s => [s.logId, s.distance]), [['first', 308], ['second', 140], ['third', 265]]);
+  assert.deepEqual(buildFuelEfficiencySegments([...rows].reverse()), expected);
+  assert.deepEqual(buildFuelEfficiencySegments([rows[2], rows[0], rows[3], rows[1]]), expected);
+});
