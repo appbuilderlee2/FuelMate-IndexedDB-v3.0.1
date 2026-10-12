@@ -734,3 +734,27 @@ test('price and amount calculate volume in both orders and after restoring a dra
   expect(await page.evaluate(() => Number(store.data.logs.find(l => l.type === 'fuel').liters))).toBe(20);
   expect(errors).toEqual([]);
 });
+
+test('same-day fuel cards remain newest-mileage-first after reload', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.evaluate(async () => {
+    const vehicleId = store.data.settings.activeVehicleId;
+    const date = FuelMateCore.localDateKey();
+    for (const [id, odometer, liters] of [['first', 118100, 20.4], ['second', 118240, 11.64], ['third', 118505, 16.71]]) {
+      await store.addLog({ id, vehicleId, type: 'fuel', date, odometer, liters, cost: 40 });
+    }
+  });
+  for (const reload of [false, true]) {
+    if (reload) await page.reload();
+    await page.getByTestId('nav-fuel').click();
+    const cards = page.locator('[data-testid="log-card"][data-log-type="fuel"]');
+    await expect(cards).toHaveCount(3);
+    for (const [index, mileage] of ['118505', '118240', '118100'].entries()) {
+      await expect(cards.nth(index)).toContainText(mileage);
+    }
+  }
+  expect(errors).toEqual([]);
+});

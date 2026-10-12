@@ -216,3 +216,30 @@ test('failed distance conversion preserves records and units in memory', async (
   await assert.rejects(() => store.changeDistanceUnits('imperial'), /write failed/);
   assert.equal(JSON.stringify(store.data), before);
 });
+
+ test('same-day logs sort by descending mileage regardless of insertion order', async () => {
+  const store = await createStore();
+  const rows = [
+    { id: 'low', date: '2026-10-11', odometer: 118100 },
+    { id: 'middle', date: '2026-10-11', odometer: '118240' },
+    { id: 'high', date: '2026-10-11', odometer: 118505 },
+    { id: 'older', date: '2026-10-09', odometer: 117792 },
+  ].map(log => ({ vehicleId: 'v1', type: 'fuel', ...log }));
+  for (const input of [rows, [...rows].reverse(), [rows[2], rows[0], rows[3], rows[1]]]) {
+    store.data.logs = input;
+    store._invalidateLogsCache();
+    for (const type of [null, 'fuel']) {
+      assert.deepEqual(Array.from(store.getVehicleLogs(type), l => l.id), ['high', 'middle', 'low', 'older']);
+    }
+    assert.deepEqual(store.data.logs, input);
+  }
+});
+
+test('same-date equal and missing mileages have stable ordering', async () => {
+  const store = await createStore();
+  store.data.logs = [
+    { id: 'b', odometer: 1000 }, { id: 'missing' },
+    { id: 'a', odometer: 1000 }, { id: 'zero', odometer: 0 },
+  ].map(log => ({ date: '2026-10-11', vehicleId: 'v1', type: 'fuel', ...log }));
+  assert.deepEqual(Array.from(store.getVehicleLogs(), l => l.id), ['a', 'b', 'zero', 'missing']);
+});
