@@ -573,7 +573,10 @@
                 if (cached) return cached;
                 let logs = this.data.logs.filter(l => l.vehicleId === vehicleId);
                 if (type) logs = logs.filter(l => l.type === type);
-                logs = logs.sort((a, b) => new Date(b.date) - new Date(a.date)); // Newest first
+                // Newest date first; date-only entries on the same day follow mileage.
+                // Missing mileage sorts last and IDs make exact ties stable after reload/import.
+                const mileage = log => log.odometer !== null && log.odometer !== undefined && log.odometer !== '' && Number.isFinite(Number(log.odometer)) ? Number(log.odometer) : -1;
+                logs = logs.sort((a, b) => (new Date(b.date).getTime() - new Date(a.date).getTime()) || mileage(b) - mileage(a) || String(a.id).localeCompare(String(b.id)));
                 this._cache.logsSorted.set(key, logs);
                 return logs;
             }
