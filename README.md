@@ -5,6 +5,7 @@
 - 修正 iOS JSON 備份、CSV（包括行程）及日曆匯出：統一寫入原生暫存檔，再開啟分享選單，可儲存至「檔案」或 AirDrop；網頁仍使用瀏覽器下載，備份確認會等待分享結束。
 - iOS 補上相機及相片圖庫用途說明，供發票照片拍攝／選取使用。
 - iOS 補上使用 App 期間的位置用途說明，供偵測及填寫紀錄地點使用。
+- 修正切換車輛時的畫面更新時序：立即更新首頁及捲回頂端，再等待 IndexedDB 寫入，避免儲存延遲期間停留於舊畫面。
 
 - 新增 Capacitor 8 iOS App「FuelMate」（`com.appbuilderlee2.fuelmate`），以 Swift Package Manager 管理原生依賴，毋須 CocoaPods；最低 iOS 16，以支援 CSS `@layer`。
 - 原生版以固定 `capacitor://localhost` 載入內置資源，可離線使用；跳過 Service Worker 註冊，保留網頁版完整離線資源雜湊封裝。GitHub Pages 的 base 路徑不變。
