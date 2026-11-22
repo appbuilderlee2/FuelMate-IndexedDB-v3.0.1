@@ -1,5 +1,32 @@
 // --- UTILS ---
         const utils = {
+            async downloadBlob(blob, filename) {
+                const capacitor = globalThis.Capacitor;
+                if (capacitor?.isNativePlatform()) {
+                    const filesystem = capacitor.Plugins.Filesystem || capacitor.registerPlugin('Filesystem');
+                    const share = capacitor.Plugins.Share || capacitor.registerPlugin('Share');
+                    const data = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(String(reader.result).split(',')[1]);
+                        reader.onerror = () => reject(reader.error);
+                        reader.readAsDataURL(blob);
+                    });
+                    const { uri } = await filesystem.writeFile({
+                        path: filename, data, directory: 'CACHE',
+                    });
+                    await share.share({ files: [uri] });
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.append(a);
+                    a.click();
+                    a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 60000);
+                }
+                return filename;
+            },
             escapeHtml(value) {
                 return FuelMateSecurity.escapeHtml(value);
             },
@@ -592,11 +619,7 @@
                 });
                 const csv = rows.map(r => r.map(utils.csvEscape).join(',')).join('\n') + '\n';
                 const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `fuelmate_export_${FuelMateCore.localDateKey()}.csv`;
-                a.click();
+                return utils.downloadBlob(blob, `fuelmate_export_${FuelMateCore.localDateKey()}.csv`);
             },
             
             exportCalendar(type, alarmDays) {
@@ -628,11 +651,7 @@ ${alarmBlock}END:VEVENT
 END:VCALENDAR`;
 
                 const blob = new Blob([ics], { type: 'text/calendar' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `fuelmate_${type}.ics`;
-                a.click();
+                return utils.downloadBlob(blob, `fuelmate_${type}.ics`);
             },
 
             exportDateCalendar(title, isoDate, alarmDays = null) {
@@ -654,11 +673,7 @@ SUMMARY:${title}
 ${alarmBlock}END:VEVENT
 END:VCALENDAR`;
                 const blob = new Blob([ics], { type: 'text/calendar' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `fuelmate_reminder_${dateStr}.ics`;
-                a.click();
+                return utils.downloadBlob(blob, `fuelmate_reminder_${dateStr}.ics`);
             },
             formatFileSize(bytes) {
                 const b = Number(bytes) || 0;

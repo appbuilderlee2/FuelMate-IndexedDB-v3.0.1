@@ -2,6 +2,8 @@
 
 ## v4.6.0 更新內容（目前版本）
 
+- 修正 iOS JSON 備份、CSV（包括行程）及日曆匯出：統一寫入原生暫存檔，再開啟分享選單，可儲存至「檔案」或 AirDrop；網頁仍使用瀏覽器下載，備份確認會等待分享結束。
+
 - 新增 Capacitor 8 iOS App「FuelMate」（`com.appbuilderlee2.fuelmate`），以 Swift Package Manager 管理原生依賴，毋須 CocoaPods；最低 iOS 15。
 - 原生版以固定 `capacitor://localhost` 載入內置資源，可離線使用；跳過 Service Worker 註冊，保留網頁版完整離線資源雜湊封裝。GitHub Pages 的 base 路徑不變。
 - `npm ci` 後執行 `npm run build:ios` 建置及同步 iOS；執行 `./scripts/build_ipa.sh` 產生 `dist/FuelMate-unsigned.ipa`（需要 macOS、Xcode 及首次下載 SPM 套件的網絡）。
