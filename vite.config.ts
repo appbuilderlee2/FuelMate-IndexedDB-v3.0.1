@@ -2,9 +2,9 @@ import path from 'path';
 import { defineConfig } from 'vite';
 
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
     return {
-      base: '/FuelMate-IndexedDB-v3.0.1/',
+      base: mode === 'ios' ? './' : '/FuelMate-IndexedDB-v3.0.1/',
       server: {
         port: 3000,
         host: '0.0.0.0',

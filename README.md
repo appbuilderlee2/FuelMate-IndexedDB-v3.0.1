@@ -1,6 +1,15 @@
-# FuelMate IndexedDB v4.5.2
+# FuelMate IndexedDB v4.6.0
 
-## v4.5.2 更新內容（目前版本）
+## v4.6.0 更新內容（目前版本）
+
+- 新增 Capacitor 8 iOS App「FuelMate」（`com.appbuilderlee2.fuelmate`），以 Swift Package Manager 管理原生依賴，毋須 CocoaPods；最低 iOS 15。
+- 原生版以固定 `capacitor://localhost` 載入內置資源，可離線使用；跳過 Service Worker 註冊，保留網頁版完整離線資源雜湊封裝。GitHub Pages 的 base 路徑不變。
+- `npm ci` 後執行 `npm run build:ios` 建置及同步 iOS；執行 `./scripts/build_ipa.sh` 產生 `dist/FuelMate-unsigned.ipa`（需要 macOS、Xcode 及首次下載 SPM 套件的網絡）。
+- 未簽署 IPA **不能直接安裝**：請用 Sideloadly／AltStore 配合自己的 Apple ID 重新簽署，或在 Xcode 使用 Apple Developer 帳戶設定簽署後安裝／發佈；不同工具及帳戶的有效期與限制依 Apple 規定。
+- iOS 測試：`xcodebuild -project ios/App/App.xcodeproj -scheme App -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' test`。網頁測試及建置仍使用 `npm test`、`npm run typecheck`、`npm run build`。
+- 版本 4.6.0，設定／關於共用版本，網頁離線 cache v45。IndexedDB schema 不變；原生 App 與 Safari／PWA 分屬不同儲存空間，現有資料請經 JSON 備份匯出／匯入轉移，移除 App 會刪除其本機資料。
+
+## v4.5.2 更新內容
 
 - 修正同日多筆入油紀錄排序：日期由新至舊，同日按里程由高至低；首頁／記錄頁共用相同排序。相同日期及里程按 ID 穩定排序，缺少里程的紀錄排在該日有里程紀錄之後。
 - 現有紀錄只儲存日期，不推測或新增實際入油時間。油耗仍按里程遞增建立加油週期，舊資料與 IndexedDB 格式不變。

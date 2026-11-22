@@ -349,7 +349,7 @@ const router = {
         window.addEventListener('online', updateNetworkStatus);
         if (!navigator.onLine) updateNetworkStatus();
 
-        if ('serviceWorker' in navigator) {
+        if (location.protocol !== 'capacitor:' && 'serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
                 try {
                     const registration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
