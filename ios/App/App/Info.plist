@@ -24,6 +24,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>拍攝發票以識別加油或車輛支出。Take invoice photos to recognize fuel or vehicle expenses.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>選取發票照片以識別加油或車輛支出。Select invoice photos to recognize fuel or vehicle expenses.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -3,6 +3,7 @@
 ## v4.6.0 更新內容（目前版本）
 
 - 修正 iOS JSON 備份、CSV（包括行程）及日曆匯出：統一寫入原生暫存檔，再開啟分享選單，可儲存至「檔案」或 AirDrop；網頁仍使用瀏覽器下載，備份確認會等待分享結束。
+- iOS 補上相機及相片圖庫用途說明，供發票照片拍攝／選取使用。
 
 - 新增 Capacitor 8 iOS App「FuelMate」（`com.appbuilderlee2.fuelmate`），以 Swift Package Manager 管理原生依賴，毋須 CocoaPods；最低 iOS 15。
 - 原生版以固定 `capacitor://localhost` 載入內置資源，可離線使用；跳過 Service Worker 註冊，保留網頁版完整離線資源雜湊封裝。GitHub Pages 的 base 路徑不變。
