@@ -26,8 +26,13 @@ final class FuelMateUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.webViews.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "NativeTest Offline")).firstMatch.waitForExistence(timeout: 30))
         app.webViews.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Settings")).firstMatch.tap()
-        app.webViews.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Backup Data (JSON)")).firstMatch.tap()
-        XCTAssertTrue(app.buttons["Copy"].waitForExistence(timeout: 15))
+        let backup = app.webViews.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Backup Data (JSON)")).firstMatch
+        for _ in 0..<6 {
+            if backup.frame.maxY < app.frame.height - 100 { break }
+            app.webViews.firstMatch.swipeUp()
+        }
+        backup.tap()
+        XCTAssertTrue(app.otherElements["ActivityListView"].waitForExistence(timeout: 15))
         let shareScreenshot = XCTAttachment(screenshot: app.screenshot())
         shareScreenshot.name = "FuelMate backup share sheet"
         shareScreenshot.lifetime = .keepAlways
