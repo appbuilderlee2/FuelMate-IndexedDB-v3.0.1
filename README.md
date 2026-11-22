@@ -6,7 +6,7 @@
 - iOS 補上相機及相片圖庫用途說明，供發票照片拍攝／選取使用。
 - iOS 補上使用 App 期間的位置用途說明，供偵測及填寫紀錄地點使用。
 
-- 新增 Capacitor 8 iOS App「FuelMate」（`com.appbuilderlee2.fuelmate`），以 Swift Package Manager 管理原生依賴，毋須 CocoaPods；最低 iOS 15。
+- 新增 Capacitor 8 iOS App「FuelMate」（`com.appbuilderlee2.fuelmate`），以 Swift Package Manager 管理原生依賴，毋須 CocoaPods；最低 iOS 16，以支援 CSS `@layer`。
 - 原生版以固定 `capacitor://localhost` 載入內置資源，可離線使用；跳過 Service Worker 註冊，保留網頁版完整離線資源雜湊封裝。GitHub Pages 的 base 路徑不變。
 - `npm ci` 後執行 `npm run build:ios` 建置及同步 iOS；執行 `./scripts/build_ipa.sh` 產生 `dist/FuelMate-unsigned.ipa`（需要 macOS、Xcode 及首次下載 SPM 套件的網絡）。
 - 未簽署 IPA **不能直接安裝**：請用 Sideloadly／AltStore 配合自己的 Apple ID 重新簽署，或在 Xcode 使用 Apple Developer 帳戶設定簽署後安裝／發佈；不同工具及帳戶的有效期與限制依 Apple 規定。
