@@ -24,7 +24,7 @@ Object.assign(ui, {
                         <div class="flex items-center justify-between gap-3 mb-3"><span class="font-bold theme-text-heading">${label}</span>
                         <button type="button" data-testid="notification-rule-${type}" data-action="ui" data-ui-method="toggleNotificationRule" data-ui-args="${encodeURIComponent(JSON.stringify([type]))}" aria-label="${label}" aria-pressed="${rule.enabled}" class="w-12 h-7 rounded-full relative shrink-0 ${rule.enabled ? 'bg-teal-500' : 'bg-slate-300'}"><span class="w-5 h-5 bg-white rounded-full absolute top-1 ${rule.enabled ? 'left-6' : 'left-1'}"></span></button></div>
                         <label class="flex items-center justify-between gap-3 text-sm theme-text-sub">${utils.t('notification_advance')}
-                        <select data-testid="notification-days-${type}" data-change-action="ui" data-ui-method="updateNotificationDays" data-ui-args="${encodeURIComponent(JSON.stringify([type]))}" data-ui-pass-value="true" class="p-2 rounded-xl theme-text-heading">
+                        <select aria-label="${label} ${utils.t('notification_advance')}" data-testid="notification-days-${type}" data-change-action="ui" data-ui-method="updateNotificationDays" data-ui-args="${encodeURIComponent(JSON.stringify([type]))}" data-ui-pass-value="true" class="p-2 rounded-xl theme-text-heading">
                         ${[...new Set([0, 1, 7, 30, rule.days])].sort((a,b) => a-b).map(days => `<option value="${days}" ${days === rule.days ? 'selected' : ''}>${days === 0 ? utils.t('notification_on_day') : `${days} ${utils.t('days_before')}`}</option>`).join('')}</select></label>
                     </div>`;
                 }).join('')}

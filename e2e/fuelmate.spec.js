@@ -33,7 +33,10 @@ test('notification rules open from Settings and Reminder Center and persist', as
   await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
   await expect(page.getByTestId('native-notifications-toggle')).toHaveCount(0);
   await expect(page.getByTestId('notification-permission')).toContainText('require the iOS app');
-  await page.getByTestId('notification-days-tires').selectOption('7');
+  for (const category of ['Tires', 'Service', 'License Renewal', 'Insurance Renewal', 'Vehicle Registration', 'Backup']) {
+    await expect(page.getByRole('combobox', { name: `${category} Advance notice`, exact: true })).toHaveCount(1);
+  }
+  await page.getByRole('combobox', { name: 'Tires Advance notice', exact: true }).selectOption('7');
   await page.getByTestId('notification-time').fill('08:30');
   await page.getByTestId('notification-time').blur();
   await page.getByTestId('notification-repeat').selectOption('daily');
