@@ -56,18 +56,18 @@
                 ? FuelMateCore.localDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + item.remainingDays))
                 : null);
             const snooze = ids.map(id => center.snoozedUntil?.[id] || state.snoozedUntil?.[id])
-                .filter(Boolean).map(value => new Date(value)).filter(date => date > now).sort((a, b) => b - a)[0];
+                .filter(Boolean).map(value => new Date(value)).filter(date => Number.isFinite(date.getTime())).sort((a, b) => b - a)[0];
             const due = localMorning(dueDate, 0, time);
             const distanceDue = Number.isFinite(item.remainingKm) && item.remainingKm <= 0;
             const overdue = distanceDue || (due && due <= now) || (!due && Number.isFinite(item.remainingDays) && item.remainingDays <= 0);
             const body = [item.vehicleLabel, item.title, item.meta].filter(Boolean).join(' • ');
             const dueBody = [item.vehicleLabel, item.title, utils.t('notification_due_today')].filter(Boolean).join(' • ');
             const overdueBody = [item.vehicleLabel, item.title, utils.t('reminder_overdue')].filter(Boolean).join(' • ');
-            const add = (at, slot, immediate = false, daily = false, message = body) => {
+            const add = (at, slot, immediate = false, daily = false, message = body, onceKey = !daily && due && at?.getTime() === due.getTime() ? item.id : undefined) => {
                 if (at && at > now) candidates.push({
                     key: item.id + ':' + slot, title: 'FuelMate', body: message,
                     schedule: daily ? { on: { hour, minute }, repeats: true } : { at },
-                    extra: { fuelmate: true, reminderId: item.id, immediate, fireAt: at.getTime(), onceKey: !daily && due && at.getTime() === due.getTime() ? item.id : undefined },
+                    extra: { fuelmate: true, reminderId: item.id, immediate, fireAt: at.getTime(), onceKey },
                 });
             };
             const addDailyFollowups = start => {
@@ -76,20 +76,34 @@
                     add(next, 'daily:' + FuelMateCore.localDateKey(next), false, false, overdueBody);
                 }
             };
-            if (snooze) {
+            retained.add(item.id);
+            const markElapsed = key => {
+                const at = settings.nativeNotificationScheduledAlerts?.[key];
+                if (Number.isFinite(at) && at <= now.getTime()
+                    || [...pending, ...delivered].some(entry => entry.extra?.reminderId === item.id
+                        && !entry.schedule?.repeats && Number.isFinite(entry.extra.fireAt) && entry.extra.fireAt <= now.getTime()
+                        && (entry.extra.onceKey === key || key === item.id && due && entry.extra.fireAt >= due.getTime()))) {
+                    notified.add(key);
+                    notified.add(item.id);
+                }
+            };
+            markElapsed(item.id);
+            const snoozeKey = snooze ? `${item.id}:snooze:${snooze.toISOString()}` : null;
+            if (snoozeKey) {
+                retained.add(snoozeKey);
+                markElapsed(snoozeKey);
+            }
+            if (snooze && snooze > now) {
                 const morning = localMorning(FuelMateCore.localDateKey(snooze), 0, time);
-                add(morning, 'snooze');
+                if (morning > now) add(morning, 'snooze', false, false, morning.getTime() === due?.getTime() ? dueBody : body, snoozeKey);
+                else if (!notified.has(snoozeKey)) add(new Date(now.getTime() + 5000), 'snooze', true, false, body, snoozeKey);
+                else {
+                    const existing = pending.find(entry => entry.extra?.onceKey === snoozeKey && entry.extra?.immediate);
+                    if (existing) add(new Date(existing.extra.fireAt), 'snooze', true, false, body, snoozeKey);
+                }
                 if (due && due > morning && !(settings.notificationOverdueRepeat === 'daily' && overdue)) add(due, 'due', false, false, dueBody);
                 if (settings.notificationOverdueRepeat === 'daily' && (due || overdue)) addDailyFollowups(!overdue && due && due > morning ? due : morning);
                 continue;
-            }
-            retained.add(item.id);
-            const scheduledAt = settings.nativeNotificationScheduledAlerts?.[item.id];
-            if (Number.isFinite(scheduledAt) && scheduledAt <= now.getTime()
-                || [...pending, ...delivered].some(entry => entry.extra?.reminderId === item.id
-                    && !entry.schedule?.repeats && Number.isFinite(entry.extra.fireAt)
-                    && entry.extra.fireAt <= now.getTime() && due && entry.extra.fireAt >= due.getTime())) {
-                notified.add(item.id);
             }
             if (!due || due <= now || distanceDue) {
                 if (!notified.has(item.id)) add(new Date(now.getTime() + 5000), 'now', true);
@@ -121,7 +135,10 @@
         candidates.sort((a, b) => a.extra.fireAt - b.extra.fireAt || a.id - b.id);
         for (const { key, ...entry } of candidates.slice(0, Math.min(64, Math.max(0, limit)))) {
             notifications.push(entry);
-            if (entry.extra.immediate) notified.add(entry.extra.reminderId);
+            if (entry.extra.immediate) {
+                notified.add(entry.extra.reminderId);
+                if (entry.extra.onceKey) notified.add(entry.extra.onceKey);
+            }
             if (entry.extra.onceKey) scheduledAlerts[entry.extra.onceKey] = entry.extra.fireAt;
         }
         return { notifications, notifiedIds: [...notified].filter(id => retained.has(id)).sort(), scheduledAlerts };

@@ -220,7 +220,7 @@ test('scheduled and delivered due alerts prevent a second overdue immediate noti
     assert.equal(plan({ items: [dateItem] }, after, {}, first.notifications).notifications.length, 0);
     assert.equal(plan({ items: [dateItem] }, after, {}).notifications.length, 1);
     assert.equal(plan({ items: [dateItem] }, before, {}, [], 0).scheduledAlerts[dateItem.id], undefined);
-    const advanced = plan({ items: [dateItem] }, before, {}, [], 64, [{ ...first.notifications[0], extra: { ...first.notifications[0].extra, fireAt: new Date(2026, 5, 1).getTime() } }]);
+    const advanced = plan({ items: [dateItem] }, before, {}, [], 64, [{ ...first.notifications[0], extra: { ...first.notifications[0].extra, onceKey: undefined, fireAt: new Date(2026, 5, 1).getTime() } }]);
     assert.equal(advanced.notifiedIds.length, 0);
     assert.equal(plan({ items: [] }, after, settings).notifiedIds.length, 0);
     assert.equal(Object.keys(plan({ items: [] }, after, settings).scheduledAlerts).length, 0);
@@ -287,7 +287,64 @@ test('snoozed reminders schedule at 09:00 instead of notifying immediately', () 
     assert.equal(result.notifications[0].schedule.at.getHours(), 9);
     assert.equal(result.notifications[0].extra.immediate, false);
     const pastMorning = run([reminder], {}, { snoozedUntil: { [reminder.id]: new Date(2026, 5, 1, 18).toISOString() } });
-    assert.equal(pastMorning.notifications.length, 0);
+    assert.equal(pastMorning.notifications.length, 1);
+    assert.equal(pastMorning.notifications[0].extra.immediate, true);
+});
+
+test('snooze catch-up fires once, survives resync, and does not repeat after snooze expiry', () => {
+    const reminder = item('doc:v:license:expired', { calendarType: 'license', dueDateIso: '2026-05-01' });
+    const until = new Date(2026, 5, 1, 18).toISOString();
+    const center = { items: [reminder], snoozedUntil: { [reminder.id]: until } };
+    const first = plan(center, now, { nativeNotificationNotifiedIds: [reminder.id] });
+    assert.equal(first.notifications.length, 1);
+    assert.equal(first.notifications[0].schedule.at.getTime(), now.getTime() + 5000);
+    const settings = { nativeNotificationNotifiedIds: first.notifiedIds, nativeNotificationScheduledAlerts: first.scheduledAlerts };
+    const second = plan(center, now, settings, first.notifications);
+    assert.equal(second.notifications.length, 1);
+    assert.equal(second.notifications[0].id, first.notifications[0].id);
+    assert.equal(second.notifications[0].schedule.at.getTime(), first.notifications[0].schedule.at.getTime());
+    assert.equal(plan(center, new Date(now.getTime() + 10000), settings).notifications.length, 0);
+    assert.equal(plan(center, new Date(2026, 5, 1, 19), settings).notifications.length, 0);
+    const future = plan(center, new Date(2026, 5, 1, 8), {});
+    assert.equal(plan(center, now, { nativeNotificationScheduledAlerts: future.scheduledAlerts }).notifications.length, 0);
+    const changed = { ...center, snoozedUntil: { [reminder.id]: new Date(2026, 5, 1, 20).toISOString() } };
+    assert.equal(plan(changed, now, settings).notifications.length, 1);
+    assert.equal(plan(center, now, {}, [], 0).notifiedIds.length, 0);
+    assert.equal(plan({ ...center, done: { [reminder.id]: true } }, now, settings).notifications.length, 0);
+    assert.equal(plan({ items: [] }, now, settings).notifiedIds.length, 0);
+    assert.equal(plan({ ...center, snoozedUntil: { [reminder.id]: 'invalid' } }, now, {}).notifications.length, 1);
+});
+
+test('native sync persists scheduled receipts and clears canceled future receipts when switched off', async () => {
+    const callbacks = [];
+    let pending = [];
+    const settings = { nativeNotificationsEnabled: true };
+    const saved = [];
+    const nativeContext = vm.createContext({
+        console, setTimeout: callback => { callbacks.push(callback); return 1; }, clearTimeout() {},
+        Capacitor: { isNativePlatform: () => true, Plugins: { LocalNotifications: {
+            addListener: async () => {}, checkPermissions: async () => ({ display: 'granted' }),
+            getPending: async () => ({ notifications: pending }), getDeliveredNotifications: async () => ({ notifications: [] }),
+            cancel: async () => { pending = []; }, schedule: async ({ notifications }) => { pending = notifications; },
+        } } },
+        document: { addEventListener() {} },
+        store: { data: { settings }, saveData: async () => { saved.push(JSON.parse(JSON.stringify(settings))); } },
+        ui: { getReminderCenterData: () => ({ items: [{ ...dateItem, dueDateIso: '2099-07-01' }] }) },
+        utils: { t: key => key },
+    });
+    vm.runInContext(source, nativeContext);
+    await nativeContext.FuelMateNativeNotifications.init();
+    callbacks.shift()();
+    await new Promise(setImmediate);
+    assert.equal(pending.length, 2);
+    assert.ok(settings.nativeNotificationScheduledAlerts[dateItem.id] > Date.now());
+    settings.nativeNotificationsEnabled = false;
+    nativeContext.FuelMateNativeNotifications.requestSync();
+    callbacks.shift()();
+    await new Promise(setImmediate);
+    assert.equal(pending.length, 0);
+    assert.equal(Object.keys(settings.nativeNotificationScheduledAlerts).length, 0);
+    assert.ok(saved.length >= 2);
 });
 
 test('64 cap retains soonest notifications independent of input ordering and only marks selected states', () => {
