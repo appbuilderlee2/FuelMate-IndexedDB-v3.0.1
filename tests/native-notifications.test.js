@@ -4,7 +4,9 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const source = await fs.readFile(new URL('../src/core/native-notifications.js', import.meta.url), 'utf8');
-const context = vm.createContext({ console, setTimeout, clearTimeout });
+const context = vm.createContext({ console, setTimeout, clearTimeout, store: { data: { settings: { language: 'en' } } } });
+vm.runInContext(await fs.readFile(new URL('../src/translations.js', import.meta.url), 'utf8'), context);
+vm.runInContext(await fs.readFile(new URL('../src/utils.js', import.meta.url), 'utf8'), context);
 vm.runInContext(await fs.readFile(new URL('../src/core/calculations.js', import.meta.url), 'utf8'), context);
 vm.runInContext(source, context);
 const { plan, notificationId } = context.FuelMateNativeNotifications;
@@ -130,6 +132,24 @@ test('snoozed mileage-overdue tires resume daily before their later calendar dea
     assert.equal(notYetDue[2].schedule.at.getTime(), new Date(2026, 5, 21, 9).getTime());
     assert.equal(run([tire], settings, { ...center, done: { [tire.id]: true } }).notifications.length, 0);
     assert.equal(run([], settings, center).notifications.length, 0);
+});
+
+test('daily followups use localized overdue text rather than a stale countdown', () => {
+    try {
+        for (const [language, label] of [['en', 'Overdue'], ['zh', '已逾期']]) {
+            context.store.data.settings.language = language;
+            const reminder = { ...dateItem, meta: language === 'en' ? 'Due in 30 days' : '30 日後到期' };
+            const settings = { notificationOverdueRepeat: 'daily', language };
+            const result = run([reminder], settings).notifications;
+            assert.equal(result[0].body, `Test Car • Reminder • ${reminder.meta}`);
+            assert.ok(result.slice(1).every(n => n.body === `Test Car • Reminder • ${label}`));
+            const overdue = run([item('svc:overdue', { remainingKm: -1, meta: reminder.meta })], settings).notifications;
+            assert.equal(overdue.find(n => n.schedule.repeats).body, `Test Car • Reminder • ${label}`);
+            assert.equal(run([], settings).notifications.length, 0);
+        }
+    } finally {
+        context.store.data.settings.language = 'en';
+    }
 });
 
 test('document offsets and separate due dates use local 09:00 with stable integer IDs', () => {
