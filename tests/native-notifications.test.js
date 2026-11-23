@@ -68,6 +68,33 @@ test('old IndexedDB settings load without migration or changing document prefere
     assert.equal(run([item('backup:old')], settings).notifications.length, 1);
 });
 
+test('daily mode queues future followups without reopening the app or firing before the deadline', () => {
+    const settings = { notificationOverdueRepeat: 'daily', notificationTime: '08:15', reminders: { license: { days: 1 } } };
+    const result = run([dateItem], settings);
+    assert.equal(result.notifications.length, 64);
+    const dates = result.notifications.map(n => n.schedule.at);
+    assert.equal(dates[0].getTime(), new Date(2026, 5, 30, 8, 15).getTime());
+    assert.equal(dates[1].getTime(), new Date(2026, 6, 1, 8, 15).getTime());
+    assert.equal(dates[2].getTime(), new Date(2026, 6, 2, 8, 15).getTime());
+    assert.equal(dates[63].getTime(), new Date(2026, 8, 1, 8, 15).getTime());
+    assert.ok(dates.every(date => date.getHours() === 8 && date.getMinutes() === 15));
+    assert.equal(new Set(dates.map(date => date.getTime())).size, 64);
+    assert.ok(result.notifications.every(n => !n.schedule.repeats));
+    assert.equal(new Set(result.notifications.map(n => n.id)).size, 64);
+    assert.equal(run([dateItem], { ...settings, notificationOverdueRepeat: 'once' }).notifications.length, 2);
+    assert.equal(run([dateItem], settings, { done: { [dateItem.id]: true } }).notifications.length, 0);
+    assert.equal(run([], settings).notifications.length, 0);
+    const disabled = { ...settings, reminders: { license: { enabled: false } } };
+    assert.equal(run([dateItem], disabled).notifications.length, 0);
+    const near = item('svc:near', { category: 'service', dueDateIso: '2026-06-03' });
+    const competing = run([dateItem, near], settings).notifications;
+    assert.equal(competing.length, 64);
+    assert.equal(competing[0].schedule.at.getTime(), new Date(2026, 5, 3, 8, 15).getTime());
+    const snoozed = run([near], settings, { snoozedUntil: { [near.id]: new Date(2026, 5, 5, 12).toISOString() } }).notifications;
+    assert.equal(snoozed[0].schedule.at.getTime(), new Date(2026, 5, 5, 8, 15).getTime());
+    assert.equal(snoozed[1].schedule.at.getTime(), new Date(2026, 5, 6, 8, 15).getTime());
+});
+
 test('document offsets and separate due dates use local 09:00 with stable integer IDs', () => {
     const result = run([dateItem], { reminders: { license: { enabled: true, days: 7 } } });
     assert.deepEqual(Array.from(result.notifications, n => [n.schedule.at.getMonth(), n.schedule.at.getDate(), n.schedule.at.getHours()]), [[5, 24, 9], [6, 1, 9]]);

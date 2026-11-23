@@ -63,11 +63,19 @@
                     extra: { fuelmate: true, reminderId: item.id, immediate, fireAt: at.getTime() },
                 });
             };
+            const addDailyFollowups = start => {
+                for (let day = 1; day < 64; day++) {
+                    const next = new Date(start);
+                    next.setDate(next.getDate() + day);
+                    add(next, 'daily:' + FuelMateCore.localDateKey(next));
+                }
+            };
             if (snooze) {
                 const morning = localMorning(FuelMateCore.localDateKey(snooze), 0, time);
                 add(morning, 'snooze');
                 const due = localMorning(dueDate, 0, time);
                 if (due && due > morning) add(due, 'due');
+                if (settings.notificationOverdueRepeat === 'daily') addDailyFollowups(due && due > morning ? due : morning);
                 continue;
             }
             retained.add(item.id);
@@ -90,6 +98,8 @@
                 const next = localMorning(FuelMateCore.localDateKey(now), 0, time);
                 if (next <= now) next.setDate(next.getDate() + 1);
                 add(next, 'daily', false, true);
+            } else if (settings.notificationOverdueRepeat === 'daily' && due && due > now) {
+                addDailyFollowups(due);
             }
         }
         const used = new Set();
