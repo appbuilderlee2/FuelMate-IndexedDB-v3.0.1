@@ -116,6 +116,22 @@ test('daily mode queues future followups without reopening the app or firing bef
     assert.equal(snoozed[1].schedule.at.getTime(), new Date(2026, 5, 6, 8, 15).getTime());
 });
 
+test('snoozed mileage-overdue tires resume daily before their later calendar deadline', () => {
+    const tire = item('tire:v:asset:front', { category: 'tire', remainingKm: -1, remainingDays: 19, dueDateIso: '2026-06-20' });
+    const settings = { notificationOverdueRepeat: 'daily' };
+    const center = { snoozedUntil: { [tire.id]: new Date(2026, 5, 5, 12).toISOString() } };
+    const result = run([tire], settings, center).notifications;
+    assert.equal(result.length, 64);
+    assert.equal(result[0].schedule.at.getTime(), new Date(2026, 5, 5, 9).getTime());
+    assert.equal(result[1].schedule.at.getTime(), new Date(2026, 5, 6, 9).getTime());
+    assert.equal(new Set(result.map(n => n.schedule.at.getTime())).size, 64);
+    const notYetDue = run([{ ...tire, remainingKm: 500 }], settings, center).notifications;
+    assert.equal(notYetDue[1].schedule.at.getTime(), new Date(2026, 5, 20, 9).getTime());
+    assert.equal(notYetDue[2].schedule.at.getTime(), new Date(2026, 5, 21, 9).getTime());
+    assert.equal(run([tire], settings, { ...center, done: { [tire.id]: true } }).notifications.length, 0);
+    assert.equal(run([], settings, center).notifications.length, 0);
+});
+
 test('document offsets and separate due dates use local 09:00 with stable integer IDs', () => {
     const result = run([dateItem], { reminders: { license: { enabled: true, days: 7 } } });
     assert.deepEqual(Array.from(result.notifications, n => [n.schedule.at.getMonth(), n.schedule.at.getDate(), n.schedule.at.getHours()]), [[5, 24, 9], [6, 1, 9]]);

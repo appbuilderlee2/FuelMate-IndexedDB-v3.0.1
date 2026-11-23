@@ -76,8 +76,8 @@
             if (snooze) {
                 const morning = localMorning(FuelMateCore.localDateKey(snooze), 0, time);
                 add(morning, 'snooze');
-                if (due && due > morning) add(due, 'due');
-                if (settings.notificationOverdueRepeat === 'daily' && (due || overdue)) addDailyFollowups(due && due > morning ? due : morning);
+                if (due && due > morning && !(settings.notificationOverdueRepeat === 'daily' && overdue)) add(due, 'due');
+                if (settings.notificationOverdueRepeat === 'daily' && (due || overdue)) addDailyFollowups(!overdue && due && due > morning ? due : morning);
                 continue;
             }
             retained.add(item.id);
