@@ -28,6 +28,22 @@ async function createHarness() {
   return { context, core: context.FuelMateCore, store: context.__store, utils: context.__utils, ui: context.ui, vehicle };
 }
 
+test('category rules disable center items, honor zero document window and expose future backup dates', async () => {
+  const { store, ui, vehicle } = await createHarness();
+  const now = '2026-06-25T12:00:00';
+  store.data.settings.lastBackupDate = '2026-06-01T00:00:00';
+  store.data.logs = [{ id: 'license', vehicleId: 'v1', type: 'license', date: '2026-06-01', expiryDate: '2026-06-26' }];
+  store.data.settings.reminders = { license: { enabled: true, days: 0 }, tires: { enabled: false, days: 0 }, backup: { enabled: true, days: 7 } };
+  const result = ui.getReminderData(vehicle, { now });
+  assert.equal(result.items.some(item => item.id.startsWith('doc:')), false);
+  assert.equal(result.items.some(item => item.id.startsWith('tire:')), false);
+  const backup = result.items.find(item => item.category === 'backup');
+  assert.equal(backup.dueDateIso, '2026-07-01');
+  assert.ok(backup.remainingDays > 0);
+  store.data.settings.reminders.backup.enabled = false;
+  assert.equal(ui.getReminderData(vehicle, { now, includeAll: true }).items.some(item => item.category === 'backup'), false);
+});
+
 test('an unset tire remains visible when another tire is far from due', async () => {
   const { store, ui, vehicle } = await createHarness();
   store.data.logs = [{

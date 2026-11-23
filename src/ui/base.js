@@ -96,6 +96,7 @@ render() {
                     else if (page === 'analytics') content = this.renderAnalytics(vehicle);
                     else if (page === 'reminders') content = this.renderReminders(vehicle);
                     else if (page === 'settings') content = this.renderSettings(vehicle);
+                    else if (page === 'notifications') content = this.renderNotifications();
                 }
 
                 app.innerHTML = `

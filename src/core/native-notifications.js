@@ -5,10 +5,25 @@
     let running = Promise.resolve();
     let initialized = false;
 
-    function localMorning(value, offset = 0) {
+    function rule(settings, type) {
+        const value = settings.reminders?.[type] || {};
+        const fallback = ['license', 'insurance', 'registration'].includes(type) ? 30 : 0;
+        return { enabled: value.enabled !== false, days: Number.isFinite(Number(value.days)) && Number(value.days) >= 0 ? Number(value.days) : fallback };
+    }
+
+    function notificationTime(settings) {
+        return /^([01]\d|2[0-3]):[0-5]\d$/.test(settings.notificationTime || '') ? settings.notificationTime : '09:00';
+    }
+
+    async function permissionStatus() {
+        return isNative() ? (await plugin().checkPermissions()).display : 'web';
+    }
+
+    function localMorning(value, offset = 0, time = '09:00') {
         if (!/^\d{4}-\d{2}-\d{2}/.test(value || '')) return null;
         const [year, month, day] = value.slice(0, 10).split('-').map(Number);
-        return new Date(year, month - 1, day - offset, 9);
+        const [hour, minute] = time.split(':').map(Number);
+        return new Date(year, month - 1, day - offset, hour, minute);
     }
 
     function notificationId(key) {
@@ -24,11 +39,15 @@
         const state = settings.reminderCenter || {};
         const candidates = [];
         const seen = new Set();
+        const time = notificationTime(settings);
         for (const item of center.items) {
             if (seen.has(item.id)) continue;
             seen.add(item.id);
-            const type = item.calendarType || (item.id.startsWith('doc:') ? item.id.split(':')[2] : null);
-            if (type && settings.reminders?.[type]?.enabled === false) continue;
+            const type = item.calendarType || (item.id.startsWith('doc:') ? item.id.split(':')[2]
+                : item.category === 'tire' || item.id.startsWith('tire:') ? 'tires'
+                    : item.category === 'service' || item.id.startsWith('svc:') ? 'service' : 'backup');
+            const config = rule(settings, type);
+            if (!config.enabled) continue;
             const ids = [item.id, ...(item.legacyIds || [])];
             if (ids.some(id => center.done?.[id] || state.done?.[id])) continue;
             const dueDate = item.dueDateIso || (item.category === 'service' && Number.isFinite(item.remainingDays)
@@ -37,21 +56,22 @@
             const snooze = ids.map(id => center.snoozedUntil?.[id] || state.snoozedUntil?.[id])
                 .filter(Boolean).map(value => new Date(value)).filter(date => date > now).sort((a, b) => b - a)[0];
             const body = [item.vehicleLabel, item.title, item.meta].filter(Boolean).join(' • ');
-            const add = (at, slot, immediate = false) => {
+            const add = (at, slot, immediate = false, daily = false) => {
                 if (at && at > now) candidates.push({
-                    key: item.id + ':' + slot, title: 'FuelMate', body, schedule: { at },
+                    key: item.id + ':' + slot, title: 'FuelMate', body,
+                    schedule: daily ? { on: { hour: at.getHours(), minute: at.getMinutes() }, repeats: true } : { at },
                     extra: { fuelmate: true, reminderId: item.id, immediate, fireAt: at.getTime() },
                 });
             };
             if (snooze) {
-                const morning = localMorning(FuelMateCore.localDateKey(snooze));
+                const morning = localMorning(FuelMateCore.localDateKey(snooze), 0, time);
                 add(morning, 'snooze');
-                const due = localMorning(dueDate);
+                const due = localMorning(dueDate, 0, time);
                 if (due && due > morning) add(due, 'due');
                 continue;
             }
             retained.add(item.id);
-            const due = localMorning(dueDate);
+            const due = localMorning(dueDate, 0, time);
             const distanceDue = Number.isFinite(item.remainingKm) && item.remainingKm <= 0;
             if (!due || due <= now || distanceDue) {
                 if (!notified.has(item.id)) add(new Date(now.getTime() + 5000), 'now', true);
@@ -61,10 +81,15 @@
                 }
             }
             if (due) {
-                const days = type ? Number(settings.reminders?.[type]?.days ?? 30) : 0;
-                const alertDate = localMorning(dueDate, Number.isFinite(days) ? Math.max(0, days) : 30);
+                const alertDate = localMorning(dueDate, config.days, time);
                 add(alertDate, 'alert');
                 if (alertDate.getTime() !== due.getTime()) add(due, 'due');
+            }
+            const overdue = distanceDue || (due && due <= now) || (!due && (item.remainingDays <= 0 || !Number.isFinite(item.remainingKm) && !Number.isFinite(item.remainingDays)));
+            if (settings.notificationOverdueRepeat === 'daily' && overdue) {
+                const next = localMorning(FuelMateCore.localDateKey(now), 0, time);
+                if (next <= now) next.setDate(next.getDate() + 1);
+                add(next, 'daily', false, true);
             }
         }
         const used = new Set();
@@ -74,7 +99,7 @@
             used.add(id);
             entry.id = id;
         });
-        candidates.sort((a, b) => a.schedule.at - b.schedule.at || a.id - b.id);
+        candidates.sort((a, b) => a.extra.fireAt - b.extra.fireAt || a.id - b.id);
         for (const { key, ...entry } of candidates.slice(0, Math.min(64, Math.max(0, limit)))) {
             notifications.push(entry);
             if (entry.extra.immediate) notified.add(entry.extra.reminderId);
@@ -115,7 +140,12 @@
         if (!isNative() || initialized) return;
         initialized = true;
         await plugin().addListener('localNotificationActionPerformed', () => router.navigate('reminders'));
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestSync(); });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                requestSync();
+                ui.refreshNotificationPermission?.();
+            }
+        });
         requestSync();
     }
 
@@ -131,5 +161,5 @@
         ui.render();
     }
 
-    global.FuelMateNativeNotifications = Object.freeze({ isNative, init, requestSync, toggle, plan, notificationId });
+    global.FuelMateNativeNotifications = Object.freeze({ isNative, init, requestSync, toggle, plan, notificationId, rule, notificationTime, permissionStatus });
 })(globalThis);

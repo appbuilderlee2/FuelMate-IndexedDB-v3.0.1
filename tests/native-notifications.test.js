@@ -13,6 +13,61 @@ const item = (id, fields = {}) => ({ id, title: 'Reminder', vehicleLabel: 'Test 
 const run = (items, settings = {}, center = {}, pending = []) => plan({ items, ...center }, now, settings, pending);
 const dateItem = item('doc:v:license:2026-07-01', { calendarType: 'license', dueDateIso: '2026-07-01' });
 
+test('every category can be independently disabled', () => {
+    for (const [type, id, category] of [['tires', 'tire:v', 'tire'], ['service', 'svc:v', 'service'], ['backup', 'backup:v', 'backup'], ...['license', 'insurance', 'registration'].map(type => [type, `doc:v:${type}:date`, 'docs'])]) {
+        const reminder = item(id, { category, dueDateIso: '2026-07-01' });
+        assert.ok(run([reminder]).notifications.length > 0);
+        assert.equal(run([reminder], { reminders: { [type]: { enabled: false, days: 7 } } }).notifications.length, 0);
+    }
+});
+
+test('tires, service and backup support advance days and custom notification time', () => {
+    for (const [type, category] of [['tires', 'tire'], ['service', 'service'], ['backup', 'backup']]) {
+        const reminder = item(`${category}:v`, { category, dueDateIso: '2026-07-01' });
+        const result = run([reminder], { reminders: { [type]: { days: 7 } }, notificationTime: '18:45' });
+        assert.deepEqual(Array.from(result.notifications, n => [n.schedule.at.getMonth(), n.schedule.at.getDate(), n.schedule.at.getHours(), n.schedule.at.getMinutes()]), [[5,24,18,45], [6,1,18,45]]);
+        assert.equal(run([reminder], { reminders: { [type]: { days: 0 } } }).notifications.length, 1);
+    }
+    assert.equal(run([dateItem], { notificationTime: '99:99' }).notifications[0].schedule.at.getHours(), 9);
+    assert.equal(run([dateItem], { notificationTime: '00:05' }).notifications[0].schedule.at.getMinutes(), 5);
+});
+
+test('daily overdue repeats use local calendar time, honor state, and stay under cap', () => {
+    const overdue = item('svc:v', { category: 'service', remainingKm: -10 });
+    const settings = { notificationOverdueRepeat: 'daily', notificationTime: '08:15', nativeNotificationNotifiedIds: [overdue.id] };
+    const result = run([overdue], settings);
+    assert.equal(result.notifications.length, 1);
+    assert.equal(JSON.stringify(result.notifications[0].schedule), JSON.stringify({ on: { hour: 8, minute: 15 }, repeats: true }));
+    assert.equal(new Date(result.notifications[0].extra.fireAt).getDate(), 2);
+    assert.equal(run([overdue], settings, { done: { [overdue.id]: true } }).notifications.length, 0);
+    assert.ok(run([overdue], settings, { snoozedUntil: { [overdue.id]: '2026-06-10' } }).notifications.every(n => !n.schedule.repeats));
+    const items = Array.from({ length: 80 }, (_, index) => item(`svc:${index}`, { remainingKm: -1 }));
+    const capped = run(items, { ...settings, nativeNotificationNotifiedIds: items.map(it => it.id) });
+    assert.equal(capped.notifications.length, 64);
+    assert.equal(new Set(capped.notifications.map(n => n.id)).size, 64);
+    assert.equal(run([item('svc:future', { remainingKm: 100 })], settings).notifications.filter(n => n.schedule.repeats).length, 0);
+    assert.equal(run([], settings).notifications.length, 0);
+});
+
+test('old IndexedDB settings load without migration or changing document preferences', async () => {
+    const legacy = vm.createContext({ console, setTimeout, clearTimeout });
+    vm.runInContext(await fs.readFile(new URL('../src/store.js', import.meta.url), 'utf8') + '\nglobalThis.legacyStore=store;', legacy);
+    const store = legacy.legacyStore;
+    store.runTransaction = async name => name === 'settings' ? { schemaVersion: 2, reminders: { license: { enabled: false, days: 7 } } } : [];
+    await store.loadAllData();
+    const settings = store.data.settings;
+    assert.equal(settings.schemaVersion, 2);
+    assert.equal(settings.reminders.license.days, 7);
+    assert.equal(context.FuelMateNativeNotifications.rule(settings, 'license').enabled, false);
+    for (const type of ['tires', 'service', 'backup']) {
+        assert.equal(context.FuelMateNativeNotifications.rule(settings, type).enabled, true);
+        assert.equal(context.FuelMateNativeNotifications.rule(settings, type).days, 0);
+    }
+    assert.equal(context.FuelMateNativeNotifications.notificationTime(settings), '09:00');
+    assert.equal(settings.nativeNotificationsEnabled, false);
+    assert.equal(run([item('backup:old')], settings).notifications.length, 1);
+});
+
 test('document offsets and separate due dates use local 09:00 with stable integer IDs', () => {
     const result = run([dateItem], { reminders: { license: { enabled: true, days: 7 } } });
     assert.deepEqual(Array.from(result.notifications, n => [n.schedule.at.getMonth(), n.schedule.at.getDate(), n.schedule.at.getHours()]), [[5, 24, 9], [6, 1, 9]]);

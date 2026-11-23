@@ -2,6 +2,12 @@
         const translations = {
             en: {
                 native_notifications: 'iPhone notifications',
+                notifications: 'Notifications', notification_rules: 'Reminder rules', notification_advance: 'Advance notice', notification_on_day: 'On the day',
+                notification_time: 'Notification time', notification_repeat: 'Overdue repeat', notification_once: 'Once', notification_daily: 'Daily',
+                notification_permission_granted: 'Permission granted', notification_permission_prompt: 'Permission not requested', notification_permission_error: 'Could not check permission. Try again.',
+                notification_web_note: 'iPhone notifications require the iOS app. Reminder rules can still be edited here.',
+                notification_rules_hint: 'Days apply to date-based reminders. Mileage thresholds are unchanged. Existing alert windows are preserved until you edit a rule.',
+                notification_repeat_hint: 'Daily repeats continue until the next app sync after a reminder is completed, snoozed or resolved. Reopen the app after updating records.',
                 native_notifications_denied: 'Enable FuelMate in iOS Settings > Notifications to receive iPhone notifications.',
                 fuel_restore_draft: 'Restore unsaved entry',
                 fuel_refresh: 'Load latest data and review this entry',
@@ -211,6 +217,12 @@
             },
             zh: {
                 native_notifications: 'iPhone 通知',
+                notifications: '通知', notification_rules: '提醒規則', notification_advance: '提前提醒', notification_on_day: '當日',
+                notification_time: '通知時間', notification_repeat: '逾期重複提醒', notification_once: '只提醒一次', notification_daily: '每日',
+                notification_permission_granted: '已允許通知', notification_permission_prompt: '尚未要求通知權限', notification_permission_error: '無法檢查權限，請重試。',
+                notification_web_note: 'iPhone 通知需要使用 iOS App；你仍可在此編輯提醒規則。',
+                notification_rules_hint: '提前日數適用於日期提醒，里程門檻維持不變。舊有提醒視窗會保留，直至你編輯該規則。',
+                notification_repeat_hint: '每日提醒會持續至完成、延後或解決事項後的下一次 App 同步；更新記錄後請重新開啟 App。',
                 native_notifications_denied: '請前往 iOS「設定」>「通知」> FuelMate 啟用通知。',
                 fuel_restore_draft: '恢復未儲存內容',
                 fuel_refresh: '讀取最新資料並核對今次輸入',

@@ -25,6 +25,33 @@ async function waitForVisualAssets(page) {
   expect(await page.evaluate(() => document.fonts.check('24px "Material Icons"'))).toBe(true);
 }
 
+test('notification rules open from Settings and Reminder Center and persist', async ({ page }) => {
+  await openFreshApp(page);
+  await createVehicle(page);
+  await page.getByTestId('nav-settings').click();
+  await page.getByTestId('settings-notifications').click();
+  await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
+  await expect(page.getByTestId('native-notifications-toggle')).toHaveCount(0);
+  await expect(page.getByTestId('notification-permission')).toContainText('require the iOS app');
+  await page.getByTestId('notification-days-tires').selectOption('7');
+  await page.getByTestId('notification-time').fill('08:30');
+  await page.getByTestId('notification-time').blur();
+  await page.getByTestId('notification-repeat').selectOption('daily');
+  await page.getByTestId('notification-rule-service').click();
+  await expect(page.getByTestId('notification-rule-service')).toHaveAttribute('aria-pressed', 'false');
+  await page.reload();
+  await page.getByTestId('nav-settings').click();
+  await page.getByTestId('settings-notifications').click();
+  await expect(page.getByTestId('notification-days-tires')).toHaveValue('7');
+  await expect(page.getByTestId('notification-time')).toHaveValue('08:30');
+  await expect(page.getByTestId('notification-repeat')).toHaveValue('daily');
+  await expect(page.getByTestId('notification-rule-service')).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: /View All/ }).click();
+  await page.getByTestId('reminders-notifications').click();
+  await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
+});
+
 async function hideTransientStatusForScreenshot(page) {
   // The update-ready notice belongs to a separate service-worker lifecycle check.
   await page.evaluate(() => {
