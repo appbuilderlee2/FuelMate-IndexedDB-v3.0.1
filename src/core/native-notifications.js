@@ -60,6 +60,7 @@
             const due = localMorning(dueDate, 0, time);
             const distanceDue = Number.isFinite(item.remainingKm) && item.remainingKm <= 0;
             const overdue = distanceDue || (due && due <= now) || (!due && Number.isFinite(item.remainingDays) && item.remainingDays <= 0);
+            const noticeKey = `${item.id}:notice`;
             const body = [item.vehicleLabel, item.title, item.meta].filter(Boolean).join(' • ');
             const dueBody = [item.vehicleLabel, item.title, utils.t('notification_due_today')].filter(Boolean).join(' • ');
             const overdueBody = [item.vehicleLabel, item.title, utils.t('reminder_overdue')].filter(Boolean).join(' • ');
@@ -67,7 +68,8 @@
                 if (at && at > now) candidates.push({
                     key: item.id + ':' + slot, title: 'FuelMate', body: message,
                     schedule: daily ? { on: { hour, minute }, repeats: true } : { at },
-                    extra: { fuelmate: true, reminderId: item.id, immediate, fireAt: at.getTime(), onceKey },
+                    extra: { fuelmate: true, reminderId: item.id, immediate, fireAt: at.getTime(), onceKey,
+                        notifiedKey: overdue || due && at >= due ? item.id : !due ? noticeKey : undefined },
                 });
             };
             const addDailyFollowups = start => {
@@ -82,12 +84,16 @@
                 if (Number.isFinite(at) && at <= now.getTime()
                     || [...pending, ...delivered].some(entry => entry.extra?.reminderId === item.id
                         && !entry.schedule?.repeats && Number.isFinite(entry.extra.fireAt) && entry.extra.fireAt <= now.getTime()
-                        && (entry.extra.onceKey === key || key === item.id && due && entry.extra.fireAt >= due.getTime()))) {
+                        && (entry.extra.onceKey === key || entry.extra.notifiedKey === key
+                            || entry.extra.notifiedKey === undefined && key === item.id && due && entry.extra.fireAt >= due.getTime()))) {
                     notified.add(key);
-                    notified.add(item.id);
                 }
             };
             markElapsed(item.id);
+            if (!due) {
+                retained.add(noticeKey);
+                markElapsed(noticeKey);
+            }
             const snoozeKey = snooze ? `${item.id}:snooze:${snooze.toISOString()}` : null;
             if (snoozeKey) {
                 retained.add(snoozeKey);
@@ -106,10 +112,11 @@
                 continue;
             }
             if (!due || due <= now || distanceDue) {
-                if (!notified.has(item.id)) add(new Date(now.getTime() + 5000), 'now', true);
+                const immediateKey = overdue ? item.id : noticeKey;
+                if (!notified.has(immediateKey) && !notified.has(item.id)) add(new Date(now.getTime() + 5000), 'now', true, false, body, immediateKey);
                 else {
                     const existing = pending.find(entry => entry.extra?.reminderId === item.id && entry.extra?.immediate);
-                    if (existing) add(new Date(existing.extra.fireAt), 'now', true);
+                    if (existing) add(new Date(existing.extra.fireAt), 'now', true, false, body, immediateKey);
                 }
             }
             if (due) {
@@ -136,10 +143,14 @@
         for (const { key, ...entry } of candidates.slice(0, Math.min(64, Math.max(0, limit)))) {
             notifications.push(entry);
             if (entry.extra.immediate) {
-                notified.add(entry.extra.reminderId);
-                if (entry.extra.onceKey) notified.add(entry.extra.onceKey);
+                notified.add(entry.extra.onceKey || entry.extra.reminderId);
+                if (entry.extra.notifiedKey) notified.add(entry.extra.notifiedKey);
             }
-            if (entry.extra.onceKey) scheduledAlerts[entry.extra.onceKey] = entry.extra.fireAt;
+            if (entry.extra.onceKey) {
+                for (const key of [entry.extra.onceKey, entry.extra.notifiedKey].filter(Boolean)) {
+                    scheduledAlerts[key] = Math.min(scheduledAlerts[key] ?? Infinity, entry.extra.fireAt);
+                }
+            }
         }
         return { notifications, notifiedIds: [...notified].filter(id => retained.has(id)).sort(), scheduledAlerts };
     }

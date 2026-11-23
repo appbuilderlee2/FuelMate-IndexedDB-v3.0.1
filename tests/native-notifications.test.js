@@ -220,7 +220,8 @@ test('scheduled and delivered due alerts prevent a second overdue immediate noti
     assert.equal(plan({ items: [dateItem] }, after, {}, first.notifications).notifications.length, 0);
     assert.equal(plan({ items: [dateItem] }, after, {}).notifications.length, 1);
     assert.equal(plan({ items: [dateItem] }, before, {}, [], 0).scheduledAlerts[dateItem.id], undefined);
-    const advanced = plan({ items: [dateItem] }, before, {}, [], 64, [{ ...first.notifications[0], extra: { ...first.notifications[0].extra, onceKey: undefined, fireAt: new Date(2026, 5, 1).getTime() } }]);
+    const advance = plan({ items: [dateItem] }, new Date(2026, 4, 1), {}).notifications[0];
+    const advanced = plan({ items: [dateItem] }, before, {}, [], 64, [advance]);
     assert.equal(advanced.notifiedIds.length, 0);
     assert.equal(plan({ items: [] }, after, settings).notifiedIds.length, 0);
     assert.equal(Object.keys(plan({ items: [] }, after, settings).scheduledAlerts).length, 0);
@@ -313,6 +314,44 @@ test('snooze catch-up fires once, survives resync, and does not repeat after sno
     assert.equal(plan({ ...center, done: { [reminder.id]: true } }, now, settings).notifications.length, 0);
     assert.equal(plan({ items: [] }, now, settings).notifiedIds.length, 0);
     assert.equal(plan({ ...center, snoozedUntil: { [reminder.id]: 'invalid' } }, now, {}).notifications.length, 1);
+});
+
+test('an early snooze or advance alert does not consume a later mileage-overdue warning', () => {
+    const reminder = item('tire:v:asset:front', { category: 'tire', dueDateIso: '2026-06-20', remainingKm: 500 });
+    const center = { items: [reminder], snoozedUntil: { [reminder.id]: new Date(2026, 5, 2, 12).toISOString() } };
+    const first = plan(center, now, {});
+    const afterSnooze = new Date(2026, 5, 2, 13);
+    const crossed = { ...center, items: [{ ...reminder, remainingKm: -1 }] };
+    const later = plan(crossed, afterSnooze, { nativeNotificationScheduledAlerts: first.scheduledAlerts });
+    assert.equal(later.notifications.filter(n => n.extra.immediate).length, 1);
+    const delivered = plan(crossed, afterSnooze, {}, [], 64, first.notifications.filter(n => n.extra.fireAt <= afterSnooze));
+    assert.equal(delivered.notifications.filter(n => n.extra.immediate).length, 1);
+    const beforeCrossing = plan(center, new Date(2026, 5, 2, 10), { nativeNotificationScheduledAlerts: first.scheduledAlerts });
+    assert.equal(beforeCrossing.notifiedIds.includes(reminder.id), false);
+    const caughtUp = plan(center, new Date(2026, 5, 2, 10), {});
+    assert.equal(caughtUp.notifiedIds.includes(reminder.id), false);
+    const afterCatchUp = plan(crossed, afterSnooze, { nativeNotificationNotifiedIds: caughtUp.notifiedIds, nativeNotificationScheduledAlerts: caughtUp.scheduledAlerts });
+    assert.equal(afterCatchUp.notifications.filter(n => n.extra.immediate).length, 1);
+    const alreadyOverdue = plan({ ...center, items: [{ ...reminder, remainingKm: -1 }] }, now, {});
+    const seen = plan(crossed, afterSnooze, { nativeNotificationScheduledAlerts: alreadyOverdue.scheduledAlerts });
+    assert.equal(seen.notifications.filter(n => n.extra.immediate).length, 0);
+    const undated = { ...reminder, dueDateIso: null, remainingDays: null };
+    const notice = plan({ items: [undated] }, now, {});
+    assert.equal(notice.notifiedIds.includes(undated.id), false);
+    const reached = plan({ items: [{ ...undated, remainingKm: 0 }] }, afterSnooze, { nativeNotificationNotifiedIds: notice.notifiedIds });
+    assert.equal(reached.notifications.filter(n => n.extra.immediate).length, 1);
+    const advance = plan({ items: [reminder] }, now, { reminders: { tires: { days: 7 } } });
+    assert.equal(advance.notifications[0].extra.notifiedKey, undefined);
+    const afterAdvance = plan({ items: [{ ...reminder, remainingKm: -1 }] }, new Date(2026, 5, 14, 12), {
+        nativeNotificationScheduledAlerts: advance.scheduledAlerts,
+    }, [], 64, [advance.notifications[0]]);
+    assert.equal(afterAdvance.notifications.filter(n => n.extra.immediate).length, 1);
+    const undatedSnooze = plan({ ...center, items: [undated] }, now, {});
+    const undatedSeen = plan({ ...center, items: [undated] }, afterSnooze, {
+        nativeNotificationScheduledAlerts: undatedSnooze.scheduledAlerts,
+    });
+    assert.equal(undatedSeen.notifications.length, 0);
+    assert.equal(plan({ items: [] }, afterSnooze, {}).notifications.length, 0);
 });
 
 test('native sync persists scheduled receipts and clears canceled future receipts when switched off', async () => {
