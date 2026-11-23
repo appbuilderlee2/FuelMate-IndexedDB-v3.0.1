@@ -313,7 +313,7 @@ getReminderData(vehicle, options = {}) {
                     if (dist <= 0) return 2000;
                     return Math.max(500, Math.min(5000, Math.round(dist * 0.1)));
                 })();
-                const tireThresholdDays = 60;
+                const tireThresholdDays = store.data.settings.reminders?.tires?.days ?? 60;
                 const tireStatuses = utils.getTireReplacementStatus(vehicle);
                 const addTireReminder = (s) => {
                     const replacementKey = s.reminderKey || s.editLogId;
@@ -371,7 +371,7 @@ getReminderData(vehicle, options = {}) {
                         ? byDays.sort((a, b) => (a.remainingDays || 0) - (b.remainingDays || 0))[0]
                         : (byKm.length ? byKm.sort((a, b) => (a.remainingKm || 0) - (b.remainingKm || 0))[0] : null);
                     const candidateIsNear = candidate && (
-                        (candidate.remainingDays !== null && candidate.remainingDays <= 180) ||
+                        (candidate.remainingDays !== null && candidate.remainingDays <= (store.data.settings.reminders?.tires?.days ?? 180)) ||
                         (candidate.remainingKm !== null && candidate.remainingKm <= tireThresholdKm * 3)
                     );
                     if (candidateIsNear) addTireReminder(candidate);
@@ -380,11 +380,11 @@ getReminderData(vehicle, options = {}) {
                 // Document expiry
                 ['license', 'insurance', 'registration'].forEach(type => {
                     const setting = store.data.settings.reminders?.[type];
-                    if (setting && !setting.enabled) return;
+                    if (setting?.enabled === false) return;
                     const latest = store.getVehicleLogs(type, vehicle.id)[0];
                     if (!latest || !latest.expiryDate) return;
                     const days = FuelMateCore.daysUntilCalendarDate(latest.expiryDate, now);
-                    if (!includeAll && days > (setting?.days || 30)) return;
+                    if (!includeAll && days > (setting?.days ?? 30)) return;
                     const id = `doc:${vehicle.id}:${type}:${latest.expiryDate}`;
                     items.push({
                         id,
@@ -394,7 +394,7 @@ getReminderData(vehicle, options = {}) {
                         dueDateIso: latest.expiryDate,
                         remainingDays: days,
                         sourceLogId: latest.id,
-                        repeatLabel: `${setting?.days || 30} ${utils.t('days_before')}`,
+                        repeatLabel: `${setting?.days ?? 30} ${utils.t('days_before')}`,
                         calendarType: type,
                         calendarTitle: `${utils.t(type)}: ${vehicleLabel}`,
                         editAction: `ui.openAddService('${latest.id}')`,
@@ -432,7 +432,7 @@ getReminderData(vehicle, options = {}) {
                 if (timeInt > 0 && lastDate) {
                     const nextDate = FuelMateCore.addCalendarMonths(lastDate, timeInt);
                     const remainingDays = FuelMateCore.daysUntilCalendarDate(nextDate, now);
-                    if (includeAll || remainingDays <= 30) {
+                    if (includeAll || remainingDays <= (store.data.settings.reminders?.service?.days ?? 30)) {
                         const id = `svc:${vehicle.id}:time:${nextDate}`;
                         items.push({
                             id,
@@ -488,9 +488,13 @@ getReminderData(vehicle, options = {}) {
                     if (logs.length > 5) showBackup = true;
                 } else {
                     const daysSince = (now - new Date(store.data.settings.lastBackupDate)) / 86400000;
-                    if (daysSince > 30) showBackup = true;
+                    const advance = store.data.settings.reminders?.backup?.days ?? 0;
+                    if (daysSince > 30 - advance || includeAll) showBackup = true;
                 }
                 if (showBackup) {
+                    const backupDue = store.data.settings.lastBackupDate ? new Date(store.data.settings.lastBackupDate) : null;
+                    if (backupDue) backupDue.setDate(backupDue.getDate() + 30);
+                    const backupDays = backupDue ? FuelMateCore.daysUntilCalendarDate(FuelMateCore.localDateKey(backupDue), now) : 0;
                     const monthMs = 30 * 86400000;
                     const backupCycle = store.data.settings.lastBackupDate
                         ? `${new Date(store.data.settings.lastBackupDate).toISOString().slice(0, 10)}:${Math.max(1, Math.floor((now - new Date(store.data.settings.lastBackupDate)) / monthMs))}`
@@ -500,16 +504,19 @@ getReminderData(vehicle, options = {}) {
                         id,
                         icon: 'cloud_upload',
                         title: utils.t('backup_needed'),
-                        meta: utils.t('backup_desc'),
-                        dueDateIso: null,
-                        remainingDays: store.data.settings.lastBackupDate
-                            ? -Math.floor((now - new Date(store.data.settings.lastBackupDate)) / 86400000 - 30)
-                            : 0,
+                        meta: backupDays > 0 ? `${utils.t('due_in')} ${utils.formatDaysShort(backupDays)}` : utils.t('backup_desc'),
+                        dueDateIso: backupDue ? FuelMateCore.localDateKey(backupDue) : null,
+                        remainingDays: backupDays,
                         repeatLabel: `30 ${utils.t('days')}`,
                         editAction: `ui.exportData(); ui.render();`
                     });
                 }
 
+                for (let index = items.length - 1; index >= 0; index--) {
+                    const id = items[index].id;
+                    const type = id.startsWith('tire:') ? 'tires' : id.startsWith('svc:') ? 'service' : id.startsWith('doc:') ? id.split(':')[2] : 'backup';
+                    if (store.data.settings.reminders?.[type]?.enabled === false) items.splice(index, 1);
+                }
                 items.forEach(it => {
                     it.category = it.id.startsWith('tire:') ? 'tire'
                         : it.id.startsWith('svc:') ? 'service'
@@ -517,7 +524,8 @@ getReminderData(vehicle, options = {}) {
                     const overdue = (Number.isFinite(it.remainingDays) && it.remainingDays <= 0)
                         || (Number.isFinite(it.remainingKm) && it.remainingKm <= 0)
                         || (it.meta || '').toLowerCase().includes(utils.t('overdue').toLowerCase());
-                    const dueSoon = (Number.isFinite(it.remainingDays) && it.remainingDays <= 30)
+                    const type = it.category === 'tire' ? 'tires' : it.category === 'docs' ? it.calendarType : it.category;
+                    const dueSoon = (Number.isFinite(it.remainingDays) && it.remainingDays <= (store.data.settings.reminders?.[type]?.days ?? 30))
                         || (Number.isFinite(it.remainingKm) && it.remainingKm <= 500)
                         || it.category === 'backup';
                     it.urgency = overdue ? 'overdue' : (dueSoon ? 'due' : 'upcoming');

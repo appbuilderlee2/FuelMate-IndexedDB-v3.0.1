@@ -62,36 +62,9 @@ renderSettings(vehicle) {
                             </div>
                         </div>
 
-                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 card-shadow mb-6 border-2 border-teal-200 dark:border-teal-900/50 relative overflow-hidden">
-                             <div class="absolute -top-10 -right-10 w-32 h-32 bg-teal-200/40 dark:bg-teal-900/30 rounded-full blur-2xl"></div>
-                             <div class="relative">
-                                 <div class="flex items-center justify-between mb-2">
-                                     <div class="flex items-center gap-2">
-                                         <span class="material-icons text-teal-600">notifications_active</span>
-                                         <div class="text-sm font-black theme-text-heading uppercase tracking-wider">${utils.t('reminder_settings')}</div>
-                                     </div>
-                                 </div>
-                                 <div class="text-xs theme-text-sub mb-3">${utils.t('reminder_settings_desc')}</div>
-                             </div>
-                             ${globalThis.FuelMateNativeNotifications?.isNative() ? `<div class="flex items-center justify-between py-3 border-b theme-border"><div class="text-sm font-bold theme-text-heading">${utils.t('native_notifications')}</div><button type="button" data-testid="native-notifications-toggle" data-action="ui" data-ui-method="toggleNativeNotifications" aria-label="${utils.t('native_notifications')}" aria-pressed="${!!settings.nativeNotificationsEnabled}" class="w-10 h-6 rounded-full relative ${settings.nativeNotificationsEnabled ? 'bg-teal-500' : 'bg-slate-300'}"><div class="w-4 h-4 bg-white rounded-full absolute top-1 ${settings.nativeNotificationsEnabled ? 'left-5' : 'left-1'}"></div></button></div>` : ''}
-                             ${['license','insurance','registration'].map(type => {
-                                 const conf = settings.reminders?.[type] || { enabled: true, days: 30 };
-                                 return `
-                                    <div class="flex items-center justify-between py-3 border-b theme-border last:border-0">
-                                        <div class="text-sm font-bold theme-text-heading">${utils.t(type)}</div>
-                                        <div class="flex items-center gap-2">
-                                            <select data-change-action="ui" data-ui-method="updateReminderDays" data-ui-args="${encodeURIComponent(JSON.stringify([type]))}" data-ui-pass-value="true" class="text-xs p-1 rounded bg-slate-100 dark:bg-slate-700">
-                                                <option value="30" ${conf.days==30?'selected':''}>${utils.t('rem_1m')}</option>
-                                                <option value="7" ${conf.days==7?'selected':''}>${utils.t('rem_1w')}</option>
-                                            </select>
-                                            <button type="button" data-action="ui" data-ui-method="toggleReminderSetting" data-ui-args="${encodeURIComponent(JSON.stringify([type]))}" aria-pressed="${conf.enabled ? 'true' : 'false'}" class="w-10 h-6 rounded-full relative cursor-pointer transition-colors ${conf.enabled ? 'bg-teal-500' : 'bg-slate-300'}">
-                                                <div class="w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${conf.enabled ? 'left-5' : 'left-1'}"></div>
-                                            </button>
-                                        </div>
-                                    </div>
-                                 `;
-                             }).join('')}
-                        </div>
+                        <button data-testid="settings-notifications" data-action="navigate" data-page="notifications" aria-label="${utils.t('notifications')}" class="w-full theme-bg-card rounded-2xl p-5 card-shadow mb-6 flex items-center justify-between text-left theme-text-heading">
+                            <span class="flex items-center gap-3 font-bold"><span class="material-icons text-teal-600">notifications</span>${utils.t('notifications')}</span><span class="material-icons">chevron_right</span>
+                        </button>
 
                         <!-- Maintenance + Tire Interval -->
                         <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 card-shadow mb-6">

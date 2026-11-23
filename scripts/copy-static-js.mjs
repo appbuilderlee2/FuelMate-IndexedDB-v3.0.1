@@ -18,6 +18,7 @@ const files = [
   'ui/base.js',
   'ui/pages/dashboard.js',
   'ui/pages/reminders.js',
+  'ui/pages/notifications.js',
   'ui/pages/records.js',
   'ui/pages/settings.js',
   'ui/actions/vehicles.js',

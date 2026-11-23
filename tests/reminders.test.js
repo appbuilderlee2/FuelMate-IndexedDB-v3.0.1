@@ -28,6 +28,42 @@ async function createHarness() {
   return { context, core: context.FuelMateCore, store: context.__store, utils: context.__utils, ui: context.ui, vehicle };
 }
 
+test('zero-day backup rules schedule future deadlines without exposing them in the dashboard window', async () => {
+  const { context, store, ui, vehicle } = await createHarness();
+  vm.runInContext(await fs.readFile(new URL('../src/core/native-notifications.js', import.meta.url), 'utf8'), context);
+  store.data.settings.reminders = { backup: { enabled: true, days: 0 }, tires: { enabled: false } };
+  const now = new Date(2026, 5, 2, 12);
+  assert.equal(ui.getReminderData(vehicle, { now }).items.some(item => item.category === 'backup'), false);
+  const center = ui.getReminderCenterData('all', { now });
+  const backup = center.items.find(item => item.category === 'backup');
+  assert.ok(backup.remainingDays > 0);
+  const result = context.FuelMateNativeNotifications.plan(center, now, store.data.settings);
+  assert.equal(result.notifications.length, 1);
+  assert.equal(result.notifications[0].extra.reminderId, backup.id);
+  assert.equal(result.notifications[0].schedule.at.getHours(), 9);
+  store.data.settings.reminders.backup.enabled = false;
+  assert.equal(ui.getReminderCenterData('all', { now }).items.length, 0);
+  store.data.settings.reminders.backup.enabled = true;
+  store.data.settings.lastBackupDate = null;
+  assert.equal(ui.getReminderCenterData('all', { now }).items.length, 0);
+});
+
+test('category rules disable center items, honor zero document window and expose future backup dates', async () => {
+  const { store, ui, vehicle } = await createHarness();
+  const now = '2026-06-25T12:00:00';
+  store.data.settings.lastBackupDate = '2026-06-01T00:00:00';
+  store.data.logs = [{ id: 'license', vehicleId: 'v1', type: 'license', date: '2026-06-01', expiryDate: '2026-06-26' }];
+  store.data.settings.reminders = { license: { enabled: true, days: 0 }, tires: { enabled: false, days: 0 }, backup: { enabled: true, days: 7 } };
+  const result = ui.getReminderData(vehicle, { now });
+  assert.equal(result.items.some(item => item.id.startsWith('doc:')), false);
+  assert.equal(result.items.some(item => item.id.startsWith('tire:')), false);
+  const backup = result.items.find(item => item.category === 'backup');
+  assert.equal(backup.dueDateIso, '2026-07-01');
+  assert.ok(backup.remainingDays > 0);
+  store.data.settings.reminders.backup.enabled = false;
+  assert.equal(ui.getReminderData(vehicle, { now, includeAll: true }).items.some(item => item.category === 'backup'), false);
+});
+
 test('an unset tire remains visible when another tire is far from due', async () => {
   const { store, ui, vehicle } = await createHarness();
   store.data.logs = [{
