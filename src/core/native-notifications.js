@@ -61,6 +61,7 @@
             const distanceDue = Number.isFinite(item.remainingKm) && item.remainingKm <= 0;
             const overdue = distanceDue || (due && due <= now) || (!due && Number.isFinite(item.remainingDays) && item.remainingDays <= 0);
             const body = [item.vehicleLabel, item.title, item.meta].filter(Boolean).join(' • ');
+            const dueBody = [item.vehicleLabel, item.title, utils.t('notification_due_today')].filter(Boolean).join(' • ');
             const overdueBody = [item.vehicleLabel, item.title, utils.t('reminder_overdue')].filter(Boolean).join(' • ');
             const add = (at, slot, immediate = false, daily = false, message = body) => {
                 if (at && at > now) candidates.push({
@@ -78,7 +79,7 @@
             if (snooze) {
                 const morning = localMorning(FuelMateCore.localDateKey(snooze), 0, time);
                 add(morning, 'snooze');
-                if (due && due > morning && !(settings.notificationOverdueRepeat === 'daily' && overdue)) add(due, 'due');
+                if (due && due > morning && !(settings.notificationOverdueRepeat === 'daily' && overdue)) add(due, 'due', false, false, dueBody);
                 if (settings.notificationOverdueRepeat === 'daily' && (due || overdue)) addDailyFollowups(!overdue && due && due > morning ? due : morning);
                 continue;
             }
@@ -99,8 +100,8 @@
             }
             if (due) {
                 const alertDate = localMorning(dueDate, config.days, time);
-                add(alertDate, 'alert');
-                if (alertDate.getTime() !== due.getTime()) add(due, 'due');
+                add(alertDate, 'alert', false, false, alertDate.getTime() === due.getTime() ? dueBody : body);
+                if (alertDate.getTime() !== due.getTime()) add(due, 'due', false, false, dueBody);
             }
             if (settings.notificationOverdueRepeat === 'daily' && overdue) {
                 const next = localMorning(FuelMateCore.localDateKey(now), 0, time);

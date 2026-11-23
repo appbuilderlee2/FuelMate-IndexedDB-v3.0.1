@@ -134,6 +134,24 @@ test('snoozed mileage-overdue tires resume daily before their later calendar dea
     assert.equal(run([], settings, center).notifications.length, 0);
 });
 
+test('due-day alerts use localized due-today text while advance notices retain the countdown', () => {
+    try {
+        for (const [language, label] of [['en', 'Due today'], ['zh', '今日到期']]) {
+            context.store.data.settings.language = language;
+            const reminder = { ...dateItem, meta: 'Due in 30d' };
+            const result = run([reminder], { reminders: { license: { days: 7 } } }).notifications;
+            assert.equal(result[0].body, 'Test Car • Reminder • Due in 30d');
+            assert.equal(result[1].body, `Test Car • Reminder • ${label}`);
+            const zero = run([reminder], { reminders: { license: { days: 0 } } }).notifications;
+            assert.equal(zero.length, 1);
+            assert.equal(zero[0].body, `Test Car • Reminder • ${label}`);
+            assert.equal(run([]).notifications.length, 0);
+        }
+    } finally {
+        context.store.data.settings.language = 'en';
+    }
+});
+
 test('daily followups use localized overdue text rather than a stale countdown', () => {
     try {
         for (const [language, label] of [['en', 'Overdue'], ['zh', '已逾期']]) {
@@ -141,7 +159,7 @@ test('daily followups use localized overdue text rather than a stale countdown',
             const reminder = { ...dateItem, meta: language === 'en' ? 'Due in 30 days' : '30 日後到期' };
             const settings = { notificationOverdueRepeat: 'daily', language };
             const result = run([reminder], settings).notifications;
-            assert.equal(result[0].body, `Test Car • Reminder • ${reminder.meta}`);
+            assert.equal(result[0].body, `Test Car • Reminder • ${language === 'en' ? 'Due today' : '今日到期'}`);
             assert.ok(result.slice(1).every(n => n.body === `Test Car • Reminder • ${label}`));
             const overdue = run([item('svc:overdue', { remainingKm: -1, meta: reminder.meta })], settings).notifications;
             assert.equal(overdue.find(n => n.schedule.repeats).body, `Test Car • Reminder • ${label}`);

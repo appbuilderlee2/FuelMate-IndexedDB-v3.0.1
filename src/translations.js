@@ -2,6 +2,7 @@
         const translations = {
             en: {
                 native_notifications: 'iPhone notifications',
+                notification_due_today: 'Due today',
                 notifications: 'Notifications', notification_rules: 'Reminder rules', notification_advance: 'Advance notice', notification_on_day: 'On the day',
                 notification_time: 'Notification time', notification_repeat: 'Overdue repeat', notification_once: 'Once', notification_daily: 'Daily',
                 notification_permission_granted: 'Permission granted', notification_permission_prompt: 'Permission not requested', notification_permission_error: 'Could not check permission. Try again.',
@@ -217,6 +218,7 @@
             },
             zh: {
                 native_notifications: 'iPhone 通知',
+                notification_due_today: '今日到期',
                 notifications: '通知', notification_rules: '提醒規則', notification_advance: '提前提醒', notification_on_day: '當日',
                 notification_time: '通知時間', notification_repeat: '逾期重複提醒', notification_once: '只提醒一次', notification_daily: '每日',
                 notification_permission_granted: '已允許通知', notification_permission_prompt: '尚未要求通知權限', notification_permission_error: '無法檢查權限，請重試。',
