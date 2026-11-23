@@ -1,0 +1,135 @@
+(function exposeNativeNotifications(global) {
+    const isNative = () => !!global.Capacitor?.isNativePlatform();
+    const plugin = () => global.Capacitor.Plugins.LocalNotifications || global.Capacitor.registerPlugin('LocalNotifications');
+    let timer;
+    let running = Promise.resolve();
+    let initialized = false;
+
+    function localMorning(value, offset = 0) {
+        if (!/^\d{4}-\d{2}-\d{2}/.test(value || '')) return null;
+        const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+        return new Date(year, month - 1, day - offset, 9);
+    }
+
+    function notificationId(key) {
+        let hash = 2166136261;
+        for (let i = 0; i < key.length; i++) hash = Math.imul(hash ^ key.charCodeAt(i), 16777619);
+        return (hash >>> 0) % 2147483646 + 1;
+    }
+
+    function plan(center, now, settings, pending = [], limit = 64) {
+        const notifications = [];
+        const notified = new Set(settings.nativeNotificationNotifiedIds || []);
+        const retained = new Set();
+        const state = settings.reminderCenter || {};
+        const candidates = [];
+        const seen = new Set();
+        for (const item of center.items) {
+            if (seen.has(item.id)) continue;
+            seen.add(item.id);
+            const type = item.calendarType || (item.id.startsWith('doc:') ? item.id.split(':')[2] : null);
+            if (type && settings.reminders?.[type]?.enabled === false) continue;
+            const ids = [item.id, ...(item.legacyIds || [])];
+            if (ids.some(id => center.done?.[id] || state.done?.[id])) continue;
+            const dueDate = item.dueDateIso || (item.category === 'service' && Number.isFinite(item.remainingDays)
+                ? FuelMateCore.localDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + item.remainingDays))
+                : null);
+            const snooze = ids.map(id => center.snoozedUntil?.[id] || state.snoozedUntil?.[id])
+                .filter(Boolean).map(value => new Date(value)).filter(date => date > now).sort((a, b) => b - a)[0];
+            const body = [item.vehicleLabel, item.title, item.meta].filter(Boolean).join(' • ');
+            const add = (at, slot, immediate = false) => {
+                if (at && at > now) candidates.push({
+                    key: item.id + ':' + slot, title: 'FuelMate', body, schedule: { at },
+                    extra: { fuelmate: true, reminderId: item.id, immediate, fireAt: at.getTime() },
+                });
+            };
+            if (snooze) {
+                const morning = localMorning(FuelMateCore.localDateKey(snooze));
+                add(morning, 'snooze');
+                const due = localMorning(dueDate);
+                if (due && due > morning) add(due, 'due');
+                continue;
+            }
+            retained.add(item.id);
+            const due = localMorning(dueDate);
+            const distanceDue = Number.isFinite(item.remainingKm) && item.remainingKm <= 0;
+            if (!due || due <= now || distanceDue) {
+                if (!notified.has(item.id)) add(new Date(now.getTime() + 5000), 'now', true);
+                else {
+                    const existing = pending.find(entry => entry.extra?.reminderId === item.id && entry.extra?.immediate);
+                    if (existing) add(new Date(existing.extra.fireAt), 'now', true);
+                }
+            }
+            if (due) {
+                const days = type ? Number(settings.reminders?.[type]?.days ?? 30) : 0;
+                const alertDate = localMorning(dueDate, Number.isFinite(days) ? Math.max(0, days) : 30);
+                add(alertDate, 'alert');
+                if (alertDate.getTime() !== due.getTime()) add(due, 'due');
+            }
+        }
+        const used = new Set();
+        candidates.sort((a, b) => a.key.localeCompare(b.key)).forEach(entry => {
+            let id = notificationId(entry.key);
+            while (used.has(id)) id = id % 2147483646 + 1;
+            used.add(id);
+            entry.id = id;
+        });
+        candidates.sort((a, b) => a.schedule.at - b.schedule.at || a.id - b.id);
+        for (const { key, ...entry } of candidates.slice(0, Math.min(64, Math.max(0, limit)))) {
+            notifications.push(entry);
+            if (entry.extra.immediate) notified.add(entry.extra.reminderId);
+        }
+        return { notifications, notifiedIds: [...notified].filter(id => retained.has(id)).sort() };
+    }
+
+    async function sync() {
+        if (!isNative() || !initialized) return;
+        const api = plugin();
+        const { notifications: pending } = await api.getPending();
+        const owned = pending.filter(entry => entry.extra?.fuelmate === true);
+        if (owned.length) await api.cancel({ notifications: owned.map(({ id }) => ({ id })) });
+        if (!store.data.settings.nativeNotificationsEnabled) return;
+        if ((await api.checkPermissions()).display !== 'granted') {
+            store.data.settings.nativeNotificationsEnabled = false;
+            await store.saveData({ nativeNotifications: false });
+            ui.render();
+            return;
+        }
+        const result = plan(ui.getReminderCenterData('all'), new Date(), store.data.settings, owned, 64 - (pending.length - owned.length));
+        if (result.notifications.length) await api.schedule({ notifications: result.notifications });
+        if (JSON.stringify(store.data.settings.nativeNotificationNotifiedIds || []) !== JSON.stringify(result.notifiedIds)) {
+            store.data.settings.nativeNotificationNotifiedIds = result.notifiedIds;
+            await store.saveData({ nativeNotifications: false });
+        }
+    }
+
+    function requestSync() {
+        if (!isNative() || !initialized) return;
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            running = running.then(sync).catch(error => console.error('Native notification sync failed', error));
+        }, 500);
+    }
+
+    async function init() {
+        if (!isNative() || initialized) return;
+        initialized = true;
+        await plugin().addListener('localNotificationActionPerformed', () => router.navigate('reminders'));
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestSync(); });
+        requestSync();
+    }
+
+    async function toggle() {
+        if (!isNative()) return;
+        if (store.data.settings.nativeNotificationsEnabled) store.data.settings.nativeNotificationsEnabled = false;
+        else {
+            const permission = await plugin().requestPermissions();
+            store.data.settings.nativeNotificationsEnabled = permission.display === 'granted';
+            if (permission.display !== 'granted') alert(utils.t('native_notifications_denied'));
+        }
+        await store.saveData();
+        ui.render();
+    }
+
+    global.FuelMateNativeNotifications = Object.freeze({ isNative, init, requestSync, toggle, plan, notificationId });
+})(globalThis);

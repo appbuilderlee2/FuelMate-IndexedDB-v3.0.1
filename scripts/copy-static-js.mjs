@@ -7,6 +7,7 @@ const outputRoot = path.join(root, 'public', 'src');
 const files = [
   'core/security.js',
   'core/version.js',
+  'core/native-notifications.js',
   'core/calculations.js',
   'core/invoice-ai.js',
   'translations.js',

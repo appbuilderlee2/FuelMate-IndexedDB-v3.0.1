@@ -1,5 +1,5 @@
 /* FuelMate Service Worker - app-shell cache for offline install */
-const CACHE_NAME = 'fuelmate-cache-v45';
+const CACHE_NAME = 'fuelmate-cache-v46';
 
 function urlFor(path) {
   return new URL(path, self.registration.scope).toString();
@@ -15,6 +15,7 @@ const CORE_ASSETS = [
   urlFor('ios-themes.css'),
   urlFor('src/core/security.js'),
   urlFor('src/core/version.js'),
+  urlFor('src/core/native-notifications.js'),
   urlFor('src/core/calculations.js'),
   urlFor('src/core/invoice-ai.js'),
   urlFor('src/translations.js'),
