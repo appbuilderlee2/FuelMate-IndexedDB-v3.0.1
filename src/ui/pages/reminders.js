@@ -65,6 +65,7 @@ renderReminders(vehicle) {
                                 <span class="material-icons text-lg">arrow_back_ios</span>${utils.t('dashboard')}
                             </button>
                             <h1 class="text-xl font-black theme-text-heading">${utils.t('reminder_center')}</h1>
+                            <button data-testid="reminders-notifications" data-action="navigate" data-page="notifications" aria-label="${utils.t('notifications')}" class="min-h-11 px-2 text-teal-700"><span class="material-icons">notifications</span></button>
                             <button data-testid="reminder-select-mode" data-action="ui" data-ui-method="toggleReminderSelectionMode" class="min-h-11 inline-flex items-center gap-1 text-sm font-bold text-teal-700 dark:text-teal-300 ${tab !== 'active' ? 'invisible' : ''}">
                                 <span class="material-icons text-lg">check_box</span>${selectionMode ? utils.t('cancel') : utils.t('select')}
                             </button>
