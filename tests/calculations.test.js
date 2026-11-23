@@ -101,6 +101,27 @@ test('import validates AI configuration and rejects API keys in backups', () => 
   assert.ok(validate({ aiProvider: 'unknown', aiInvoiceEnabled: 'yes', aiModel: '<script>', aiApiKey: 'secret' }).errors.length >= 4);
 });
 
+test('notification rules survive backup restore and reject malformed configuration', () => {
+  const validate = settings => validateImportPayload({ vehicles: [], logs: [], settings }, () => true);
+  assert.deepEqual(validate({}).errors, []);
+  for (const type of ['tires', 'service', 'license', 'insurance', 'registration', 'backup']) {
+    for (const days of [0, 1, 7, 30, '0', '1', '7', '30']) {
+      const settings = JSON.parse(JSON.stringify({ reminders: { [type]: { enabled: true, days } }, notificationTime: '08:15', notificationOverdueRepeat: 'daily' }));
+      assert.deepEqual(validate(settings).errors, []);
+    }
+    for (const entry of [null, [], { enabled: 'true' }, { days: 2 }, { days: -1 }]) {
+      assert.ok(validate({ reminders: { [type]: entry } }).errors.includes('settings_invalid_reminders'));
+    }
+  }
+  for (const notificationTime of ['', '9:00', '24:00', '09:60', null, ['09:00']]) {
+    assert.ok(validate({ notificationTime }).errors.includes('settings_invalid_notificationTime'));
+  }
+  for (const notificationOverdueRepeat of ['', 'weekly', null, ['once']]) {
+    assert.ok(validate({ notificationOverdueRepeat }).errors.includes('settings_invalid_notificationOverdueRepeat'));
+  }
+  for (const notificationTime of ['00:00', '09:00', '23:59']) assert.deepEqual(validate({ notificationTime, notificationOverdueRepeat: 'once' }).errors, []);
+});
+
 test('calculates litres per 100 km', () => {
   assert.equal(calcEfficiencyValue(40, 500, 'L', 'km'), 8);
 });

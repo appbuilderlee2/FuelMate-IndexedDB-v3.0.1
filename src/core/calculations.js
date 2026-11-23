@@ -245,7 +245,7 @@
       errors.push('settings_not_object');
     }
     if (settings && typeof settings === 'object' && !Array.isArray(settings)) {
-      const enums = { units: ['metric', 'imperial'], language: ['en', 'zh'], pressureUnit: ['kPa', 'psi', 'bar'], aiProvider: ['openai', 'gemini', 'groq', 'deepseek', 'openrouter', 'nvidia', 'compatible'] };
+      const enums = { units: ['metric', 'imperial'], language: ['en', 'zh'], pressureUnit: ['kPa', 'psi', 'bar'], aiProvider: ['openai', 'gemini', 'groq', 'deepseek', 'openrouter', 'nvidia', 'compatible'], notificationOverdueRepeat: ['once', 'daily'] };
       for (const [key, allowed] of Object.entries(enums)) {
         if (settings[key] !== undefined && !allowed.includes(settings[key])) errors.push(`settings_invalid_${key}`);
       }
@@ -255,17 +255,18 @@
       if (settings.aiModel !== undefined && (typeof settings.aiModel !== 'string' || !/^[\w./:@+-]{1,160}$/.test(settings.aiModel))) errors.push('settings_invalid_ai_model');
       if (settings.aiEndpoint !== undefined && (typeof settings.aiEndpoint !== 'string' || settings.aiEndpoint.length > 500 || /[<>\x00-\x1f]/.test(settings.aiEndpoint))) errors.push('settings_invalid_ai_endpoint');
       if (settings.aiApiKey !== undefined) errors.push('settings_contains_ai_key');
+      if (settings.notificationTime !== undefined && (typeof settings.notificationTime !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.notificationTime))) errors.push('settings_invalid_notificationTime');
       if (settings.reminders !== undefined) {
         const reminders = settings.reminders;
         if (!reminders || typeof reminders !== 'object' || Array.isArray(reminders)) {
           errors.push('settings_invalid_reminders');
         } else {
-          for (const type of ['license', 'insurance', 'registration']) {
+          for (const type of ['tires', 'service', 'license', 'insurance', 'registration', 'backup']) {
             const entry = reminders[type];
             if (entry === undefined) continue;
             if (!entry || typeof entry !== 'object' || Array.isArray(entry)
                 || (entry.enabled !== undefined && typeof entry.enabled !== 'boolean')
-                || (entry.days !== undefined && ![7, 30, '7', '30'].includes(entry.days))) {
+                || (entry.days !== undefined && ![0, 1, 7, 30, '0', '1', '7', '30'].includes(entry.days))) {
               errors.push('settings_invalid_reminders');
             }
           }
