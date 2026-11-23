@@ -40,6 +40,7 @@
         const candidates = [];
         const seen = new Set();
         const time = notificationTime(settings);
+        const [hour, minute] = time.split(':').map(Number);
         for (const item of center.items) {
             if (seen.has(item.id)) continue;
             seen.add(item.id);
@@ -63,14 +64,13 @@
             const add = (at, slot, immediate = false, daily = false, message = body) => {
                 if (at && at > now) candidates.push({
                     key: item.id + ':' + slot, title: 'FuelMate', body: message,
-                    schedule: daily ? { on: { hour: at.getHours(), minute: at.getMinutes() }, repeats: true } : { at },
+                    schedule: daily ? { on: { hour, minute }, repeats: true } : { at },
                     extra: { fuelmate: true, reminderId: item.id, immediate, fireAt: at.getTime() },
                 });
             };
             const addDailyFollowups = start => {
                 for (let day = 1; day < 64; day++) {
-                    const next = new Date(start);
-                    next.setDate(next.getDate() + day);
+                    const next = localMorning(FuelMateCore.addCalendarDays(FuelMateCore.localDateKey(start), day), 0, time);
                     add(next, 'daily:' + FuelMateCore.localDateKey(next), false, false, overdueBody);
                 }
             };

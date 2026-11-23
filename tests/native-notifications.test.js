@@ -152,6 +152,32 @@ test('daily followups use localized overdue text rather than a stale countdown',
     }
 });
 
+test('daily followups reconstruct configured wall time after a DST-gap deadline', () => {
+    const previous = process.env.TZ;
+    try {
+        for (const [zone, month, day] of [['America/New_York', 2, 8], ['Australia/Sydney', 9, 4]]) {
+            process.env.TZ = zone;
+            const due = new Date(2026, month, day, 12);
+            const dueDateIso = context.FuelMateCore.localDateKey(due);
+            const reminder = { ...dateItem, dueDateIso };
+            const settings = { notificationOverdueRepeat: 'daily', notificationTime: '02:30', reminders: { license: { days: 0 } } };
+            const result = plan({ items: [reminder] }, new Date(2026, month, 1, 12), settings).notifications;
+            assert.equal(result.length, 64);
+            assert.equal(result[0].schedule.at.getHours(), 3);
+            assert.ok(result.slice(1).every(n => n.schedule.at.getHours() === 2 && n.schedule.at.getMinutes() === 30));
+            assert.equal(result[1].schedule.at.getDate(), day + 1);
+            assert.equal(new Set(result.map(n => context.FuelMateCore.localDateKey(n.schedule.at))).size, 64);
+            const overdue = plan({ items: [item('svc:due', { remainingKm: -1 })] }, new Date(2026, month, day, 1), settings).notifications;
+            const recurring = overdue.find(n => n.schedule.repeats);
+            assert.equal(recurring.schedule.on.hour, 2);
+            assert.equal(recurring.schedule.on.minute, 30);
+            assert.equal(plan({ items: [] }, due, settings).notifications.length, 0);
+        }
+    } finally {
+        if (previous === undefined) delete process.env.TZ; else process.env.TZ = previous;
+    }
+});
+
 test('document offsets and separate due dates use local 09:00 with stable integer IDs', () => {
     const result = run([dateItem], { reminders: { license: { enabled: true, days: 7 } } });
     assert.deepEqual(Array.from(result.notifications, n => [n.schedule.at.getMonth(), n.schedule.at.getDate(), n.schedule.at.getHours()]), [[5, 24, 9], [6, 1, 9]]);
