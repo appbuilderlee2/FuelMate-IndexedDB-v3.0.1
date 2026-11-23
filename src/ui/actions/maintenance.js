@@ -217,7 +217,7 @@ openAddService(id = null, defaultType = 'service') {
                     <h2 class="text-xl font-bold mb-4 theme-text-heading">${utils.t('add_service')}</h2>
                     <div class="space-y-4">
                         ${store.data.settings.aiInvoiceEnabled ? `<div class="rounded-xl bg-blue-50 border border-blue-100 p-3"><button data-testid="scan-invoice" data-action="ui" data-ui-method="openInvoicePicker" class="w-full min-h-11 text-blue-700 font-bold flex items-center justify-center gap-2"><span class="material-icons">document_scanner</span>${store.data.settings.language === 'zh' ? '掃描帳單／Invoice' : 'Scan invoice or receipt'}</button><input id="invoice_file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" class="hidden" data-change-action="ui" data-ui-method="scanInvoice" data-ui-pass-element="true"></div>` : ''}
-                        <select id="l_type" class="w-full p-3 rounded-xl font-bold bg-slate-100" onchange="ui.handleTypeChange(this.value)">
+                        <select id="l_type" aria-label="${utils.t('service_type')}" class="w-full p-3 rounded-xl font-bold bg-slate-100" onchange="ui.handleTypeChange(this.value)">
                             <option value="service" ${log.type==='service'?'selected':''}>${utils.t('service')}</option>
                             <option value="repair" ${log.type==='repair'?'selected':''}>${utils.t('repair')}</option>
                             <option value="tire_replace" ${log.type==='tire_replace'?'selected':''}>${utils.t('tire_replace')}</option>
@@ -234,13 +234,13 @@ openAddService(id = null, defaultType = 'service') {
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 service-odo-grid">
                             <div><label class="text-xs theme-text-sub block mb-1">${utils.t('date')}</label><input id="l_date" type="date" value="${utils.escapeAttr(log.date)}" class="w-full p-3 rounded-xl"></div>
-                            <div><label class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="l_odo" type="number" min="0" value="${utils.escapeAttr(log.odometer)}" class="w-full p-3 rounded-xl"></div>
+                            <div><label for="l_odo" class="text-xs theme-text-sub block mb-1">${utils.t('odometer')}</label><input id="l_odo" type="number" min="0" value="${utils.escapeAttr(log.odometer)}" class="w-full p-3 rounded-xl"></div>
                         </div>
                         <div><label class="text-xs theme-text-sub block mb-1">${utils.t('cost')}</label><input id="l_cost" type="number" min="0" step="0.01" value="${utils.escapeAttr(log.cost)}" class="w-full p-3 rounded-xl"></div>
 
                         <!-- Dynamic Fields -->
                         <div id="expiry_field" class="${['license','insurance','registration'].includes(log.type) ? '' : 'hidden'}">
-                             <label class="text-xs theme-text-sub block mb-1">New Expiry Date</label>
+                             <label for="l_expiry" class="text-xs theme-text-sub block mb-1">New Expiry Date</label>
                              <input id="l_expiry" type="date" value="${log.expiryDate || ''}" class="w-full p-3 rounded-xl border-purple-300">
                         </div>
 

@@ -73,6 +73,7 @@ renderSettings(vehicle) {
                                  </div>
                                  <div class="text-xs theme-text-sub mb-3">${utils.t('reminder_settings_desc')}</div>
                              </div>
+                             ${globalThis.FuelMateNativeNotifications?.isNative() ? `<div class="flex items-center justify-between py-3 border-b theme-border"><div class="text-sm font-bold theme-text-heading">${utils.t('native_notifications')}</div><button type="button" data-testid="native-notifications-toggle" data-action="ui" data-ui-method="toggleNativeNotifications" aria-label="${utils.t('native_notifications')}" aria-pressed="${!!settings.nativeNotificationsEnabled}" class="w-10 h-6 rounded-full relative ${settings.nativeNotificationsEnabled ? 'bg-teal-500' : 'bg-slate-300'}"><div class="w-4 h-4 bg-white rounded-full absolute top-1 ${settings.nativeNotificationsEnabled ? 'left-5' : 'left-1'}"></div></button></div>` : ''}
                              ${['license','insurance','registration'].map(type => {
                                  const conf = settings.reminders?.[type] || { enabled: true, days: 30 };
                                  return `
@@ -270,6 +271,10 @@ renderSettings(vehicle) {
                         </div>
                     </div>
                 `;
+            },
+
+async toggleNativeNotifications() {
+                await globalThis.FuelMateNativeNotifications.toggle();
             },
 
 async updateReminderDays(type, value) {

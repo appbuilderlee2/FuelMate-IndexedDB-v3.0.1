@@ -3,8 +3,8 @@
             db: null,
             dbName: 'FuelMateDB',
             currentSchemaVersion: 2,
-            defaultSettings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, aiInvoiceEnabled: false, aiProvider: 'openai', aiModel: 'gpt-4.1-mini', aiEndpoint: '', aiRememberKey: false, lastBackupDate: null, activeVehicleId: null },
-            data: { vehicles: [], logs: [], settings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, aiInvoiceEnabled: false, aiProvider: 'openai', aiModel: 'gpt-4.1-mini', aiEndpoint: '', aiRememberKey: false, lastBackupDate: null, activeVehicleId: null } },
+            defaultSettings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, nativeNotificationsEnabled: false, nativeNotificationNotifiedIds: [], reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, aiInvoiceEnabled: false, aiProvider: 'openai', aiModel: 'gpt-4.1-mini', aiEndpoint: '', aiRememberKey: false, lastBackupDate: null, activeVehicleId: null },
+            data: { vehicles: [], logs: [], settings: { currency: '$', units: 'metric', pressureUnit: 'kPa', language: 'en', appearance: 'apple-fluid-system', maintenanceDist: 'none', maintenanceTime: 'none', tireReplaceDist: 40000, tireReplaceYears: 4, nativeNotificationsEnabled: false, nativeNotificationNotifiedIds: [], reminders: {}, reminderCenter: { snoozedUntil: {}, done: {} }, aiInvoiceEnabled: false, aiProvider: 'openai', aiModel: 'gpt-4.1-mini', aiEndpoint: '', aiRememberKey: false, lastBackupDate: null, activeVehicleId: null } },
             pageFilters: {
                 dashboard: { mode: 'month', value: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}` },
                 fuel: { mode: 'year', value: new Date().getFullYear().toString() },
@@ -44,6 +44,7 @@
             _bulkImporting: false,
 
             _invalidateLogsCache() {
+                globalThis.FuelMateNativeNotifications?.requestSync();
                 this._logsVersion += 1;
                 this._cache.logsSorted.clear();
                 this._cache.logSearchText.clear();
@@ -218,8 +219,9 @@
                 }
             },
 
-            async saveData() {
+            async saveData(options = {}) {
                 await this.runTransaction('settings', 'readwrite', s => s.put({ id: 'global', ...this.data.settings }));
+                if (options.nativeNotifications !== false) globalThis.FuelMateNativeNotifications?.requestSync();
             },
 
             changeDistanceUnits(units) {
@@ -294,6 +296,7 @@
                 });
                 this.data.vehicles.push(vehicle);
                 if (shouldActivate) this.data.settings = nextSettings;
+                globalThis.FuelMateNativeNotifications?.requestSync();
             },
 
             async updateVehicle(vehicle) {
@@ -301,6 +304,7 @@
                 if (idx !== -1) {
                     await this.runTransaction('vehicles', 'readwrite', s => s.put(vehicle));
                     this.data.vehicles[idx] = vehicle;
+                    globalThis.FuelMateNativeNotifications?.requestSync();
                 }
             },
 
