@@ -68,6 +68,27 @@ test('old IndexedDB settings load without migration or changing document prefere
     assert.equal(run([item('backup:old')], settings).notifications.length, 1);
 });
 
+test('distance-only tires with a null date threshold repeat only after reaching their mileage', () => {
+    const settings = { notificationOverdueRepeat: 'daily' };
+    const tire = item('tire:v:asset:front', { category: 'tire', remainingKm: 500, remainingDays: null, dueDateIso: null });
+    const future = run([tire], settings);
+    assert.ok(future.notifications.every(n => n.extra.immediate));
+    assert.equal(run([tire], { ...settings, nativeNotificationNotifiedIds: future.notifiedIds }).notifications.length, 0);
+    for (const remainingKm of [0, -1]) {
+        const result = run([{ ...tire, remainingKm }], settings);
+        assert.equal(result.notifications.filter(n => n.schedule.repeats).length, 1);
+    }
+    for (const remainingKm of [null, undefined, 500]) {
+        const result = run([{ ...tire, remainingKm }], settings);
+        assert.equal(result.notifications.filter(n => !n.extra.immediate).length, 0);
+    }
+    const snoozedUntil = { [tire.id]: new Date(2026, 5, 10, 12).toISOString() };
+    assert.equal(run([tire], settings, { snoozedUntil }).notifications.length, 1);
+    assert.equal(run([{ ...tire, remainingKm: 0 }], settings, { snoozedUntil }).notifications.length, 64);
+    assert.equal(run([{ ...tire, remainingKm: -1 }], settings, { done: { [tire.id]: true } }).notifications.length, 0);
+    assert.equal(run([], settings).notifications.length, 0);
+});
+
 test('daily mode queues future followups without reopening the app or firing before the deadline', () => {
     const settings = { notificationOverdueRepeat: 'daily', notificationTime: '08:15', reminders: { license: { days: 1 } } };
     const result = run([dateItem], settings);

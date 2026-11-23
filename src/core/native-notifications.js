@@ -55,6 +55,9 @@
                 : null);
             const snooze = ids.map(id => center.snoozedUntil?.[id] || state.snoozedUntil?.[id])
                 .filter(Boolean).map(value => new Date(value)).filter(date => date > now).sort((a, b) => b - a)[0];
+            const due = localMorning(dueDate, 0, time);
+            const distanceDue = Number.isFinite(item.remainingKm) && item.remainingKm <= 0;
+            const overdue = distanceDue || (due && due <= now) || (!due && Number.isFinite(item.remainingDays) && item.remainingDays <= 0);
             const body = [item.vehicleLabel, item.title, item.meta].filter(Boolean).join(' • ');
             const add = (at, slot, immediate = false, daily = false) => {
                 if (at && at > now) candidates.push({
@@ -73,14 +76,11 @@
             if (snooze) {
                 const morning = localMorning(FuelMateCore.localDateKey(snooze), 0, time);
                 add(morning, 'snooze');
-                const due = localMorning(dueDate, 0, time);
                 if (due && due > morning) add(due, 'due');
-                if (settings.notificationOverdueRepeat === 'daily') addDailyFollowups(due && due > morning ? due : morning);
+                if (settings.notificationOverdueRepeat === 'daily' && (due || overdue)) addDailyFollowups(due && due > morning ? due : morning);
                 continue;
             }
             retained.add(item.id);
-            const due = localMorning(dueDate, 0, time);
-            const distanceDue = Number.isFinite(item.remainingKm) && item.remainingKm <= 0;
             if (!due || due <= now || distanceDue) {
                 if (!notified.has(item.id)) add(new Date(now.getTime() + 5000), 'now', true);
                 else {
@@ -93,7 +93,6 @@
                 add(alertDate, 'alert');
                 if (alertDate.getTime() !== due.getTime()) add(due, 'due');
             }
-            const overdue = distanceDue || (due && due <= now) || (!due && (item.remainingDays <= 0 || !Number.isFinite(item.remainingKm) && !Number.isFinite(item.remainingDays)));
             if (settings.notificationOverdueRepeat === 'daily' && overdue) {
                 const next = localMorning(FuelMateCore.localDateKey(now), 0, time);
                 if (next <= now) next.setDate(next.getDate() + 1);
