@@ -11,6 +11,8 @@ node_modules
 playwright-report/
 test-results/
 dist
+build/
+*.xcresult/
 dist-ssr
 *.local
 

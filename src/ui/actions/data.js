@@ -1,22 +1,14 @@
 // FuelMate UI module: actions/data
 Object.assign(ui, {
-downloadBackup(filenamePrefix = 'fuelmate_backup') {
+async downloadBackup(filenamePrefix = 'fuelmate_backup') {
                 const json = JSON.stringify(store.data);
                 const blob = new Blob([json], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
                 const ts = new Date().toISOString().replace(/[:]/g, '').slice(0, 15);
-                a.download = `${filenamePrefix}_${ts}.json`;
-                document.body.append(a);
-                a.click();
-                a.remove();
-                setTimeout(() => URL.revokeObjectURL(url), 60000);
-                return a.download;
+                return utils.downloadBlob(blob, `${filenamePrefix}_${ts}.json`);
             },
 
 async exportData() {
-                this.downloadBackup();
+                await this.downloadBackup();
                 // A browser download request cannot prove that iOS saved the file.
                 if (!confirm(utils.t('confirm_backup_saved'))) return;
                 const previous = store.data.settings.lastBackupDate;
@@ -26,7 +18,7 @@ async exportData() {
                 this.render();
             },
 
-exportCSV() { utils.exportCSV(); },
+exportCSV() { return utils.exportCSV(); },
 
 importData(input) {
                 const file = input.files[0];
@@ -103,7 +95,7 @@ importData(input) {
 
                         document.getElementById('confirm_import_btn').onclick = async () => {
                             try {
-                                const backupName = ui.downloadBackup('fuelmate_autobackup');
+                                const backupName = await ui.downloadBackup('fuelmate_autobackup');
                                 if (!confirm(utils.t('confirm_import_backup_saved').replace('{name}', backupName))) return;
 
                                 await store.importData(data, { overwrite: true });

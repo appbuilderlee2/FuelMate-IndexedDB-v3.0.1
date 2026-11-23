@@ -1,7 +1,7 @@
 {
   "name": "fuelmate-indexeddb",
   "private": true,
-  "version": "4.5.2",
+  "version": "4.6.0",
   "type": "module",
   "scripts": {
     "prepare:static": "node scripts/copy-static-js.mjs",
@@ -14,14 +14,23 @@
     "test": "node --test",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prebuild:ios": "npm run prepare:static && npm run build:css",
+    "build:ios": "vite build --mode ios && node scripts/seal-release.mjs && cap sync ios"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/cli": "^4.1.11",
     "@types/node": "^22.14.0",
     "tailwindcss": "^4.1.11",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/share": "^8.0.3"
   }
 }

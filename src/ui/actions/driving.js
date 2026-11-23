@@ -122,6 +122,6 @@ Object.assign(ui, {
     exportTrips() {
         const v=store.getActiveVehicle();
         const blob=new Blob([FuelMateDriving.csv(this.filteredTrips(),utils.getDistUnit(),`${v.make} ${v.model}`)],{type:'text/csv;charset=utf-8'});
-        const url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=`fuelmate-mileage-${this._tripMonth}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),10000);
+        return utils.downloadBlob(blob,`fuelmate-mileage-${this._tripMonth}.csv`);
     }
 });

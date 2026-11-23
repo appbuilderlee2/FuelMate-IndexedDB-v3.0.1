@@ -14,7 +14,7 @@ test('backup reminder is completed only after the user confirms the file was sav
       data: { vehicles: [], logs: [], settings: { lastBackupDate: null } },
       async saveData() { writes += 1; },
     },
-    utils: { t: key => key },
+    utils: { t: key => key, downloadBlob: async () => { downloads += 1; return 'backup.json'; } },
     FuelMateCore: { localDateKey: () => '2026-09-26' },
     Blob, JSON, Date, setTimeout: () => {},
     URL: { createObjectURL: () => 'blob:backup', revokeObjectURL() {} },
