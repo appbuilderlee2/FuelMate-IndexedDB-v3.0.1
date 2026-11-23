@@ -489,7 +489,7 @@ getReminderData(vehicle, options = {}) {
                 } else {
                     const daysSince = (now - new Date(store.data.settings.lastBackupDate)) / 86400000;
                     const advance = store.data.settings.reminders?.backup?.days ?? 0;
-                    if (daysSince > 30 - advance || includeAll && advance > 0) showBackup = true;
+                    if (daysSince > 30 - advance || includeAll) showBackup = true;
                 }
                 if (showBackup) {
                     const backupDue = store.data.settings.lastBackupDate ? new Date(store.data.settings.lastBackupDate) : null;
