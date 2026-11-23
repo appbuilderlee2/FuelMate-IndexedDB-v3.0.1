@@ -1,6 +1,8 @@
 // --- TRANSLATIONS ---
         const translations = {
             en: {
+                native_notifications: 'iPhone notifications',
+                native_notifications_denied: 'Enable FuelMate in iOS Settings > Notifications to receive iPhone notifications.',
                 fuel_restore_draft: 'Restore unsaved entry',
                 fuel_refresh: 'Load latest data and review this entry',
                 fuel_refresh_help: 'Your input is preserved. Load the latest vehicle data before checking and saving again.',
@@ -208,6 +210,8 @@
                 kwh: 'kWh'
             },
             zh: {
+                native_notifications: 'iPhone 通知',
+                native_notifications_denied: '請前往 iOS「設定」>「通知」> FuelMate 啟用通知。',
                 fuel_restore_draft: '恢復未儲存內容',
                 fuel_refresh: '讀取最新資料並核對今次輸入',
                 fuel_refresh_help: '輸入內容已保留，請讀取最新車輛資料，核對後再儲存。',

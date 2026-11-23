@@ -25,7 +25,29 @@ final class FuelMateUITests: XCTestCase {
         app.terminate()
         app.launch()
         XCTAssertTrue(app.webViews.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "NativeTest Offline")).firstMatch.waitForExistence(timeout: 30))
-        app.webViews.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Settings")).firstMatch.tap()
+        app.webViews.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Settings")).firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        let toggle = app.webViews.descendants(matching: .any).matching(identifier: "iPhone notifications").firstMatch
+        for _ in 0..<5 {
+            if toggle.exists && toggle.isHittable { break }
+            app.webViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(toggle.exists, app.debugDescription)
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        if toggle.value as? String != "1" {
+            toggle.tap()
+            let allow = springboard.alerts.buttons["Allow"]
+            if allow.waitForExistence(timeout: 5) { allow.tap() }
+        }
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertEqual(toggle.value as? String, "1", "Notification permission must be granted")
+        app.terminate()
+        app.launch()
+        app.webViews.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Settings")).firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        for _ in 0..<5 {
+            if toggle.exists && toggle.isHittable { break }
+            app.webViews.firstMatch.swipeUp()
+        }
+        XCTAssertEqual(toggle.value as? String, "1", "iPhone notification preference must persist")
         let backup = app.webViews.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Backup Data (JSON)")).firstMatch
         for _ in 0..<6 {
             if backup.frame.maxY < app.frame.height - 100 { break }

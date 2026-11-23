@@ -4,6 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.appbuilderlee2.fuelmate',
   appName: 'FuelMate',
   webDir: 'dist',
+  plugins: { LocalNotifications: { presentationOptions: ['banner', 'list', 'sound'] } },
   server: { iosScheme: 'capacitor', hostname: 'localhost' },
 };
 

@@ -5,6 +5,7 @@ init() {
                     FuelMateAppearance.apply(store.data.settings.appearance);
                     this.applyTransparency();
                     this.render();
+                    globalThis.FuelMateNativeNotifications?.init().catch(error => console.error('Native notifications failed', error));
                     if (!store.data.vehicles.length) this.openAddVehicle();
                 }).catch(err => {
                     console.error('DB Init Failed', err);
