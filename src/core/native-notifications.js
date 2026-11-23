@@ -32,10 +32,11 @@
         return (hash >>> 0) % 2147483646 + 1;
     }
 
-    function plan(center, now, settings, pending = [], limit = 64) {
+    function plan(center, now, settings, pending = [], limit = 64, delivered = []) {
         const notifications = [];
         const notified = new Set(settings.nativeNotificationNotifiedIds || []);
         const retained = new Set();
+        const scheduledAlerts = {};
         const state = settings.reminderCenter || {};
         const candidates = [];
         const seen = new Set();
@@ -65,7 +66,7 @@
                 if (at && at > now) candidates.push({
                     key: item.id + ':' + slot, title: 'FuelMate', body: message,
                     schedule: daily ? { on: { hour, minute }, repeats: true } : { at },
-                    extra: { fuelmate: true, reminderId: item.id, immediate, fireAt: at.getTime() },
+                    extra: { fuelmate: true, reminderId: item.id, immediate, fireAt: at.getTime(), onceKey: !daily && due && at.getTime() === due.getTime() ? item.id : undefined },
                 });
             };
             const addDailyFollowups = start => {
@@ -82,6 +83,13 @@
                 continue;
             }
             retained.add(item.id);
+            const scheduledAt = settings.nativeNotificationScheduledAlerts?.[item.id];
+            if (Number.isFinite(scheduledAt) && scheduledAt <= now.getTime()
+                || [...pending, ...delivered].some(entry => entry.extra?.reminderId === item.id
+                    && !entry.schedule?.repeats && Number.isFinite(entry.extra.fireAt)
+                    && entry.extra.fireAt <= now.getTime() && due && entry.extra.fireAt >= due.getTime())) {
+                notified.add(item.id);
+            }
             if (!due || due <= now || distanceDue) {
                 if (!notified.has(item.id)) add(new Date(now.getTime() + 5000), 'now', true);
                 else {
@@ -113,8 +121,9 @@
         for (const { key, ...entry } of candidates.slice(0, Math.min(64, Math.max(0, limit)))) {
             notifications.push(entry);
             if (entry.extra.immediate) notified.add(entry.extra.reminderId);
+            if (entry.extra.onceKey) scheduledAlerts[entry.extra.onceKey] = entry.extra.fireAt;
         }
-        return { notifications, notifiedIds: [...notified].filter(id => retained.has(id)).sort() };
+        return { notifications, notifiedIds: [...notified].filter(id => retained.has(id)).sort(), scheduledAlerts };
     }
 
     async function sync() {
@@ -123,19 +132,34 @@
         const { notifications: pending } = await api.getPending();
         const owned = pending.filter(entry => entry.extra?.fuelmate === true);
         if (owned.length) await api.cancel({ notifications: owned.map(({ id }) => ({ id })) });
-        if (!store.data.settings.nativeNotificationsEnabled) return;
+        if (!store.data.settings.nativeNotificationsEnabled) {
+            await clearFutureAlerts();
+            return;
+        }
         if ((await api.checkPermissions()).display !== 'granted') {
             store.data.settings.nativeNotificationsEnabled = false;
+            await clearFutureAlerts();
             await store.saveData({ nativeNotifications: false });
             ui.render();
             return;
         }
-        const result = plan(ui.getReminderCenterData('all'), new Date(), store.data.settings, owned, 64 - (pending.length - owned.length));
+        const delivered = (await api.getDeliveredNotifications()).notifications;
+        const result = plan(ui.getReminderCenterData('all'), new Date(), store.data.settings, owned, 64 - (pending.length - owned.length), delivered);
         if (result.notifications.length) await api.schedule({ notifications: result.notifications });
-        if (JSON.stringify(store.data.settings.nativeNotificationNotifiedIds || []) !== JSON.stringify(result.notifiedIds)) {
+        if (JSON.stringify(store.data.settings.nativeNotificationNotifiedIds || []) !== JSON.stringify(result.notifiedIds)
+            || JSON.stringify(store.data.settings.nativeNotificationScheduledAlerts || {}) !== JSON.stringify(result.scheduledAlerts)) {
             store.data.settings.nativeNotificationNotifiedIds = result.notifiedIds;
+            store.data.settings.nativeNotificationScheduledAlerts = result.scheduledAlerts;
             await store.saveData({ nativeNotifications: false });
         }
+    }
+
+    async function clearFutureAlerts() {
+        if (!store.data.settings.nativeNotificationScheduledAlerts) return;
+        store.data.settings.nativeNotificationScheduledAlerts = Object.fromEntries(
+            Object.entries(store.data.settings.nativeNotificationScheduledAlerts).filter(([, at]) => Number.isFinite(at) && at <= Date.now())
+        );
+        await store.saveData({ nativeNotifications: false });
     }
 
     function requestSync() {

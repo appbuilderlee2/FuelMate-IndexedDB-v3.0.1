@@ -188,6 +188,26 @@ test('document offsets and separate due dates use local 09:00 with stable intege
     assert.equal(run([dateItem], { reminders: { license: { days: 0 } } }).notifications.length, 1);
 });
 
+test('scheduled and delivered due alerts prevent a second overdue immediate notification', () => {
+    const before = new Date(2026, 6, 1, 8);
+    const after = new Date(2026, 6, 1, 10);
+    const first = plan({ items: [dateItem] }, before, {});
+    assert.equal(first.scheduledAlerts[dateItem.id], new Date(2026, 6, 1, 9).getTime());
+    assert.equal(first.notifiedIds.length, 0);
+    const settings = { nativeNotificationScheduledAlerts: first.scheduledAlerts };
+    const second = plan({ items: [dateItem] }, after, settings);
+    assert.equal(second.notifications.length, 0);
+    assert.deepEqual(Array.from(second.notifiedIds), [dateItem.id]);
+    assert.equal(plan({ items: [dateItem] }, after, {}, [], 64, first.notifications).notifications.length, 0);
+    assert.equal(plan({ items: [dateItem] }, after, {}, first.notifications).notifications.length, 0);
+    assert.equal(plan({ items: [dateItem] }, after, {}).notifications.length, 1);
+    assert.equal(plan({ items: [dateItem] }, before, {}, [], 0).scheduledAlerts[dateItem.id], undefined);
+    const advanced = plan({ items: [dateItem] }, before, {}, [], 64, [{ ...first.notifications[0], extra: { ...first.notifications[0].extra, fireAt: new Date(2026, 5, 1).getTime() } }]);
+    assert.equal(advanced.notifiedIds.length, 0);
+    assert.equal(plan({ items: [] }, after, settings).notifiedIds.length, 0);
+    assert.equal(Object.keys(plan({ items: [] }, after, settings).scheduledAlerts).length, 0);
+});
+
 test('past advance dates are skipped; overdue items notify only once', () => {
     const result = run([dateItem], { reminders: { license: { days: 60 } } });
     assert.equal(result.notifications.length, 1);
