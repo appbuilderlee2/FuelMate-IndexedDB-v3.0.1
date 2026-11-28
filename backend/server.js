@@ -334,3 +334,4 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`fuelmate-backend v${VERSION} listening on :${PORT}, data dir ${DATA_DIR}`);
 });
+// auto-deploy check: git push triggers a Cloady redeploy (2026-11-29)
