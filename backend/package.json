@@ -1,0 +1,1 @@
+{"description":"Single-user JSON backup vault for FuelMate (IndexedDB export format). Zero dependencies.","engines":{"node":">=20"},"main":"server.js","name":"fuelmate-backend","private":true,"scripts":{"start":"node server.js"},"type":"commonjs","version":"1.0.1"}

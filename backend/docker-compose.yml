@@ -1,0 +1,21 @@
+services:
+  fuelmate-backend:
+    build: .
+    ports:
+      - "3000"
+    environment:
+      - DATA_DIR=/data
+      # FUELMATE_TOKEN is set in Cloady Settings -> Environment (secret),
+      # NOT in this file. The server refuses to start without it.
+    volumes:
+      - fuelmate-data:/data
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+volumes:
+  fuelmate-data:
+    driver_opts:
+      size: 1Gi
